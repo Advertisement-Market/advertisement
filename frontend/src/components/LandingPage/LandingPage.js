@@ -1,5 +1,6 @@
 import React from 'react';
 import './LandingPage.css';
+import HowItWorks from '../HowItWorks/HowItWorks';
 
 const LandingPage = () => {
   return (
@@ -169,65 +170,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="process-section">
-        <div className="process-container">
-          <div className="section-header">
-            <h2 className="section-title">How It Works</h2>
-            <p className="section-description">
-              Get your billboard campaign live in just four simple steps
-            </p>
-          </div>
-
-          <div className="process-steps">
-            <div className="step-item">
-              <div className="step-number">1</div>
-              <div className="step-content">
-                <h3 className="step-title">Choose Location</h3>
-                <p className="step-description">
-                  Browse our extensive network of premium billboard locations and select the ones that best match your target audience.
-                </p>
-              </div>
-            </div>
-
-            <div className="step-connector"></div>
-
-            <div className="step-item">
-              <div className="step-number">2</div>
-              <div className="step-content">
-                <h3 className="step-title">Design Campaign</h3>
-                <p className="step-description">
-                  Work with our creative team to design compelling advertisements or upload your existing creative assets.
-                </p>
-              </div>
-            </div>
-
-            <div className="step-connector"></div>
-
-            <div className="step-item">
-              <div className="step-number">3</div>
-              <div className="step-content">
-                <h3 className="step-title">Launch & Monitor</h3>
-                <p className="step-description">
-                  Your campaign goes live with real-time monitoring and analytics to track performance and engagement.
-                </p>
-              </div>
-            </div>
-
-            <div className="step-connector"></div>
-
-            <div className="step-item">
-              <div className="step-number">4</div>
-              <div className="step-content">
-                <h3 className="step-title">Optimize Results</h3>
-                <p className="step-description">
-                  Review detailed reports and optimize your campaign based on data-driven insights for maximum ROI.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* How It Works Section (tabbed) */}
+      <HowItWorks />
 
       {/* CTA Section */}
       <section className="cta-section">
