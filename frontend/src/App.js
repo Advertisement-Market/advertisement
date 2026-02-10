@@ -1,13 +1,15 @@
 import React from 'react';
+import Header from './components/Header/Header';
+import LandingPage from './components/LandingPage/LandingPage';
+import Footer from './components/Footer/Footer';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Billboard Marketplace</h1>
-        <p>Connecting Billboard Owners with Advertisers</p>
-      </header>
+      <Header />
+      <LandingPage />
+      <Footer />
     </div>
   );
 }

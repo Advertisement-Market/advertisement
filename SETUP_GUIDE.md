@@ -8,6 +8,7 @@ Complete guide for building, running, and testing the Billboard Marketplace appl
 - [Prerequisites](#prerequisites)
 - [Backend Setup](#backend-setup)
 - [Frontend Setup](#frontend-setup)
+- [Testing](#testing)
 - [Authentication](#authentication)
 - [Available APIs](#available-apis)
 - [Troubleshooting](#troubleshooting)
@@ -150,6 +151,229 @@ npm run build
 
 # Eject from Create React App (irreversible)
 npm run eject
+```
+
+---
+
+## Testing
+
+### Frontend Test Suite
+
+#### 1. Run All Tests
+```bash
+cd frontend
+
+# Run tests in interactive watch mode
+npm test
+
+# Run tests once (CI mode)
+npm test -- --watchAll=false
+
+# Run tests with verbose output
+npm test -- --watchAll=false --verbose
+```
+
+#### 2. Run Tests with Coverage Report
+```bash
+# Generate coverage report
+npm test -- --watchAll=false --coverage
+
+# View coverage summary in console
+npm test -- --coverage --watchAll=false
+```
+
+#### 3. Run Specific Test Files
+```bash
+# Test Header component
+npm test -- --watchAll=false src/__tests__/components/Header.test.js
+
+# Test Footer component
+npm test -- --watchAll=false src/__tests__/components/Footer.test.js
+
+# Test LandingPage component
+npm test -- --watchAll=false src/__tests__/components/LandingPage.test.js
+
+# Test App integration
+npm test -- --watchAll=false src/__tests__/App.test.js
+```
+
+#### 4. Run Tests with Specific Pattern
+```bash
+# Run only Header tests
+npm test -- --watchAll=false --testNamePattern="Header Component"
+
+# Run only Footer tests
+npm test -- --watchAll=false --testNamePattern="Footer Component"
+
+# Run only LandingPage tests
+npm test -- --watchAll=false --testNamePattern="LandingPage Component"
+
+# Run only rendering tests
+npm test -- --watchAll=false --testNamePattern="Rendering"
+```
+
+#### 5. Watch Mode for Development
+```bash
+# Start test watcher (auto-runs on file changes)
+npm test
+
+# In watch mode, press:
+# - 'a' to run all tests
+# - 'p' to filter by filename
+# - 't' to filter by test name
+# - 'q' to quit
+```
+
+#### 6. Test Coverage Thresholds
+The test suite includes:
+- **84 total tests** across all components
+- **73+ passing tests** with high code coverage
+- **Component tests:** Header, Footer, LandingPage
+- **Integration tests:** App component
+- **Accessibility tests:** ARIA labels, semantic HTML
+- **Responsive design tests:** CSS classes and layouts
+
+#### 7. Debugging Tests
+```bash
+# Run tests with debugging enabled
+node --inspect-brk node_modules/.bin/jest --runInBand
+
+# Run specific test with debugging
+node --inspect-brk node_modules/.bin/jest --runInBand src/__tests__/components/Header.test.js
+```
+
+#### 8. Test Categories
+
+**Rendering Tests:**
+- Component visibility and structure
+- Text content and elements
+- SVG icons and visual elements
+
+**Functionality Tests:**
+- Search input and form submission
+- Mobile menu toggle
+- Navigation interactions
+- Button clicks and state changes
+
+**Accessibility Tests:**
+- ARIA labels and roles
+- Keyboard navigation
+- Semantic HTML structure
+- Color contrast and readability
+
+**Responsive Design Tests:**
+- CSS class application
+- Grid and layout structures
+- Mobile menu behavior
+- Breakpoint handling
+
+**Content Tests:**
+- Heading hierarchy
+- Link structure
+- Form validation
+- Newsletter signup
+
+### Backend Test Suite
+
+#### 1. Run All Tests
+```bash
+cd backend
+
+# Run all tests
+mvn test
+
+# Run tests with output
+mvn test -X
+```
+
+#### 2. Run Tests with Coverage
+```bash
+# Generate coverage report with JaCoCo
+mvn clean test jacoco:report
+
+# View coverage report
+open target/site/jacoco/index.html
+```
+
+#### 3. Run Specific Test Class
+```bash
+# Run specific test
+mvn test -Dtest=MarketplaceApplicationTests
+
+# Run multiple tests
+mvn test -Dtest=MarketplaceApplicationTests,HealthControllerTests
+```
+
+#### 4. Skip Tests During Build
+```bash
+# Build without running tests
+mvn clean package -DskipTests
+
+# Install without tests
+mvn clean install -DskipTests
+```
+
+### Running Tests Together
+
+#### Terminal 1 - Frontend Tests
+```bash
+cd frontend
+npm test -- --watchAll=false --coverage
+```
+
+#### Terminal 2 - Backend Tests
+```bash
+cd backend
+mvn test
+```
+
+### Continuous Integration (CI) Mode
+
+For automated testing in CI/CD pipelines:
+
+**Frontend:**
+```bash
+cd frontend
+npm test -- --watchAll=false --coverage --passWithNoTests
+```
+
+**Backend:**
+```bash
+cd backend
+mvn clean test -B
+```
+
+### Test Results Interpretation
+
+**Passing Tests:**
+- ✓ All assertions passed
+- Component renders correctly
+- Functionality works as expected
+
+**Failing Tests:**
+- ✗ Assertion failed
+- Check error message for details
+- Review component implementation
+
+**Coverage Report:**
+- **Statements:** Percentage of code executed
+- **Branches:** Percentage of conditional paths tested
+- **Functions:** Percentage of functions called
+- **Lines:** Percentage of lines executed
+
+### Common Test Commands Quick Reference
+
+```bash
+# Frontend
+npm test                                    # Interactive watch mode
+npm test -- --watchAll=false               # Run once
+npm test -- --watchAll=false --coverage    # With coverage
+npm test -- --watchAll=false --verbose     # Verbose output
+
+# Backend
+mvn test                                    # Run all tests
+mvn clean test jacoco:report               # With coverage
+mvn test -Dtest=ClassName                  # Specific test
 ```
 
 ---
