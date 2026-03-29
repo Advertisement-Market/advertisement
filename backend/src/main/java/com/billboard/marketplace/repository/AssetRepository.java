@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface AssetRepository extends JpaRepository<Asset, String> {
 
-    List<Asset> findByCompanyId(String companyId);
+    List<Asset> findByCompany_Id(String companyId);
 }

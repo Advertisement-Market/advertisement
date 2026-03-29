@@ -35,7 +35,7 @@ public class AssetService {
 
     @Transactional
     public AssetResponse createAsset(AssetRequest request, String ownerEmail) {
-        Company company = companyRepository.findByUserId(getUserIdByEmail(ownerEmail))
+        Company company = companyRepository.findByUser_Id(getUserIdByEmail(ownerEmail))
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for this user"));
 
         Asset asset = Asset.builder()
@@ -92,10 +92,10 @@ public class AssetService {
     @Transactional(readOnly = true)
     public List<AssetResponse> listAssets(String ownerEmail) {
         String userId = getUserIdByEmail(ownerEmail);
-        Company company = companyRepository.findByUserId(userId)
+        Company company = companyRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
 
-        List<Asset> assets = assetRepository.findByCompanyId(company.getId());
+        List<Asset> assets = assetRepository.findByCompany_Id(company.getId());
         return assets.stream().map(asset -> {
             List<String> urls = assetImageRepository.findByAssetIdOrderByDisplayOrderAsc(asset.getId())
                     .stream().map(AssetImage::getImageUrl).toList();
@@ -118,7 +118,7 @@ public class AssetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + assetId));
 
         String userId = getUserIdByEmail(ownerEmail);
-        Company company = companyRepository.findByUserId(userId)
+        Company company = companyRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
 
         if (!asset.getCompany().getId().equals(company.getId())) {
