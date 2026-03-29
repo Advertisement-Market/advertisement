@@ -9,14 +9,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
 public class HealthController {
 
-    @GetMapping("/health")
+    @GetMapping("/api/health")
     public ResponseEntity<Map<String, String>> health() {
         Map<String, String> response = new HashMap<>();
         response.put("status", "UP");
-        response.put("message", "Billboard Marketplace API is running");
+        response.put("service", "Billboard Marketplace API");
+        response.put("version", "1.0.0");
         return ResponseEntity.ok(response);
     }
 }
