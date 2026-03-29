@@ -45,7 +45,7 @@ public class AssetController {
     @PreAuthorize("hasRole('BILLBOARD_OWNER')")
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AssetResponse> uploadImages(
-            @PathVariable("id") String assetId,
+            @PathVariable String assetId,
             @RequestParam("files") List<MultipartFile> files,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
@@ -73,7 +73,7 @@ public class AssetController {
     @PreAuthorize("hasRole('BILLBOARD_OWNER')")
     @GetMapping("/{id}")
     public ResponseEntity<AssetResponse> getAsset(
-            @PathVariable("id") String assetId,
+            @PathVariable String assetId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
         AssetResponse response = assetService.getAsset(assetId, userDetails.getUsername());
