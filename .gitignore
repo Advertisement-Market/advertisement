@@ -121,9 +121,23 @@ frontend/.env
 .DS_Store
 Thumbs.db
 
+### Local Docs (not for repo) ###
+backend/BACKEND_GUIDE.md
+
 ### Temporary Files ###
 *.tmp
 *.temp
 *.swp
 *.swo
 *~
+
+### Uploaded Files (user-generated content, never commit binaries) ###
+uploads/
+backend/uploads/
+**/uploads/
+
+### Claude Code (AI assistant config — keep local) ###
+.claude/
+
+### Generated HTML docs ###
+*.html
