@@ -1,12 +1,10 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-// Only proxy API requests to the backend to avoid proxying static assets (e.g. /favicon.ico)
+// Proxy all backend routes to Spring Boot on port 8080
 module.exports = function(app) {
-  app.use(
-    '/api',
-    createProxyMiddleware({
-      target: 'http://localhost:8080',
-      changeOrigin: true,
-    })
-  );
+  const target = 'http://localhost:8080';
+  const proxyConfig = { target, changeOrigin: true };
+
+  app.use('/api', createProxyMiddleware(proxyConfig));    // /api/v1/assets, /api/health
+  app.use('/auth', createProxyMiddleware(proxyConfig));   // /auth/login, /auth/register, /auth/refresh, /auth/logout
 };
