@@ -141,3 +141,4 @@ backend/uploads/
 
 ### Generated HTML docs ###
 *.html
+!frontend/templates/*.html

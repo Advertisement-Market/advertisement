@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Browse Billboards — The AdBasket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ════════════════════════════════════════════════════════════
+   ADMARKET — BROWSE BILLBOARDS  (Premium Redesign)
+   Tokens inherited directly from index.html design system
+   Playfair Display · Inter · DM Mono
+   Palette: Indigo Night · Warm Gold · Ivory · Cream
+════════════════════════════════════════════════════════════ */
+:root {
+  --indigo:        #4F46E5;
+  --indigo-dark:   #3730A3;
+  --indigo-mid:    #4338CA;
+  --indigo-light:  #EEF2FF;
+  --indigo-faint:  #F5F4FF;
+  --indigo-glow:   rgba(79,70,229,0.18);
+  --teal:          #0891B2;
+  --teal-dark:     #0E7490;
+  --teal-light:    #ECFEFF;
+  --gold:          #C9943A;
+  --gold-bright:   #E0AA4A;
+  --gold-dim:      #A07828;
+  --gold-dark:     #B45309;
+  --gold-light:    #FFFBEB;
+  --gold-glow:     rgba(201,148,58,0.20);
+  --green:         #059669;
+  --green-light:   #D1FAE5;
+  --rose:          #E11D48;
+  --rose-light:    #FFF1F2;
+
+  /* Dark surfaces (nav) */
+  --forest:        #0F0E1A;
+  --forest-mid:    #16152B;
+  --forest-light:  #1E1C38;
+  --forest-border: rgba(255,255,255,0.07);
+  --ivory:         #F0EEFF;
+  --ivory-2:       rgba(240,238,255,0.62);
+
+  /* Light surfaces */
+  --cream:         #FAFAFE;
+  --cream-2:       #F2F1FC;
+  --cream-warm:    #F5F5FC;
+  --cream-deep:    #ECEAF8;
+  --surface:       #FFFFFF;
+  --border:        rgba(79,70,229,0.07);
+  --border-mid:    rgba(79,70,229,0.13);
+  --border-strong: rgba(79,70,229,0.22);
+  --ink:           #0D0C1A;
+  --ink-rich:      #0D0C1A;
+  --ink-mid:       #3D3B5A;
+  --ink-muted:     #5A5872;
+  --ink-soft:      #8A88A6;
+  --ink-faint:     #A8A6C0;
+
+  /* Fonts */
+  --font-display:  'Playfair Display', Georgia, serif;
+  --font-body:     'Inter', system-ui, sans-serif;
+  --font-mono:     'DM Mono', 'Courier New', monospace;
+
+  /* Motion */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Shadows */
+  --shadow-xs:     0 1px 3px rgba(13,12,26,0.06), 0 1px 2px rgba(13,12,26,0.04);
+  --shadow-sm:     0 2px 10px rgba(13,12,26,0.08), 0 4px 16px rgba(13,12,26,0.04);
+  --shadow-md:     0 8px 36px rgba(13,12,26,0.11), 0 2px 8px rgba(13,12,26,0.05);
+  --shadow-lg:     0 20px 60px rgba(13,12,26,0.17), 0 4px 16px rgba(13,12,26,0.07);
+  --shadow-card:   0 1px 3px rgba(13,12,26,0.05), 0 6px 24px rgba(13,12,26,0.05);
+  --shadow-gold:   0 4px 24px rgba(201,148,58,0.28);
+  --shadow-indigo: 0 4px 20px rgba(79,70,229,0.22);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-body); background: var(--cream); color: var(--ink); line-height: 1.6; overflow-x: hidden; padding-top: 71px; }
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--font-body); cursor: pointer; border: none; }
+
+/* ── India Stripe ── */
+/* ════════════════════════════════
+   NAVIGATION — matches index exactly
+════════════════════════════════ */
+.site-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 150;
+  height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 5%; gap: 20px;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(79,70,229,0.03), 0 4px 20px rgba(13,12,26,0.05);
+}
+.nav-left { display: flex; align-items: center; gap: 24px; }
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.5px;
+  display: inline-flex; align-items: baseline; gap: 0;
+}
+.nav-logo .logo-the {
+  font-style: italic; font-weight: 300; font-size: 22px;
+  color: rgba(13,17,23,0.22); letter-spacing: -0.5px;
+}
+.nav-logo .logo-ad  { color: var(--ink); }
+.nav-logo .logo-bsk { color: var(--indigo); }
+.nav-back {
+  font-size: 12.5px; color: var(--ink-soft);
+  display: flex; align-items: center; gap: 5px;
+  transition: color 0.18s; padding: 6px 0;
+  font-weight: 400;
+}
+.nav-back:hover { color: var(--indigo); }
+.nav-back:hover svg { transform: translateX(-2px); }
+.nav-back svg { transition: transform 0.18s; }
+
+.nav-switcher {
+  display: flex; background: var(--cream-2);
+  border: 1px solid var(--border-mid); border-radius: 50px;
+  padding: 3px; gap: 0; position: relative;
+}
+.nav-switcher-pill {
+  position: absolute; top: 3px; left: 3px;
+  height: calc(100% - 6px); border-radius: 50px;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.28s var(--ease-spring), width 0.28s var(--ease-spring);
+  pointer-events: none; z-index: 0;
+}
+.nav-switch-btn {
+  font-size: 12px; font-weight: 500; padding: 5px 16px;
+  border-radius: 50px; background: transparent;
+  color: var(--ink-soft); transition: color 0.2s;
+  position: relative; z-index: 1;
+}
+.nav-switch-btn.active { color: var(--indigo); font-weight: 600; }
+.nav-switch-btn:hover:not(.active) { color: var(--ink); }
+
+.nav-cta { display: flex; align-items: center; gap: 8px; }
+.btn-nav-ghost {
+  font-size: 13px; font-weight: 500; padding: 7px 18px;
+  border-radius: 9px; border: 1px solid var(--border-mid);
+  background: transparent; color: var(--ink-mid); transition: all 0.18s;
+}
+.btn-nav-ghost:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-faint); }
+.btn-nav-primary {
+  font-size: 13px; font-weight: 600; padding: 7px 18px;
+  border-radius: 9px; background: var(--indigo); color: #fff;
+  box-shadow: 0 2px 10px rgba(79,70,229,0.28); transition: all 0.2s;
+}
+.btn-nav-primary:hover { background: var(--indigo-dark); box-shadow: 0 4px 18px rgba(79,70,229,0.4); transform: translateY(-1px); }
+
+/* ════════════════════════════════
+   BROWSE COMMAND BAR (sticky below nav)
+   Full redesign: elevated glass panel
+════════════════════════════════ */
+.browse-bar {
+  position: sticky; top: 71px; z-index: 100;
+  background: rgba(255,255,255,0.98);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 5%;
+  height: 64px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 20px rgba(13,12,26,0.05);
+}
+
+/* Search field */
+.browse-search-wrap { flex: 1; max-width: 360px; position: relative; }
+.browse-search-icon {
+  position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-faint); pointer-events: none; display: flex;
+}
+.browse-search-input {
+  width: 100%; height: 38px;
+  background: var(--cream); border: 1.5px solid var(--border-mid);
+  border-radius: 11px; padding: 0 14px 0 38px;
+  font-family: var(--font-body); font-size: 13px; color: var(--ink);
+  outline: none; transition: all 0.22s;
+}
+.browse-search-input::placeholder { color: var(--ink-faint); }
+.browse-search-input:focus { border-color: var(--indigo); background: var(--surface); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+
+/* Divider */
+.bar-divider { width: 1px; height: 22px; background: var(--border-mid); flex-shrink: 0; }
+
+/* ── Premium custom dropdown ── */
+.custom-dropdown {
+  position: relative; display: inline-flex; align-items: center;
+  flex-shrink: 0;
+}
+.dropdown-trigger {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
+  color: var(--ink-mid); background: transparent;
+  border: 1.5px solid var(--border-mid);
+  border-radius: 10px; padding: 7px 13px 7px 13px;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  height: 36px;
+}
+.dropdown-trigger:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-faint); }
+.dropdown-trigger.open { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-faint); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+.dropdown-trigger.has-value { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-light); }
+.dropdown-caret {
+  width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-faint); transition: transform 0.22s var(--ease-spring); flex-shrink: 0;
+}
+.dropdown-trigger.open .dropdown-caret { transform: rotate(180deg); }
+
+/* Dropdown panel */
+.dropdown-panel {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  min-width: 200px; background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 14px; padding: 6px;
+  box-shadow: 0 8px 40px rgba(13,12,26,0.14), 0 2px 8px rgba(13,12,26,0.06);
+  z-index: 300; opacity: 0; pointer-events: none;
+  transform: translateY(-6px) scale(0.97);
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  transform-origin: top left;
+}
+.dropdown-panel.open {
+  opacity: 1; pointer-events: all;
+  transform: translateY(0) scale(1);
+}
+.dropdown-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 11px; border-radius: 8px;
+  font-size: 13px; color: var(--ink-mid); cursor: pointer;
+  transition: all 0.15s; font-family: var(--font-body);
+  font-weight: 400; white-space: nowrap;
+}
+.dropdown-item:hover { background: var(--indigo-faint); color: var(--indigo); }
+.dropdown-item.selected { background: var(--indigo-light); color: var(--indigo); font-weight: 600; }
+.dropdown-item.selected::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); margin-left: auto; }
+.dropdown-item-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); flex-shrink: 0; }
+.dropdown-item:hover .dropdown-item-icon,
+.dropdown-item.selected .dropdown-item-icon { color: var(--indigo); }
+.dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+.dropdown-label { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: var(--ink-faint); padding: 6px 11px 3px; text-transform: uppercase; }
+
+/* Sort dropdown — right-aligned */
+.custom-dropdown.align-right .dropdown-panel { left: auto; right: 0; transform-origin: top right; }
+
+/* View toggle */
+.view-toggle {
+  display: flex; background: var(--cream); border: 1.5px solid var(--border-mid);
+  border-radius: 10px; padding: 3px; gap: 2px; flex-shrink: 0;
+}
+.view-btn {
+  width: 30px; height: 28px; border-radius: 7px; border: none;
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft); transition: all 0.18s;
+}
+.view-btn.active { background: var(--surface); color: var(--indigo); box-shadow: var(--shadow-xs); }
+.view-btn:hover:not(.active) { color: var(--ink); background: var(--cream-2); }
+
+.browse-bar-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+/* saved/compare badge */
+#savedCount {
+  display: none; font-size: 12px; color: var(--rose);
+  font-weight: 600; cursor: pointer; padding: 4px 10px;
+  background: var(--rose-light); border-radius: 7px;
+  border: 1px solid rgba(225,29,72,0.12);
+  transition: all 0.18s;
+}
+#savedCount:hover { background: #ffe4ea; }
+
+/* ════════════════════════════════
+   COMPARE BAR
+════════════════════════════════ */
+.compare-bar {
+  display: none; position: sticky; top: 135px; z-index: 90;
+  background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+  color: #fff; padding: 0 5%; height: 48px;
+  align-items: center; justify-content: space-between; gap: 16px;
+  box-shadow: 0 4px 24px rgba(79,70,229,0.4);
+}
+.compare-bar.visible { display: flex; }
+.compare-bar-label { font-size: 11.5px; font-weight: 500; opacity: 0.72; white-space: nowrap; letter-spacing: 0.3px; }
+.compare-chips { display: flex; gap: 6px; align-items: center; flex: 1; }
+.compare-chip {
+  background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 7px; padding: 3px 10px 3px 12px; font-size: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.compare-chip-x {
+  background: rgba(255,255,255,0.18); border: none; color: #fff;
+  width: 16px; height: 16px; border-radius: 4px; font-size: 10px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.compare-chip-x:hover { background: rgba(255,255,255,0.32); }
+.compare-actions { display: flex; gap: 7px; flex-shrink: 0; }
+.btn-compare-clear {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+  color: #fff; font-size: 12px; font-weight: 500; padding: 5px 14px;
+  border-radius: 8px; cursor: pointer; transition: all 0.18s;
+}
+.btn-compare-clear:hover { background: rgba(255,255,255,0.2); }
+.btn-compare-now {
+  background: #fff; color: var(--indigo); font-size: 12px; font-weight: 600;
+  padding: 5px 16px; border-radius: 8px; cursor: pointer; transition: all 0.18s;
+  box-shadow: 0 2px 10px rgba(13,12,26,0.15);
+}
+.btn-compare-now:hover { background: var(--indigo-light); transform: translateY(-1px); }
+
+/* ════════════════════════════════
+   PAGE LAYOUT
+════════════════════════════════ */
+.browse-layout { display: grid; grid-template-columns: 268px 1fr; min-height: calc(100vh - 135px); }
+
+/* ════════════════════════════════
+   FILTER SIDEBAR — full redesign
+════════════════════════════════ */
+.filter-sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: sticky; top: 135px;
+  height: calc(100vh - 135px);
+  overflow-y: auto; overflow-x: hidden;
+}
+.filter-sidebar::-webkit-scrollbar { width: 3px; }
+.filter-sidebar::-webkit-scrollbar-track { background: transparent; }
+.filter-sidebar::-webkit-scrollbar-thumb { background: var(--cream-deep); border-radius: 2px; }
+
+/* Sidebar header */
+.filter-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 2;
+}
+.filter-header-left { display: flex; align-items: center; gap: 9px; }
+.filter-header-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--indigo-light); display: flex; align-items: center; justify-content: center;
+  color: var(--indigo);
+}
+.filter-header-title {
+  font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.3px;
+}
+.filter-reset-btn {
+  font-size: 11.5px; font-weight: 500; color: var(--ink-faint);
+  background: none; border: none; cursor: pointer;
+  transition: color 0.18s; padding: 4px 0;
+}
+.filter-reset-btn:hover { color: var(--rose); }
+
+/* Section */
+.filter-section { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+.filter-section:last-child { border-bottom: none; }
+.filter-section-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.3px; color: var(--ink-faint); margin-bottom: 11px; display: block;
+}
+
+/* Premium custom select in sidebar */
+.filter-select-wrap { position: relative; }
+.filter-select {
+  width: 100%; font-family: var(--font-body); font-size: 13px; color: var(--ink);
+  background: var(--cream-warm); border: 1.5px solid var(--border-mid);
+  border-radius: 10px; padding: 9px 34px 9px 12px; outline: none;
+  appearance: none; -webkit-appearance: none; cursor: pointer; transition: all 0.2s;
+}
+.filter-select:hover { border-color: var(--indigo); background: var(--indigo-faint); }
+.filter-select:focus { border-color: var(--indigo); background: var(--surface); box-shadow: 0 0 0 3px rgba(79,70,229,0.07); }
+.filter-select-arrow {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; color: var(--ink-faint); display: flex;
+  transition: transform 0.2s;
+}
+.filter-select:focus + .filter-select-arrow { transform: translateY(-50%) rotate(180deg); }
+
+/* Filter pills — premium pill style */
+.filter-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+.filter-pill {
+  font-size: 11.5px; font-weight: 500; padding: 5px 12px;
+  border-radius: 50px; border: 1.5px solid var(--border-mid);
+  background: transparent; color: var(--ink-mid);
+  cursor: pointer; transition: all 0.18s; font-family: var(--font-body);
+  line-height: 1;
+}
+.filter-pill:hover:not(.active) { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-faint); }
+.filter-pill.active {
+  background: var(--indigo); color: #fff; border-color: var(--indigo);
+  box-shadow: 0 2px 10px rgba(79,70,229,0.25);
+}
+
+/* Budget range with styled inputs */
+.price-range-wrap { display: flex; flex-direction: column; gap: 10px; }
+.price-inputs { display: grid; grid-template-columns: 1fr 28px 1fr; gap: 6px; align-items: center; }
+.price-input {
+  width: 100%; font-family: var(--font-body); font-size: 12.5px; color: var(--ink);
+  background: var(--cream-warm); border: 1.5px solid var(--border-mid);
+  border-radius: 9px; padding: 8px 10px; outline: none; transition: all 0.2s;
+}
+.price-input:focus { border-color: var(--indigo); background: var(--surface); box-shadow: 0 0 0 3px rgba(79,70,229,0.07); }
+.price-input::placeholder { color: var(--ink-faint); font-size: 12px; }
+.price-sep {
+  font-size: 14px; color: var(--ink-faint); text-align: center;
+  font-weight: 300;
+}
+.price-presets { display: flex; gap: 4px; flex-wrap: wrap; }
+.price-preset {
+  font-size: 10.5px; font-weight: 500; padding: 3px 9px;
+  border-radius: 50px; border: 1px solid var(--border-mid);
+  background: transparent; color: var(--ink-soft); cursor: pointer;
+  transition: all 0.15s; font-family: var(--font-body);
+}
+.price-preset:hover { border-color: var(--gold); color: var(--gold-dim); background: var(--gold-light); }
+
+/* Toggle switch */
+.filter-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.filter-toggle-label { font-size: 13px; color: var(--ink-mid); font-weight: 400; }
+.toggle-switch {
+  width: 38px; height: 21px; border-radius: 50px;
+  background: var(--cream-deep); border: 1.5px solid var(--border-mid);
+  cursor: pointer; position: relative; transition: all 0.25s; flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: ''; position: absolute; width: 15px; height: 15px;
+  border-radius: 50%; background: #fff; top: 1px; left: 1px;
+  transition: transform 0.25s var(--ease-spring);
+  box-shadow: 0 1px 5px rgba(13,12,26,0.18);
+}
+.toggle-switch.on { background: var(--indigo); border-color: var(--indigo); }
+.toggle-switch.on::after { transform: translateX(17px); }
+
+/* Sidebar CTA */
+.sidebar-cta { padding: 18px 22px 22px; }
+.sidebar-cta-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 8px; font-size: 13px; font-weight: 600; padding: 12px;
+  border-radius: 11px; background: linear-gradient(135deg,var(--indigo),var(--indigo-mid));
+  color: #fff; cursor: pointer; text-decoration: none; transition: all 0.22s;
+  box-shadow: 0 4px 16px rgba(79,70,229,0.28);
+}
+.sidebar-cta-btn:hover { box-shadow: 0 6px 24px rgba(79,70,229,0.42); transform: translateY(-1px); }
+
+/* ════════════════════════════════
+   BROWSE MAIN AREA
+════════════════════════════════ */
+.browse-main { background: var(--cream); min-height: 100%; display: flex; flex-direction: column; }
+
+.results-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 26px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap; gap: 10px;
+}
+.results-count { font-size: 13px; color: var(--ink-soft); font-weight: 300; }
+.results-count strong { color: var(--ink); font-weight: 600; }
+
+.active-filters-row {
+  display: none; align-items: center; gap: 7px; flex-wrap: wrap;
+  padding: 10px 26px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.active-tag {
+  font-size: 11.5px; font-weight: 500; padding: 3px 9px 3px 11px;
+  background: var(--indigo-light); color: var(--indigo-dark);
+  border-radius: 50px; display: flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(79,70,229,0.12);
+}
+.active-tag-x { background: none; border: none; color: var(--indigo-mid); cursor: pointer; font-size: 13px; padding: 0; line-height: 1; opacity: 0.65; }
+.active-tag-x:hover { opacity: 1; }
+
+/* ════════════════════════════════
+   LISTINGS
+════════════════════════════════ */
+.listings-area { padding: 22px 26px; flex: 1; }
+.listings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.listings-grid.list-view { grid-template-columns: 1fr; }
+
+/* ── Listing Card ── */
+.listing-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 18px; overflow: hidden; cursor: pointer; position: relative;
+  transition: transform 0.28s var(--ease-out), box-shadow 0.28s, border-color 0.28s;
+  box-shadow: var(--shadow-card);
+}
+.listing-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-md); border-color: var(--border-mid); }
+.listing-card.in-compare { border: 2px solid var(--indigo); box-shadow: 0 0 0 4px rgba(79,70,229,0.1); }
+
+/* Card image */
+.card-img { height: 168px; position: relative; overflow: hidden; }
+.card-img-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transition: transform 0.5s var(--ease-out); }
+.listing-card:hover .card-img-inner { transform: scale(1.06); }
+
+/* Gradients — richer, more premium */
+.ci-city      { background: linear-gradient(145deg,#111836,#1e3278); }
+.ci-led       { background: linear-gradient(145deg,#07192e,#0955a0); }
+.ci-highway   { background: linear-gradient(145deg,#101a10,#1e4220); }
+.ci-road      { background: linear-gradient(145deg,#231107,#5e3010); }
+.ci-monument  { background: linear-gradient(145deg,#1d1232,#412878); }
+.ci-transit   { background: linear-gradient(145deg,#0a1a0a,#184018); }
+.ci-commercial{ background: linear-gradient(145deg,#101022,#181840); }
+.ci-urban     { background: linear-gradient(145deg,#0c2050,#341860); }
+.ci-digital   { background: linear-gradient(145deg,#050510,#121232); }
+.ci-metro     { background: linear-gradient(145deg,#130822,#2c0858); }
+.ci-retail    { background: linear-gradient(145deg,#200610,#640e2c); }
+.ci-wall      { background: linear-gradient(145deg,#1e1004,#4c2808); }
+
+.card-icon { opacity: 0.22; color: #fff; transition: opacity 0.3s; }
+.listing-card:hover .card-icon { opacity: 0.36; }
+
+/* Premium shimmer overlay on image */
+.card-img-inner::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(13,12,26,0.4) 100%);
+  pointer-events: none;
+}
+
+.card-tags { position: absolute; bottom: 10px; left: 10px; display: flex; gap: 5px; flex-wrap: wrap; z-index: 2; }
+.card-tag {
+  font-size: 9px; font-weight: 700; padding: 3px 9px;
+  border-radius: 50px; letter-spacing: 0.3px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.ct-premium  { background: rgba(201,148,58,0.85); color: #fff; }
+.ct-digital  { background: rgba(8,145,178,0.85); color: #fff; }
+.ct-traffic  { background: rgba(79,70,229,0.85); color: #fff; }
+.ct-highway  { background: rgba(5,150,105,0.85); color: #fff; }
+
+.card-status {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 9.5px; font-weight: 700; padding: 3px 9px;
+  border-radius: 50px; letter-spacing: 0.3px; z-index: 2;
+}
+.cs-avail  { background: rgba(209,250,229,0.95); color: #047857; }
+.cs-booked { background: rgba(254,243,199,0.95); color: var(--gold-dark); }
+
+.compare-checkbox {
+  position: absolute; top: 10px; left: 10px; width: 22px; height: 22px;
+  border-radius: 6px; background: rgba(255,255,255,0.9);
+  border: 1.5px solid rgba(255,255,255,0.6); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s; z-index: 2;
+}
+.compare-checkbox:hover { background: #fff; border-color: var(--indigo); }
+.compare-checkbox.active { background: var(--indigo); border-color: var(--indigo); }
+.compare-checkbox.active::after {
+  content: ''; width: 5px; height: 9px;
+  border-right: 2px solid #fff; border-bottom: 2px solid #fff;
+  transform: rotate(45deg) translate(-1px,-1px); display: block;
+}
+
+.save-btn {
+  position: absolute; top: 10px; right: 42px; width: 28px; height: 28px;
+  border-radius: 50%; background: rgba(255,255,255,0.9); border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-faint); transition: all 0.2s; z-index: 2;
+}
+.save-btn:hover { color: var(--rose); background: #fff; transform: scale(1.1); }
+.save-btn.saved { color: var(--rose); background: #fff; }
+
+/* Card body */
+.card-body { padding: 15px 17px 17px; }
+.card-location {
+  font-size: 9.5px; font-weight: 700; color: var(--ink-faint);
+  letter-spacing: 0.9px; text-transform: uppercase; margin-bottom: 4px;
+  font-family: var(--font-body);
+}
+.card-title {
+  font-family: var(--font-display); font-size: 16.5px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.2px; line-height: 1.2; margin-bottom: 9px;
+}
+.card-specs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.card-spec { font-size: 11.5px; color: var(--ink-soft); font-weight: 300; }
+.card-spec-sep { color: var(--border-mid); font-size: 13px; }
+.card-divider { height: 1px; background: var(--border); margin-bottom: 13px; }
+.card-footer { display: flex; align-items: flex-end; justify-content: space-between; }
+.card-price-group {}
+.card-price {
+  font-family: var(--font-display); font-size: 21px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.5px; line-height: 1;
+}
+.card-price-sub { font-size: 10px; color: var(--ink-faint); font-weight: 300; margin-top: 2px; }
+.card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.card-rating { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--ink-soft); }
+.card-star { color: var(--gold); font-size: 11px; }
+.card-cta-btn {
+  font-size: 11.5px; font-weight: 600; padding: 6px 14px;
+  border-radius: 8px; background: var(--indigo-light); color: var(--indigo);
+  border: none; cursor: pointer; transition: all 0.18s;
+}
+.card-cta-btn:hover { background: var(--indigo); color: #fff; }
+
+/* List view */
+.listings-grid.list-view .listing-card { display: grid; grid-template-columns: 224px 1fr; }
+.listings-grid.list-view .card-img { height: 100%; min-height: 155px; }
+
+/* ════════════════════════════════
+   MAP VIEW
+════════════════════════════════ */
+.map-area { display: none; padding: 18px 26px; flex: 1; }
+.map-area.active { display: block; }
+.listings-area.map-hidden { display: none; }
+.map-canvas {
+  background: linear-gradient(145deg,#0c1828,#0f2240);
+  border-radius: 18px; height: calc(100vh - 270px); min-height: 480px;
+  position: relative; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: var(--shadow-md);
+}
+.map-india { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); opacity: 0.06; width: 300px; }
+.map-pins { position: absolute; inset: 0; }
+.map-pin { position: absolute; cursor: pointer; transform: translate(-50%,-100%); transition: transform 0.2s var(--ease-spring); }
+.map-pin:hover { transform: translate(-50%,-100%) scale(1.15); z-index: 2; }
+.pin-label {
+  background: var(--indigo); color: #fff; border-radius: 8px;
+  padding: 4px 11px; font-size: 11px; font-weight: 600;
+  white-space: nowrap; box-shadow: 0 4px 18px rgba(79,70,229,0.5);
+  font-family: var(--font-body);
+}
+.pin-label.teal { background: var(--teal); box-shadow: 0 4px 16px rgba(8,145,178,0.4); }
+.pin-label.gold { background: var(--gold); box-shadow: var(--shadow-gold); }
+.pin-arrow { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--indigo); margin: 0 auto; }
+.map-overlay-text { position: relative; z-index: 2; text-align: center; color: rgba(255,255,255,0.5); }
+.map-overlay-text h4 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin-bottom: 6px; color: rgba(255,255,255,0.7); }
+.map-overlay-text p { font-size: 13px; max-width: 300px; font-weight: 300; }
+
+/* ════════════════════════════════
+   PAGINATION
+════════════════════════════════ */
+.pagination {
+  display: flex; gap: 4px; align-items: center; justify-content: center;
+  padding: 22px; border-top: 1px solid var(--border); background: var(--surface);
+}
+.page-btn {
+  width: 34px; height: 34px; border: 1.5px solid var(--border-mid); background: transparent;
+  border-radius: 9px; font-size: 13px; color: var(--ink-soft);
+  cursor: pointer; transition: all 0.18s; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-body); font-weight: 500;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-faint); }
+.page-btn.active { background: var(--indigo); color: #fff; border-color: var(--indigo); box-shadow: 0 2px 10px rgba(79,70,229,0.28); }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ════════════════════════════════
+   DETAIL PANEL
+════════════════════════════════ */
+.detail-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(13,12,26,0.48);
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  display: flex; align-items: stretch; justify-content: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.28s;
+}
+.detail-overlay.open { opacity: 1; pointer-events: all; }
+.detail-panel {
+  background: var(--surface); width: 100%; max-width: 560px; height: 100vh;
+  overflow-y: auto; transform: translateX(100%);
+  transition: transform 0.34s var(--ease-out);
+  box-shadow: -8px 0 60px rgba(13,12,26,0.2);
+}
+.detail-overlay.open .detail-panel { transform: translateX(0); }
+.detail-panel::-webkit-scrollbar { width: 4px; }
+.detail-panel::-webkit-scrollbar-thumb { background: var(--cream-deep); border-radius: 2px; }
+
+.dp-header { padding: 22px 26px 0; display: flex; align-items: center; justify-content: space-between; }
+.dp-close {
+  background: var(--cream-2); border: none; width: 34px; height: 34px;
+  border-radius: 50%; font-size: 14px; cursor: pointer; color: var(--ink-mid);
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.dp-close:hover { background: var(--indigo-light); color: var(--indigo); }
+.dp-breadcrumb { font-size: 11px; color: var(--ink-faint); font-weight: 300; }
+
+.dp-img { margin: 16px 26px; height: 230px; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.dp-body { padding: 0 26px 36px; }
+
+.dp-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.dp-tag {
+  font-size: 11px; font-weight: 500; padding: 4px 12px;
+  border-radius: 50px; background: var(--cream-2); color: var(--ink-mid);
+  border: 1px solid var(--border);
+}
+.dp-title { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -0.8px; margin-bottom: 5px; line-height: 1.1; }
+.dp-location { font-size: 13px; color: var(--ink-soft); font-weight: 300; margin-bottom: 22px; display: flex; align-items: center; gap: 6px; }
+
+.dp-specs-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 22px; }
+.dp-spec {
+  background: var(--cream); border-radius: 11px; padding: 13px 15px;
+  border: 1.5px solid var(--border);
+}
+.dp-spec-label { font-size: 9px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.9px; font-weight: 700; margin-bottom: 5px; }
+.dp-spec-value { font-size: 14px; color: var(--ink); font-weight: 500; }
+
+.dp-section-title { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--ink-faint); margin-bottom: 12px; margin-top: 24px; }
+
+/* Packages */
+.pkg-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
+.pkg-item {
+  background: var(--cream); border: 1.5px solid var(--border-mid);
+  border-radius: 11px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.pkg-item.selected, .pkg-item:hover { border-color: var(--indigo); background: var(--indigo-faint); }
+.pkg-item.selected .pkg-price { color: var(--indigo); }
+.pkg-dur { font-size: 9.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600; }
+.pkg-price { font-family: var(--font-display); font-size: 14.5px; font-weight: 700; color: var(--ink); }
+
+/* Calendar */
+.avail-cal {
+  background: var(--cream); border-radius: 13px; padding: 17px;
+  border: 1.5px solid var(--border);
+}
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-month-label { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink); }
+.cal-nav-btn {
+  width: 28px; height: 28px; border-radius: 50%; background: transparent;
+  border: 1.5px solid var(--border-mid); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s; color: var(--ink-mid);
+}
+.cal-nav-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-faint); }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.cal-day-name { font-size: 9.5px; font-weight: 700; color: var(--ink-faint); text-align: center; padding: 4px 0; }
+.cal-day { font-size: 12px; text-align: center; padding: 6px 2px; border-radius: 7px; cursor: pointer; transition: all 0.15s; color: var(--ink-mid); }
+.cal-day:hover:not(.booked):not(.empty) { background: var(--indigo-light); color: var(--indigo); }
+.cal-day.booked { background: rgba(225,29,72,0.07); color: var(--rose); cursor: not-allowed; font-weight: 500; }
+.cal-day.selected { background: var(--indigo); color: #fff; font-weight: 600; }
+.cal-day.empty { cursor: default; }
+.cal-legend { display: flex; gap: 14px; margin-top: 12px; }
+.cal-leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-faint); }
+.cal-leg-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* Reviews */
+.reviews-section { margin-bottom: 22px; }
+.rating-summary {
+  display: flex; gap: 16px; align-items: center;
+  background: var(--cream); border-radius: 12px; padding: 15px;
+  margin-bottom: 14px; border: 1.5px solid var(--border);
+}
+.rating-big { font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--ink); letter-spacing: -2px; line-height: 1; }
+.rating-stars { color: var(--gold); font-size: 15px; letter-spacing: 1px; margin-bottom: 3px; }
+.rating-count { font-size: 11.5px; color: var(--ink-faint); font-weight: 300; }
+.review-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.review-item:last-child { border-bottom: none; }
+.review-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.review-author { font-size: 13px; font-weight: 500; color: var(--ink); }
+.review-date { font-size: 11px; color: var(--ink-faint); font-weight: 300; }
+.review-stars { color: var(--gold); font-size: 12px; margin-bottom: 5px; }
+.review-text { font-size: 13px; color: var(--ink-mid); font-weight: 300; line-height: 1.65; }
+
+/* Quote form */
+.quote-form {
+  background: linear-gradient(135deg,var(--indigo-faint),var(--cream-2));
+  border: 1.5px solid rgba(79,70,229,0.12); border-radius: 15px; padding: 22px;
+}
+.form-group { margin-bottom: 13px; }
+.form-group label { display: block; font-size: 9.5px; font-weight: 700; color: var(--ink-mid); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 5px; }
+.form-control {
+  width: 100%; background: var(--surface); border: 1.5px solid var(--border-mid);
+  border-radius: 10px; padding: 9px 12px; font-family: var(--font-body);
+  font-size: 13px; color: var(--ink); outline: none; transition: all 0.2s; appearance: none;
+}
+.form-control:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+.form-control::placeholder { color: var(--ink-faint); }
+select.form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%23A8A6C0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer;
+}
+.quote-submit {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 14px; font-weight: 600; padding: 13px; border-radius: 11px;
+  background: linear-gradient(135deg,var(--indigo),var(--indigo-mid));
+  color: #fff; cursor: pointer; border: none; transition: all 0.22s; margin-top: 6px;
+  box-shadow: 0 4px 18px rgba(79,70,229,0.3);
+}
+.quote-submit:hover { box-shadow: 0 6px 28px rgba(79,70,229,0.45); transform: translateY(-1px); }
+.quote-note { font-size: 11px; color: var(--ink-faint); text-align: center; margin-top: 9px; font-weight: 300; }
+
+/* ════════════════════════════════
+   COMPARE MODAL
+════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(13,12,26,0.55);
+  backdrop-filter: blur(6px); z-index: 500;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border-radius: 22px; padding: 36px;
+  width: 100%; max-width: 860px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 32px 96px rgba(13,12,26,0.22); position: relative;
+  transform: scale(0.97) translateY(12px);
+  transition: transform 0.3s var(--ease-out);
+}
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+.modal h3 { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 5px; }
+.modal .sub { font-size: 13px; color: var(--ink-soft); font-weight: 300; margin-bottom: 20px; }
+.modal-close {
+  position: absolute; top: 18px; right: 18px; width: 32px; height: 32px;
+  background: var(--cream-2); border: none; border-radius: 50%; font-size: 14px;
+  cursor: pointer; color: var(--ink-mid); display: flex; align-items: center; justify-content: center; transition: all 0.18s;
+}
+.modal-close:hover { background: var(--indigo-light); color: var(--indigo); }
+
+.compare-grid { border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 20px; }
+.compare-grid.cols-2 { display: grid; grid-template-columns: 140px 1fr 1fr; }
+.compare-grid.cols-3 { display: grid; grid-template-columns: 140px 1fr 1fr 1fr; }
+.cg-cell { padding: 12px 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); font-size: 13px; }
+.cg-cell:last-child { border-right: none; }
+.cg-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-faint); background: var(--cream); }
+.cg-head { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink); background: var(--cream-2); }
+.cg-val { color: var(--ink-mid); font-weight: 300; }
+.cg-val strong { color: var(--ink); font-weight: 600; }
+.cg-winner { color: var(--green); font-weight: 600; }
+
+/* Auth modal */
+.auth-modal .modal { max-width: 440px; }
+.tab-bar { display: flex; gap: 3px; background: var(--cream-2); border: 1.5px solid var(--border-mid); border-radius: 11px; padding: 3px; margin-bottom: 20px; }
+.tab-btn { flex: 1; font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 9px; border: none; background: transparent; color: var(--ink-soft); cursor: pointer; transition: all 0.2s; font-family: var(--font-body); }
+.tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-xs); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(70px);
+  background: var(--forest); color: var(--ivory);
+  font-size: 13px; font-weight: 400; padding: 11px 22px; border-radius: 11px;
+  z-index: 600; opacity: 0; transition: all 0.3s var(--ease-out); pointer-events: none;
+  box-shadow: 0 8px 36px rgba(13,12,26,0.3); max-width: 90vw; text-align: center; white-space: nowrap;
+  border: 1px solid var(--forest-border);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Empty state */
+.empty-state { grid-column: 1/-1; text-align: center; padding: 80px 20px; color: var(--ink-faint); }
+.empty-state-icon {
+  width: 58px; height: 58px; border-radius: 16px; background: var(--cream-deep);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: var(--ink-faint);
+}
+.empty-state h4 { font-size: 17px; font-weight: 500; color: var(--ink-mid); margin-bottom: 7px; font-family: var(--font-display); }
+.empty-state p { font-size: 13px; font-weight: 300; margin-bottom: 22px; }
+
+/* ── Animations ── */
+@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+/* ── Responsive ── */
+@media (max-width:1200px) { .listings-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width:1024px) { .browse-layout { grid-template-columns: 1fr; } .filter-sidebar { display: none; } }
+@media (max-width:900px)  { .listings-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width:600px)  {
+  .listings-grid { grid-template-columns: 1fr; }
+  .listings-grid.list-view .listing-card { grid-template-columns: 1fr; }
+  .browse-bar { height: auto; padding: 10px 5%; flex-wrap: wrap; gap: 8px; }
+  .browse-search-wrap { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="site-nav">
+  <div class="nav-left">
+    <a href="index.html" class="nav-logo"><span class="logo-the">The</span><span class="logo-ad">Ad</span><span class="logo-bsk">Basket</span></a>
+    <a href="index.html" class="nav-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Home
+    </a>
+    <div class="nav-switcher" id="navSwitcher">
+      <div class="nav-switcher-pill" id="navPill"></div>
+      <button class="nav-switch-btn active" id="switchBoards">Billboards</button>
+      <a href="browse-agencies.html" class="nav-switch-btn" id="switchAgencies">Agencies</a>
+    </div>
+  </div>
+  <div class="nav-cta">
+    <button class="btn-nav-ghost" onclick="openAuthModal()">Sign In</button>
+    <button class="btn-nav-primary" onclick="openAuthModal()">Get Started Free</button>
+  </div>
+</nav>
+
+<!-- ── Browse Command Bar ── -->
+<div class="browse-bar">
+  <!-- Search -->
+  <div class="browse-search-wrap">
+    <span class="browse-search-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </span>
+    <input type="text" class="browse-search-input" id="searchInput" placeholder="City, area, landmark…" oninput="filterListings()"/>
+  </div>
+
+  <div class="bar-divider"></div>
+
+  <!-- City dropdown -->
+  <div class="custom-dropdown" id="ddCity">
+    <button class="dropdown-trigger" id="ddCityTrigger" onclick="toggleDropdown('ddCity')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span id="ddCityLabel">All Cities</span>
+      <span class="dropdown-caret"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </button>
+    <div class="dropdown-panel" id="ddCityPanel">
+      <div class="dropdown-label">Select City</div>
+      <div class="dropdown-item selected" data-value="" onclick="setCityFilter('','All Cities','ddCity')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg></span>
+        All Cities
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" data-value="Mumbai" onclick="setCityFilter('Mumbai','Mumbai','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Mumbai</div>
+      <div class="dropdown-item" data-value="Bengaluru" onclick="setCityFilter('Bengaluru','Bengaluru','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Bengaluru</div>
+      <div class="dropdown-item" data-value="Pune" onclick="setCityFilter('Pune','Pune','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Pune</div>
+      <div class="dropdown-item" data-value="Delhi NCR" onclick="setCityFilter('Delhi NCR','Delhi NCR','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Delhi NCR</div>
+      <div class="dropdown-item" data-value="Hyderabad" onclick="setCityFilter('Hyderabad','Hyderabad','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Hyderabad</div>
+      <div class="dropdown-item" data-value="Chennai" onclick="setCityFilter('Chennai','Chennai','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Chennai</div>
+      <div class="dropdown-item" data-value="Ahmedabad" onclick="setCityFilter('Ahmedabad','Ahmedabad','ddCity')"><span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"/></svg></span>Ahmedabad</div>
+    </div>
+  </div>
+
+  <!-- Type dropdown -->
+  <div class="custom-dropdown" id="ddType">
+    <button class="dropdown-trigger" id="ddTypeTrigger" onclick="toggleDropdown('ddType')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <span id="ddTypeLabel">Billboard Type</span>
+      <span class="dropdown-caret"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </button>
+    <div class="dropdown-panel" id="ddTypePanel">
+      <div class="dropdown-label">Format</div>
+      <div class="dropdown-item selected" data-value="" onclick="setTypeFilter('','Billboard Type','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/></svg></span>
+        All Types
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" data-value="Static Hoarding" onclick="setTypeFilter('Static Hoarding','Static Hoarding','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="12" rx="1"/><line x1="12" y1="16" x2="12" y2="20"/></svg></span>
+        Static Hoarding
+      </div>
+      <div class="dropdown-item" data-value="LED Digital" onclick="setTypeFilter('LED Digital','LED Digital','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M6 8h12M6 11h8"/></svg></span>
+        LED Digital
+      </div>
+      <div class="dropdown-item" data-value="Unipole" onclick="setTypeFilter('Unipole','Unipole','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="8" rx="1"/><line x1="12" y1="10" x2="12" y2="22"/></svg></span>
+        Unipole
+      </div>
+      <div class="dropdown-item" data-value="Gantry" onclick="setTypeFilter('Gantry','Gantry','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v8H4z"/><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/></svg></span>
+        Gantry
+      </div>
+      <div class="dropdown-item" data-value="Bus Shelter" onclick="setTypeFilter('Bus Shelter','Bus Shelter','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="6" width="22" height="13" rx="2"/><path d="M23 11H1"/></svg></span>
+        Bus Shelter
+      </div>
+      <div class="dropdown-item" data-value="Building Wrap" onclick="setTypeFilter('Building Wrap','Building Wrap','ddType')">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="1"/><path d="M9 22V12h6v10"/></svg></span>
+        Building Wrap
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget dropdown -->
+  <div class="custom-dropdown" id="ddBudget">
+    <button class="dropdown-trigger" id="ddBudgetTrigger" onclick="toggleDropdown('ddBudget')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span id="ddBudgetLabel">Budget</span>
+      <span class="dropdown-caret"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </button>
+    <div class="dropdown-panel" id="ddBudgetPanel" style="min-width:240px;">
+      <div class="dropdown-label">Monthly Budget (₹)</div>
+      <div style="padding:8px 11px 4px;">
+        <div class="price-inputs" style="margin-bottom:8px;">
+          <input type="number" class="price-input" id="priceMin" placeholder="Min" oninput="filterListings();updateBudgetLabel()"/>
+          <span class="price-sep">—</span>
+          <input type="number" class="price-input" id="priceMax" placeholder="Max" oninput="filterListings();updateBudgetLabel()"/>
+        </div>
+        <div class="price-presets">
+          <button class="price-preset" onclick="setBudgetPreset(0,100000)">Under ₹1L</button>
+          <button class="price-preset" onclick="setBudgetPreset(100000,300000)">₹1L–3L</button>
+          <button class="price-preset" onclick="setBudgetPreset(300000,500000)">₹3L–5L</button>
+          <button class="price-preset" onclick="setBudgetPreset(500000,9999999)">₹5L+</button>
+        </div>
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="clearBudget()">
+        <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        Clear budget
+      </div>
+    </div>
+  </div>
+
+  <div class="browse-bar-right">
+    <!-- Saved badge -->
+    <div id="savedCount" onclick="showCompareModal()"><span id="savedNum">0</span> saved</div>
+
+    <!-- View toggle -->
+    <div class="view-toggle">
+      <button class="view-btn active" id="gridBtn" onclick="setView('grid')" title="Grid">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </button>
+      <button class="view-btn" id="listBtn" onclick="setView('list')" title="List">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
+      <button class="view-btn" id="mapBtn" onclick="setView('map')" title="Map">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      </button>
+    </div>
+
+    <!-- Sort dropdown (right-aligned) -->
+    <div class="custom-dropdown align-right" id="ddSort">
+      <button class="dropdown-trigger" id="ddSortTrigger" onclick="toggleDropdown('ddSort')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+        <span id="ddSortLabel">Relevance</span>
+        <span class="dropdown-caret"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="dropdown-panel" id="ddSortPanel">
+        <div class="dropdown-label">Sort By</div>
+        <div class="dropdown-item selected" data-value="relevance" onclick="setSortFilter('relevance','Relevance','ddSort')">
+          <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg></span>
+          Relevance
+        </div>
+        <div class="dropdown-item" data-value="price-asc" onclick="setSortFilter('price-asc','Price: Low–High','ddSort')">
+          <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8 4-4 4 4M7 4v16"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="11" y1="16" x2="17" y2="16"/><line x1="11" y1="20" x2="13" y2="20"/></svg></span>
+          Price: Low to High
+        </div>
+        <div class="dropdown-item" data-value="price-desc" onclick="setSortFilter('price-desc','Price: High–Low','ddSort')">
+          <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 16 4 4 4-4M7 20V4"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="11" y1="8" x2="17" y2="8"/><line x1="11" y1="4" x2="13" y2="4"/></svg></span>
+          Price: High to Low
+        </div>
+        <div class="dropdown-item" data-value="footfall" onclick="setSortFilter('footfall','Most Footfall','ddSort')">
+          <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          Most Footfall
+        </div>
+        <div class="dropdown-item" data-value="rating" onclick="setSortFilter('rating','Top Rated','ddSort')">
+          <span class="dropdown-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+          Top Rated
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Compare Bar ── -->
+<div class="compare-bar" id="compareBar">
+  <span class="compare-bar-label">Comparing</span>
+  <div class="compare-chips" id="compareChips"></div>
+  <div class="compare-actions">
+    <button class="btn-compare-clear" onclick="clearCompare()">Clear</button>
+    <button class="btn-compare-now" onclick="showCompareModal()">Compare Now</button>
+  </div>
+</div>
+
+<!-- ── Layout ── -->
+<div class="browse-layout">
+
+  <!-- Filter Sidebar -->
+  <aside class="filter-sidebar">
+    <div class="filter-header">
+      <div class="filter-header-left">
+        <div class="filter-header-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        </div>
+        <span class="filter-header-title">Filters</span>
+      </div>
+      <button class="filter-reset-btn" onclick="resetFilters()">Reset all</button>
+    </div>
+
+    <!-- City -->
+    <div class="filter-section">
+      <span class="filter-section-label">City</span>
+      <div class="filter-select-wrap">
+        <select class="filter-select" id="cityFilter" onchange="filterListings()">
+          <option value="">All Cities</option>
+          <option>Mumbai</option><option>Bengaluru</option><option>Pune</option>
+          <option>Delhi NCR</option><option>Hyderabad</option><option>Chennai</option><option>Ahmedabad</option>
+        </select>
+        <span class="filter-select-arrow"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </div>
+    </div>
+
+    <!-- Type -->
+    <div class="filter-section">
+      <span class="filter-section-label">Billboard Type</span>
+      <div class="filter-pills" id="typePills">
+        <button class="filter-pill active" data-value="" onclick="setPill(this,'type')">All</button>
+        <button class="filter-pill" data-value="Static Hoarding" onclick="setPill(this,'type')">Static</button>
+        <button class="filter-pill" data-value="LED Digital" onclick="setPill(this,'type')">LED Digital</button>
+        <button class="filter-pill" data-value="Unipole" onclick="setPill(this,'type')">Unipole</button>
+        <button class="filter-pill" data-value="Gantry" onclick="setPill(this,'type')">Gantry</button>
+        <button class="filter-pill" data-value="Bus Shelter" onclick="setPill(this,'type')">Bus Shelter</button>
+        <button class="filter-pill" data-value="Building Wrap" onclick="setPill(this,'type')">Wrap</button>
+      </div>
+    </div>
+
+    <!-- Budget -->
+    <div class="filter-section">
+      <span class="filter-section-label">Monthly Budget (₹)</span>
+      <div class="price-range-wrap">
+        <div class="price-inputs">
+          <input type="number" class="price-input" id="priceMinSidebar" placeholder="Min" oninput="syncBudget('min');filterListings()"/>
+          <span class="price-sep">—</span>
+          <input type="number" class="price-input" id="priceMaxSidebar" placeholder="Max" oninput="syncBudget('max');filterListings()"/>
+        </div>
+        <div class="price-presets">
+          <button class="price-preset" onclick="setBudgetPreset(0,100000)">Under ₹1L</button>
+          <button class="price-preset" onclick="setBudgetPreset(100000,300000)">₹1–3L</button>
+          <button class="price-preset" onclick="setBudgetPreset(300000,500000)">₹3–5L</button>
+          <button class="price-preset" onclick="setBudgetPreset(500000,9999999)">₹5L+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traffic Zone -->
+    <div class="filter-section">
+      <span class="filter-section-label">Traffic Zone</span>
+      <div class="filter-pills" id="trafficPills">
+        <button class="filter-pill active" data-value="" onclick="setPill(this,'traffic')">All</button>
+        <button class="filter-pill" data-value="City / Urban" onclick="setPill(this,'traffic')">City</button>
+        <button class="filter-pill" data-value="Highway" onclick="setPill(this,'traffic')">Highway</button>
+        <button class="filter-pill" data-value="Commercial Zone" onclick="setPill(this,'traffic')">Commercial</button>
+        <button class="filter-pill" data-value="Residential Area" onclick="setPill(this,'traffic')">Residential</button>
+      </div>
+    </div>
+
+    <!-- Quick Tags -->
+    <div class="filter-section">
+      <span class="filter-section-label">Quick Tags</span>
+      <div class="filter-pills" id="tagPills">
+        <button class="filter-pill" data-value="High Traffic" onclick="toggleTagPill(this)">High Traffic</button>
+        <button class="filter-pill" data-value="Premium" onclick="toggleTagPill(this)">Premium</button>
+        <button class="filter-pill" data-value="Near Highway" onclick="toggleTagPill(this)">Near Highway</button>
+        <button class="filter-pill" data-value="Digital" onclick="toggleTagPill(this)">Digital</button>
+        <button class="filter-pill" data-value="Gantry" onclick="toggleTagPill(this)">Gantry</button>
+      </div>
+    </div>
+
+    <!-- Availability -->
+    <div class="filter-section">
+      <span class="filter-section-label">Availability</span>
+      <div class="filter-toggle-row">
+        <span class="filter-toggle-label">Available only</span>
+        <div class="toggle-switch" id="availToggle" onclick="this.classList.toggle('on');filterListings()"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-cta">
+      <a href="index.html#tender" class="sidebar-cta-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Post a Tender Instead
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="browse-main">
+    <div class="results-topbar">
+      <div class="results-count">Showing <strong id="resultRange">1–12</strong> of <strong id="resultCount">12</strong> listings</div>
+    </div>
+    <div class="active-filters-row" id="activeFiltersBar"></div>
+
+    <!-- Map view -->
+    <div class="map-area" id="mapView">
+      <div class="map-canvas">
+        <svg class="map-india" viewBox="0 0 400 500" fill="rgba(255,255,255,0.5)" xmlns="http://www.w3.org/2000/svg"><path d="M200 20 L230 60 L270 50 L290 80 L310 70 L330 110 L320 150 L350 170 L340 210 L370 230 L360 270 L340 300 L320 340 L300 370 L270 400 L240 430 L200 460 L160 430 L130 400 L100 370 L80 340 L60 300 L40 270 L30 230 L60 210 L50 170 L80 150 L70 110 L90 70 L110 80 L130 50 L170 60 Z"/></svg>
+        <div class="map-pins" id="mapPins"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <div class="map-overlay-text">
+            <h4>Map View</h4>
+            <p>Click a pin to view billboard details. Use filters to narrow by city.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="listings-area" id="listingsArea">
+      <div class="listings-grid" id="listingsGrid"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Detail Panel ── -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<!-- ── Compare Modal ── -->
+<div class="modal-overlay" id="compareModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('compareModal').classList.remove('open')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>Side-by-Side Comparison</h3>
+    <p class="sub">Compare your saved billboards across key metrics.</p>
+    <div id="compareModalContent"></div>
+  </div>
+</div>
+
+<!-- ── Auth Modal ── -->
+<div class="modal-overlay auth-modal" id="authModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('authModal').classList.remove('open')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   DATA
+════════════════════════════════════════ */
+const billboards=[
+  {id:1,title:"Bandra Kurla Complex Unipole",city:"Mumbai",area:"BKC",type:"Unipole",size:"60 × 30 ft",facing:"North",footfall:"1,50,000/day",footfallNum:150000,audience:"Corporate, BFSI",traffic:"City / Urban",tags:["High Traffic","Premium"],price:"₹4.5L",priceNum:450000,available:true,icon:"city",rating:4.8,reviews:24,packages:{m1:"₹4.5L",m3:"₹12.5L",m6:"₹22L",m12:"₹38L"},mapX:"20%",mapY:"48%"},
+  {id:2,title:"Powai Lake Digital Hoarding",city:"Mumbai",area:"Powai",type:"LED Digital",size:"40 × 20 ft",facing:"East",footfall:"80,000/day",footfallNum:80000,audience:"IT Professionals, Families",traffic:"City / Urban",tags:["Digital","High Traffic"],price:"₹3.2L",priceNum:320000,available:true,icon:"led",rating:4.6,reviews:18,packages:{m1:"₹3.2L",m3:"₹9L",m6:"₹16L",m12:"₹28L"},mapX:"22%",mapY:"46%"},
+  {id:3,title:"MG Road Junction Gantry",city:"Bengaluru",area:"MG Road",type:"Gantry",size:"80 × 15 ft",facing:"Both Ways",footfall:"2,20,000/day",footfallNum:220000,audience:"Mixed Urban, Shoppers",traffic:"City / Urban",tags:["High Traffic","Premium","Gantry"],price:"₹7.8L",priceNum:780000,available:false,icon:"highway",rating:4.9,reviews:31,packages:{m1:"₹7.8L",m3:"₹22L",m6:"₹40L",m12:"₹72L"},mapX:"36%",mapY:"68%"},
+  {id:4,title:"Connaught Place Static Hoarding",city:"Delhi NCR",area:"CP",type:"Static Hoarding",size:"50 × 25 ft",facing:"West",footfall:"3,00,000/day",footfallNum:300000,audience:"Tourists, Mixed",traffic:"City / Urban",tags:["High Traffic","Premium"],price:"₹5.2L",priceNum:520000,available:true,icon:"monument",rating:4.7,reviews:22,packages:{m1:"₹5.2L",m3:"₹14.5L",m6:"₹26L",m12:"₹46L"},mapX:"32%",mapY:"26%"},
+  {id:5,title:"Cyber Towers Hyderabad LED",city:"Hyderabad",area:"Madhapur",type:"LED Digital",size:"35 × 18 ft",facing:"South",footfall:"1,00,000/day",footfallNum:100000,audience:"IT Professionals",traffic:"City / Urban",tags:["Digital","Premium"],price:"₹2.6L",priceNum:260000,available:true,icon:"digital",rating:4.5,reviews:13,packages:{m1:"₹2.6L",m3:"₹7.2L",m6:"₹13L",m12:"₹22L"},mapX:"40%",mapY:"59%"},
+  {id:6,title:"BRTS Highway Billboard",city:"Ahmedabad",area:"SG Highway",type:"Static Hoarding",size:"55 × 28 ft",facing:"North",footfall:"90,000/day",footfallNum:90000,audience:"Commuters, Mixed",traffic:"Highway",tags:["Near Highway","High Traffic"],price:"₹1.5L",priceNum:150000,available:true,icon:"transit",rating:4.3,reviews:8,packages:{m1:"₹1.5L",m3:"₹4.2L",m6:"₹7.5L",m12:"₹13L"},mapX:"17%",mapY:"42%"},
+  {id:7,title:"Anna Salai Bus Shelter",city:"Chennai",area:"Anna Salai",type:"Bus Shelter",size:"12 × 5 ft",facing:"Eastbound",footfall:"1,20,000/day",footfallNum:120000,audience:"Commuters, Shoppers",traffic:"City / Urban",tags:["High Traffic"],price:"₹95K",priceNum:95000,available:true,icon:"commercial",rating:4.4,reviews:11,packages:{m1:"₹95K",m3:"₹2.7L",m6:"₹4.8L",m12:"₹8.5L"},mapX:"38%",mapY:"74%"},
+  {id:8,title:"Hebbal Flyover Unipole",city:"Bengaluru",area:"Hebbal",type:"Unipole",size:"45 × 22 ft",facing:"South",footfall:"88,000/day",footfallNum:88000,audience:"Highway Travelers, Commuters",traffic:"Highway",tags:["High Traffic","Near Highway"],price:"₹1.8L",priceNum:180000,available:true,icon:"highway",rating:4.4,reviews:9,packages:{m1:"₹1.8L",m3:"₹5L",m6:"₹9L",m12:"₹16L"},mapX:"37%",mapY:"70%"},
+  {id:9,title:"Kothrud Junction LED",city:"Pune",area:"Kothrud",type:"LED Digital",size:"30 × 15 ft",facing:"West",footfall:"55,000/day",footfallNum:55000,audience:"Students, Shoppers",traffic:"City / Urban",tags:["Digital"],price:"₹2.8L",priceNum:280000,available:true,icon:"digital",rating:4.5,reviews:7,packages:{m1:"₹2.8L",m3:"₹7.8L",m6:"₹14L",m12:"₹24L"},mapX:"29%",mapY:"53%"},
+  {id:10,title:"NH-44 Highway Hoarding",city:"Hyderabad",area:"Shamshabad",type:"Static Hoarding",size:"60 × 30 ft",facing:"East",footfall:"70,000/day",footfallNum:70000,audience:"Highway Travelers",traffic:"Highway",tags:["Near Highway","High Traffic"],price:"₹1.2L",priceNum:120000,available:true,icon:"transit",rating:4.3,reviews:6,packages:{m1:"₹1.2L",m3:"₹3.3L",m6:"₹6L",m12:"₹10.5L"},mapX:"41%",mapY:"61%"},
+  {id:11,title:"Ashram Road Unipole",city:"Ahmedabad",area:"Ashram Road",type:"Unipole",size:"50 × 25 ft",facing:"North",footfall:"60,000/day",footfallNum:60000,audience:"Commuters, Mixed",traffic:"City / Urban",tags:["High Traffic"],price:"₹90K",priceNum:90000,available:true,icon:"metro",rating:4.3,reviews:4,packages:{m1:"₹90K",m3:"₹2.5L",m6:"₹4.5L",m12:"₹8L"},mapX:"18%",mapY:"44%"},
+  {id:12,title:"T Nagar Mall Facade",city:"Chennai",area:"T Nagar",type:"Building Wrap",size:"80 × 40 ft",facing:"South",footfall:"2,00,000/day",footfallNum:200000,audience:"Shoppers, Mixed",traffic:"Commercial Zone",tags:["Premium","High Traffic"],price:"₹6.5L",priceNum:650000,available:false,icon:"retail",rating:4.8,reviews:16,packages:{m1:"₹6.5L",m3:"₹18L",m6:"₹32L",m12:"₹56L"},mapX:"39%",mapY:"76%"}
+];
+
+const iconSVG={
+  city:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M8 4V2M16 4V2M3 9h18"/></svg>',
+  led:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+  highway:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3-10 3 5 3-8 3 8 3-5 3 10"/><line x1="3" y1="21" x2="21" y2="21"/></svg>',
+  monument:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 20 2 20"/></svg>',
+  transit:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="13" rx="2"/><path d="M23 11H1"/><path d="M5 6V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1"/></svg>',
+  commercial:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+  urban:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22V12h6v10M9 6h.01M15 6h.01M9 10h.01M15 10h.01"/></svg>',
+  digital:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8h12M6 11h8"/></svg>',
+  metro:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01M9 6h6M9 10h6M9 14h3"/></svg>',
+  retail:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  wall:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="1"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="2" y1="16" x2="22" y2="16"/><line x1="8" y1="4" x2="8" y2="10"/><line x1="14" y1="10" x2="14" y2="16"/><line x1="8" y1="16" x2="8" y2="20"/></svg>',
+  road:'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L8 4M20 20l-4-16M12 4v4M12 12v4"/></svg>'
+};
+
+let activeType='', activeTraffic='', activeTags=[], shortlist=[], compareList=[], currentView='grid', activeSort='relevance';
+let calMonth=5, calYear=2026;
+const bookedDays=[3,7,8,9,14,15,16,17,18,21];
+
+/* ════════════════════════════════════════
+   CUSTOM DROPDOWN LOGIC
+════════════════════════════════════════ */
+function toggleDropdown(id) {
+  const dd = document.getElementById(id);
+  const trigger = dd.querySelector('.dropdown-trigger');
+  const panel = dd.querySelector('.dropdown-panel');
+  const isOpen = panel.classList.contains('open');
+  closeAllDropdowns();
+  if (!isOpen) {
+    panel.classList.add('open');
+    trigger.classList.add('open');
+  }
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown-panel.open').forEach(p => {
+    p.classList.remove('open');
+    p.closest('.custom-dropdown').querySelector('.dropdown-trigger').classList.remove('open');
+  });
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.custom-dropdown')) closeAllDropdowns();
+});
+
+function setCityFilter(val, label, ddId) {
+  document.getElementById('cityFilter').value = val;
+  const trigger = document.getElementById(ddId + 'Trigger');
+  const lbl = document.getElementById(ddId + 'Label');
+  lbl.textContent = label;
+  trigger.classList.toggle('has-value', !!val);
+  document.querySelectorAll(`#${ddId}Panel .dropdown-item`).forEach(it => {
+    it.classList.toggle('selected', it.dataset.value === val);
+  });
+  closeAllDropdowns();
+  filterListings();
+}
+
+function setTypeFilter(val, label, ddId) {
+  activeType = val;
+  const trigger = document.getElementById(ddId + 'Trigger');
+  const lbl = document.getElementById(ddId + 'Label');
+  lbl.textContent = val || label;
+  trigger.classList.toggle('has-value', !!val);
+  document.querySelectorAll(`#${ddId}Panel .dropdown-item`).forEach(it => {
+    it.classList.toggle('selected', it.dataset.value === val);
+  });
+  const sidebarPill = document.querySelector(`#typePills .filter-pill[data-value="${val}"]`);
+  if (sidebarPill) { document.querySelectorAll('#typePills .filter-pill').forEach(p=>p.classList.remove('active')); sidebarPill.classList.add('active'); }
+  closeAllDropdowns();
+  filterListings();
+}
+
+function setSortFilter(val, label, ddId) {
+  activeSort = val;
+  document.getElementById(ddId + 'Label').textContent = label;
+  document.querySelectorAll(`#${ddId}Panel .dropdown-item`).forEach(it => {
+    it.classList.toggle('selected', it.dataset.value === val);
+  });
+  closeAllDropdowns();
+  filterListings();
+}
+
+function updateBudgetLabel() {
+  const min = document.getElementById('priceMin').value;
+  const max = document.getElementById('priceMax').value;
+  const lbl = document.getElementById('ddBudgetLabel');
+  const trigger = document.getElementById('ddBudgetTrigger');
+  if (min || max) {
+    lbl.textContent = (min ? '₹'+parseInt(min).toLocaleString('en-IN') : '–') + ' → ' + (max ? '₹'+parseInt(max).toLocaleString('en-IN') : '+');
+    trigger.classList.add('has-value');
+  } else {
+    lbl.textContent = 'Budget';
+    trigger.classList.remove('has-value');
+  }
+}
+
+function setBudgetPreset(min, max) {
+  document.getElementById('priceMin').value = min || '';
+  document.getElementById('priceMax').value = max === 9999999 ? '' : max;
+  document.getElementById('priceMinSidebar').value = min || '';
+  document.getElementById('priceMaxSidebar').value = max === 9999999 ? '' : max;
+  updateBudgetLabel();
+  closeAllDropdowns();
+  filterListings();
+}
+
+function clearBudget() {
+  ['priceMin','priceMax','priceMinSidebar','priceMaxSidebar'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('ddBudgetLabel').textContent = 'Budget';
+  document.getElementById('ddBudgetTrigger').classList.remove('has-value');
+  closeAllDropdowns();
+  filterListings();
+}
+
+function syncBudget(type) {
+  const val = type === 'min' ? document.getElementById('priceMinSidebar').value : document.getElementById('priceMaxSidebar').value;
+  const targetId = type === 'min' ? 'priceMin' : 'priceMax';
+  document.getElementById(targetId).value = val;
+  updateBudgetLabel();
+}
+
+/* ════════════════════════════════════════
+   FILTER & RENDER
+════════════════════════════════════════ */
+function getFiltered() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const city   = document.getElementById('cityFilter').value;
+  const minP   = parseInt(document.getElementById('priceMin').value) || 0;
+  const maxP   = parseInt(document.getElementById('priceMax').value) || Infinity;
+  const availOnly = document.getElementById('availToggle').classList.contains('on');
+
+  let list = billboards.filter(b => {
+    if (search && !b.title.toLowerCase().includes(search) && !b.city.toLowerCase().includes(search) && !b.area.toLowerCase().includes(search)) return false;
+    if (city && b.city !== city) return false;
+    if (activeType && b.type !== activeType) return false;
+    if (activeTraffic && b.traffic !== activeTraffic) return false;
+    if (activeTags.length && !activeTags.every(t => b.tags.includes(t))) return false;
+    if (b.priceNum < minP || b.priceNum > maxP) return false;
+    if (availOnly && !b.available) return false;
+    return true;
+  });
+
+  if (activeSort === 'price-asc')   list.sort((a,b) => a.priceNum - b.priceNum);
+  else if (activeSort === 'price-desc') list.sort((a,b) => b.priceNum - a.priceNum);
+  else if (activeSort === 'footfall')   list.sort((a,b) => b.footfallNum - a.footfallNum);
+  else if (activeSort === 'rating')     list.sort((a,b) => b.rating - a.rating);
+  return list;
+}
+
+function filterListings() { renderListings(); }
+
+function renderListings() {
+  const filtered = getFiltered();
+  const grid = document.getElementById('listingsGrid');
+  document.getElementById('resultCount').textContent = filtered.length;
+  document.getElementById('resultRange').textContent = filtered.length ? '1–' + Math.min(filtered.length, 12) : '0';
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+      <h4>No listings found</h4>
+      <p>Try adjusting your filters or search term.</p>
+      <button class="btn-nav-ghost" onclick="resetFilters()">Reset all filters</button>
+    </div>`;
+    document.getElementById('pagination').innerHTML = '';
+    renderActiveFilters();
+    return;
+  }
+  grid.innerHTML = filtered.map(b => cardHTML(b)).join('');
+  renderPagination(filtered.length);
+  renderActiveFilters();
+  if (currentView === 'map') renderMapPins(filtered);
+}
+
+function cardHTML(b) {
+  const inCompare   = compareList.includes(b.id);
+  const inShortlist = shortlist.includes(b.id);
+  const tagBadges   = b.tags.map(t => {
+    const cls = t === 'Premium' ? 'ct-premium' : t === 'Digital' ? 'ct-digital' : t.includes('Traffic') ? 'ct-traffic' : 'ct-highway';
+    return `<span class="card-tag ${cls}">${t}</span>`;
+  }).join('');
+  const starsHtml = '★'.repeat(Math.round(b.rating)) + '☆'.repeat(5 - Math.round(b.rating));
+  return `<div class="listing-card${inCompare ? ' in-compare' : ''}" onclick="openDetail(${b.id})">
+    <div class="card-img">
+      <div class="card-img-inner ci-${b.icon}">
+        <span class="card-icon">${iconSVG[b.icon] || iconSVG.city}</span>
+      </div>
+      <div class="card-tags">${tagBadges}</div>
+      <span class="card-status ${b.available ? 'cs-avail' : 'cs-booked'}">${b.available ? 'Available' : 'Booked'}</span>
+      <div class="compare-checkbox${inCompare ? ' active' : ''}" onclick="event.stopPropagation();toggleCompare(${b.id},this)" title="Compare"></div>
+      <button class="save-btn${inShortlist ? ' saved' : ''}" onclick="event.stopPropagation();toggleSave(${b.id},this)" title="Save">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="${inShortlist ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="card-location">${b.city} · ${b.area}</div>
+      <div class="card-title">${b.title}</div>
+      <div class="card-specs">
+        <span class="card-spec">${b.size}</span>
+        <span class="card-spec-sep">·</span>
+        <span class="card-spec">${b.type}</span>
+        <span class="card-spec-sep">·</span>
+        <span class="card-spec">${b.footfall}</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-footer">
+        <div class="card-price-group">
+          <div class="card-price">${b.price}</div>
+          <div class="card-price-sub">per month</div>
+        </div>
+        <div class="card-meta">
+          <div class="card-rating"><span class="card-star">★</span> ${b.rating} <span style="color:var(--ink-faint)">(${b.reviews})</span></div>
+          <button class="card-cta-btn">View Details</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════
+   PILL FILTERS
+════════════════════════════════════════ */
+function setPill(el, type) {
+  const container = type === 'type' ? 'typePills' : 'trafficPills';
+  document.querySelectorAll(`#${container} .filter-pill`).forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  if (type === 'type') {
+    activeType = el.dataset.value;
+    if (el.dataset.value) setTypeFilter(el.dataset.value, el.dataset.value, 'ddType');
+    else { document.getElementById('ddTypeLabel').textContent = 'Billboard Type'; document.getElementById('ddTypeTrigger').classList.remove('has-value'); }
+  } else {
+    activeTraffic = el.dataset.value;
+  }
+  filterListings();
+}
+
+function toggleTagPill(el) {
+  const v = el.dataset.value;
+  if (el.classList.contains('active')) { el.classList.remove('active'); activeTags = activeTags.filter(t => t !== v); }
+  else { el.classList.add('active'); activeTags.push(v); }
+  filterListings();
+}
+
+/* ════════════════════════════════════════
+   ACTIVE FILTER CHIPS
+════════════════════════════════════════ */
+function renderActiveFilters() {
+  const bar = document.getElementById('activeFiltersBar');
+  const chips = [];
+  const city = document.getElementById('cityFilter').value;
+  if (city) chips.push({ label: city, clear: () => { document.getElementById('cityFilter').value=''; setCityFilter('','All Cities','ddCity'); } });
+  if (activeType) chips.push({ label: activeType, clear: () => { setTypeFilter('','Billboard Type','ddType'); document.querySelectorAll('#typePills .filter-pill').forEach((p,i)=>p.classList.toggle('active',i===0)); } });
+  if (activeTraffic) chips.push({ label: activeTraffic, clear: () => { activeTraffic=''; document.querySelectorAll('#trafficPills .filter-pill').forEach((p,i)=>p.classList.toggle('active',i===0)); filterListings(); } });
+  activeTags.forEach(t => chips.push({ label: t, clear: () => { activeTags=activeTags.filter(x=>x!==t); document.querySelector(`#tagPills .filter-pill[data-value="${t}"]`).classList.remove('active'); filterListings(); } }));
+  const minP = document.getElementById('priceMin').value;
+  const maxP = document.getElementById('priceMax').value;
+  if (minP || maxP) chips.push({ label: 'Budget filter', clear: () => clearBudget() });
+  if (document.getElementById('availToggle').classList.contains('on')) chips.push({ label: 'Available only', clear: () => { document.getElementById('availToggle').classList.remove('on'); filterListings(); } });
+
+  if (chips.length) {
+    bar.style.display = 'flex';
+    bar.innerHTML = chips.map((c, i) =>
+      `<span class="active-tag">${c.label}<button class="active-tag-x" onclick="(${c.clear.toString()})();renderListings()">×</button></span>`
+    ).join('') + `<button class="filter-reset-btn" style="margin-left:6px" onclick="resetFilters()">Clear all</button>`;
+  } else {
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+  }
+}
+
+/* ════════════════════════════════════════
+   RESET
+════════════════════════════════════════ */
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('cityFilter').value = '';
+  setCityFilter('', 'All Cities', 'ddCity');
+  activeType = ''; activeTraffic = ''; activeTags = [];
+  clearBudget();
+  document.querySelectorAll('#typePills .filter-pill, #trafficPills .filter-pill').forEach((p,i,arr) => {
+    const container = p.closest('#typePills, #trafficPills');
+    const isFirst = Array.from(container.querySelectorAll('.filter-pill')).indexOf(p) === 0;
+    p.classList.toggle('active', isFirst);
+  });
+  document.querySelectorAll('#tagPills .filter-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('availToggle').classList.remove('on');
+  document.getElementById('ddTypeLabel').textContent = 'Billboard Type';
+  document.getElementById('ddTypeTrigger').classList.remove('has-value');
+  filterListings();
+}
+
+/* ════════════════════════════════════════
+   VIEW TOGGLE
+════════════════════════════════════════ */
+function setView(v) {
+  currentView = v;
+  ['grid','list','map'].forEach(m => {
+    document.getElementById(m + 'Btn').classList.toggle('active', m === v);
+  });
+  const grid = document.getElementById('listingsGrid');
+  const listingsArea = document.getElementById('listingsArea');
+  const mapArea = document.getElementById('mapView');
+  grid.classList.toggle('list-view', v === 'list');
+  if (v === 'map') { mapArea.classList.add('active'); listingsArea.classList.add('map-hidden'); renderMapPins(getFiltered()); }
+  else { mapArea.classList.remove('active'); listingsArea.classList.remove('map-hidden'); }
+}
+
+/* ════════════════════════════════════════
+   MAP PINS
+════════════════════════════════════════ */
+function renderMapPins(filtered) {
+  const colors = ['','teal','gold','','teal','','gold',''];
+  document.getElementById('mapPins').innerHTML = filtered.map((b, i) =>
+    `<div class="map-pin" style="left:${b.mapX};top:${b.mapY}" onclick="openDetail(${b.id})">
+      <div class="pin-label ${colors[i % colors.length]}">${b.price}</div>
+      <div class="pin-arrow" style="border-top-color:${colors[i%colors.length]==='teal'?'var(--teal)':colors[i%colors.length]==='gold'?'var(--gold)':'var(--indigo)'}"></div>
+    </div>`
+  ).join('');
+}
+
+/* ════════════════════════════════════════
+   PAGINATION
+════════════════════════════════════════ */
+function renderPagination(count) {
+  const pages = Math.ceil(count / 12);
+  if (pages <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+  let html = `<button class="page-btn" disabled>‹</button>`;
+  for (let i = 1; i <= pages; i++) html += `<button class="page-btn${i===1?' active':''}">${i}</button>`;
+  html += `<button class="page-btn${pages>1?'':' '}">›</button>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+/* ════════════════════════════════════════
+   COMPARE
+════════════════════════════════════════ */
+function toggleCompare(id, el) {
+  if (compareList.includes(id)) { compareList = compareList.filter(x => x !== id); el.classList.remove('active'); }
+  else if (compareList.length < 3) { compareList.push(id); el.classList.add('active'); }
+  else { showToast('You can compare up to 3 billboards at a time.'); return; }
+  updateCompareBar();
+}
+function updateCompareBar() {
+  const bar = document.getElementById('compareBar');
+  const chips = document.getElementById('compareChips');
+  if (!compareList.length) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  chips.innerHTML = compareList.map(id => {
+    const b = billboards.find(x => x.id === id);
+    return `<div class="compare-chip">${b.title.split(' ').slice(0,2).join(' ')}<button class="compare-chip-x" onclick="toggleCompare(${id},document.querySelector('.compare-checkbox[onclick*=\\'${id}\\']'));renderListings()">×</button></div>`;
+  }).join('');
+}
+function clearCompare() { compareList = []; updateCompareBar(); renderListings(); }
+function showCompareModal() {
+  if (!compareList.length) { showToast('Save some billboards first to compare.'); return; }
+  const items = compareList.map(id => billboards.find(x => x.id === id));
+  const cols = items.length === 2 ? 'cols-2' : 'cols-3';
+  const rows = ['Size','Type','Facing','Footfall/day','Traffic','Monthly from','Rating'];
+  const vals = items.map(b => [b.size, b.type, b.facing, b.footfall, b.traffic, b.price, b.rating + ' ★']);
+  let html = `<div class="compare-grid ${cols}">
+    <div class="cg-cell cg-label"></div>
+    ${items.map(b => `<div class="cg-cell cg-head">${b.title}</div>`).join('')}`;
+  rows.forEach((r, ri) => {
+    html += `<div class="cg-cell cg-label">${r}</div>`;
+    const rowVals = items.map(b => vals[items.indexOf(b)][ri]);
+    html += rowVals.map(v => `<div class="cg-cell cg-val">${v}</div>`).join('');
+  });
+  html += `</div>`;
+  document.getElementById('compareModalContent').innerHTML = html;
+  document.getElementById('compareModal').classList.add('open');
+}
+
+/* ════════════════════════════════════════
+   SAVE / SHORTLIST
+════════════════════════════════════════ */
+function toggleSave(id, el) {
+  if (shortlist.includes(id)) { shortlist = shortlist.filter(x => x !== id); el.classList.remove('saved'); el.querySelector('svg').setAttribute('fill','none'); }
+  else { shortlist.push(id); el.classList.add('saved'); el.querySelector('svg').setAttribute('fill','currentColor'); }
+  const cnt = document.getElementById('savedCount');
+  const num = document.getElementById('savedNum');
+  if (shortlist.length) { cnt.style.display = 'flex'; num.textContent = shortlist.length; }
+  else cnt.style.display = 'none';
+}
+
+/* ════════════════════════════════════════
+   DETAIL PANEL
+════════════════════════════════════════ */
+function openDetail(id) {
+  const b = billboards.find(x => x.id === id);
+  document.getElementById('detailPanel').innerHTML = `
+    <div class="dp-header">
+      <span class="dp-breadcrumb">${b.city} / ${b.area}</span>
+      <button class="dp-close" onclick="closeDetail()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dp-img ci-${b.icon}">
+      <span style="opacity:0.22;color:#fff;">${iconSVG[b.icon] || iconSVG.city}</span>
+    </div>
+    <div class="dp-body">
+      <div class="dp-tags">
+        ${b.tags.map(t => `<span class="dp-tag">${t}</span>`).join('')}
+        <span class="dp-tag" style="${b.available ? 'background:var(--green-light);color:#047857;border-color:rgba(5,150,105,0.15);' : 'background:var(--gold-light);color:var(--gold-dark);border-color:rgba(217,119,6,0.15);'}">${b.available ? 'Available' : 'Booked'}</span>
+      </div>
+      <div class="dp-title">${b.title}</div>
+      <div class="dp-location">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${b.area}, ${b.city}
+      </div>
+      <div class="dp-specs-grid">
+        <div class="dp-spec"><div class="dp-spec-label">Size</div><div class="dp-spec-value">${b.size}</div></div>
+        <div class="dp-spec"><div class="dp-spec-label">Type</div><div class="dp-spec-value">${b.type}</div></div>
+        <div class="dp-spec"><div class="dp-spec-label">Facing</div><div class="dp-spec-value">${b.facing}</div></div>
+        <div class="dp-spec"><div class="dp-spec-label">Daily Footfall</div><div class="dp-spec-value">${b.footfall}</div></div>
+        <div class="dp-spec"><div class="dp-spec-label">Traffic Zone</div><div class="dp-spec-value">${b.traffic}</div></div>
+        <div class="dp-spec"><div class="dp-spec-label">Audience</div><div class="dp-spec-value">${b.audience}</div></div>
+      </div>
+      <div class="dp-section-title">Pricing Packages</div>
+      <div class="pkg-grid">
+        <div class="pkg-item" onclick="selectPkg(this)"><div class="pkg-dur">1 month</div><div class="pkg-price">${b.packages.m1}</div></div>
+        <div class="pkg-item selected" onclick="selectPkg(this)"><div class="pkg-dur">3 months</div><div class="pkg-price">${b.packages.m3}</div></div>
+        <div class="pkg-item" onclick="selectPkg(this)"><div class="pkg-dur">6 months</div><div class="pkg-price">${b.packages.m6}</div></div>
+        <div class="pkg-item" onclick="selectPkg(this)"><div class="pkg-dur">12 months</div><div class="pkg-price">${b.packages.m12}</div></div>
+      </div>
+      <div class="dp-section-title">Availability — June 2026</div>
+      <div class="avail-cal">
+        <div class="cal-head">
+          <button class="cal-nav-btn" onclick="prevMonth()">←</button>
+          <span class="cal-month-label" id="calMonthLabel"></span>
+          <button class="cal-nav-btn" onclick="nextMonth()">→</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend">
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--green)"></div>Available</div>
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--rose)"></div>Booked</div>
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--indigo)"></div>Selected</div>
+        </div>
+      </div>
+      <div class="dp-section-title">Advertiser Reviews</div>
+      <div class="reviews-section">
+        <div class="rating-summary">
+          <div>
+            <div class="rating-big">${b.rating}</div>
+            <div class="rating-stars">${'★'.repeat(Math.floor(b.rating))}${'☆'.repeat(5-Math.floor(b.rating))}</div>
+            <div class="rating-count">${b.reviews} reviews</div>
+          </div>
+          <div style="flex:1;padding-left:16px;">
+            ${[5,4,3].map(s=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="font-size:10px;color:var(--ink-faint);width:8px;">${s}</span>
+              <div style="flex:1;height:4px;background:var(--cream-deep);border-radius:3px;overflow:hidden;"><div style="height:100%;background:var(--gold);border-radius:3px;width:${s===5?72:s===4?20:8}%;transition:width 0.6s ease"></div></div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div class="review-item">
+          <div class="review-header"><span class="review-author">Nisha P. · FMCG Brand</span><span class="review-date">Mar 2026</span></div>
+          <div class="review-stars">★★★★★</div>
+          <div class="review-text">Exceptional visibility and the owner was incredibly responsive. Traffic counts matched exactly what was advertised. Will rebook.</div>
+        </div>
+        <div class="review-item">
+          <div class="review-header"><span class="review-author">Rahul S. · Real Estate</span><span class="review-date">Jan 2026</span></div>
+          <div class="review-stars">★★★★☆</div>
+          <div class="review-text">Great location for our township launch. Booking was smooth and we saw measurable walk-in increase during the campaign.</div>
+        </div>
+      </div>
+      <div class="dp-section-title">Request a Quote</div>
+      <div class="quote-form">
+        <div class="form-group"><label>Campaign Start Date</label><input type="date" class="form-control" min="${new Date().toISOString().split('T')[0]}"/></div>
+        <div class="form-group"><label>Duration</label>
+          <select class="form-control"><option>1 Month</option><option selected>3 Months</option><option>6 Months</option><option>12 Months</option></select>
+        </div>
+        <div class="form-group"><label>Message to Owner (optional)</label>
+          <textarea class="form-control" rows="2" placeholder="Describe your campaign briefly…" style="resize:vertical;"></textarea>
+        </div>
+        <button class="quote-submit" onclick="submitQuote()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send Quote Request
+        </button>
+        <div class="quote-note">Your contact details stay private until the owner responds.</div>
+      </div>
+    </div>`;
+  document.getElementById('detailOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  initCalendar(b.available);
+}
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+function selectPkg(el) { document.querySelectorAll('.pkg-item').forEach(p => p.classList.remove('selected')); el.classList.add('selected'); }
+function submitQuote() { showToast('Quote request sent — the owner will respond within 24 hours.'); closeDetail(); }
+
+/* ════════════════════════════════════════
+   CALENDAR
+════════════════════════════════════════ */
+function initCalendar(avail) { renderCalendar(calMonth, calYear, avail); }
+function renderCalendar(month, year, avail = true) {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const lbl = document.getElementById('calMonthLabel');
+  if (!lbl) return;
+  lbl.textContent = months[month] + ' ' + year;
+  const grid = document.getElementById('calGrid');
+  const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  let html = days.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isBooked = bookedDays.includes(d) && !avail;
+    html += `<div class="cal-day ${isBooked ? 'booked' : 'available'}" onclick="selectCalDay(this,${d})">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+function selectCalDay(el, day) { if (el.classList.contains('booked')) return; document.querySelectorAll('.cal-day.selected').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); }
+function prevMonth() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(calMonth, calYear); }
+function nextMonth() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(calMonth, calYear); }
+
+/* ════════════════════════════════════════
+   AUTH
+════════════════════════════════════════ */
+function openAuthModal() { document.getElementById('modalContent').innerHTML = loginHTML(); document.getElementById('authModal').classList.add('open'); }
+function handleAuth() { showToast('Welcome back — redirecting…'); setTimeout(() => { document.getElementById('authModal').classList.remove('open'); }, 1200); }
+
+function loginHTML() { return `
+<h3>Welcome back</h3>
+<p class="sub">Sign in to your AdBasket account.</p>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTo('login')">Sign In</button>
+  <button class="tab-btn" onclick="switchTo('register')">Create Account</button>
+</div>
+<div class="form-group"><label>Email Address</label><input type="email" class="form-control" placeholder="you@company.com"/></div>
+<div class="form-group"><label>Password</label><input type="password" class="form-control" placeholder="Your password"/></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-mid);cursor:pointer;"><input type="checkbox" style="accent-color:var(--indigo);"/> Remember me</label>
+  <a href="#" style="font-size:13px;color:var(--indigo);">Forgot password?</a>
+</div>
+<button class="quote-submit" onclick="handleAuth()">Sign In</button>
+<p style="text-align:center;font-size:13px;color:var(--ink-soft);margin-top:14px;">No account? <a href="#" onclick="switchTo('register');return false;" style="color:var(--indigo);font-weight:500;">Register free</a></p>`; }
+
+function registerHTML() { return `
+<h3>Create your account</h3>
+<p class="sub">Free to join. Browse 12,000+ billboard spaces.</p>
+<div class="tab-bar">
+  <button class="tab-btn" onclick="switchTo('login')">Sign In</button>
+  <button class="tab-btn active">Create Account</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+  <div class="form-group"><label>First Name</label><input type="text" class="form-control" placeholder="Rahul"/></div>
+  <div class="form-group"><label>Last Name</label><input type="text" class="form-control" placeholder="Sharma"/></div>
+</div>
+<div class="form-group"><label>Business Email</label><input type="email" class="form-control" placeholder="you@company.com"/></div>
+<div class="form-group"><label>Phone (+91)</label><input type="tel" class="form-control" placeholder="+91 98765 43210"/></div>
+<div class="form-group"><label>I am a</label>
+  <select class="form-control">
+    <option value="">Select your role</option>
+    <option>Business / Brand (Advertiser)</option>
+    <option>Billboard Owner</option>
+    <option>Ad Agency / Service Provider</option>
+  </select>
+</div>
+<div class="form-group"><label>Password</label><input type="password" class="form-control" placeholder="Min 8 characters"/></div>
+<button class="quote-submit" onclick="handleRegisterSuccess()">Create Free Account</button>
+<p style="text-align:center;font-size:13px;color:var(--ink-soft);margin-top:14px;">Already registered? <a href="#" onclick="switchTo('login');return false;" style="color:var(--indigo);font-weight:500;">Sign in</a></p>`; }
+
+function handleRegisterSuccess() {
+  document.getElementById('modalContent').innerHTML = `
+  <div style="text-align:center;padding:28px 0;">
+    <div style="width:64px;height:64px;border-radius:20px;background:var(--indigo-light);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <h3 style="margin-bottom:8px;">You're in!</h3>
+    <p class="sub" style="margin-bottom:28px;">Check your email to verify your account. Start browsing right now.</p>
+    <button class="quote-submit" onclick="document.getElementById('authModal').classList.remove('open')" style="max-width:220px;margin:0 auto;">Start Browsing</button>
+  </div>`; }
+
+function switchTo(type) { document.getElementById('modalContent').innerHTML = type === 'login' ? loginHTML() : registerHTML(); }
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3800);
+}
+
+/* ════════════════════════════════════════
+   NAV SWITCHER PILL
+════════════════════════════════════════ */
+(function() {
+  const sw = document.getElementById('navSwitcher');
+  const pill = document.getElementById('navPill');
+  const active = sw.querySelector('.nav-switch-btn.active');
+  if (active) {
+    const sr = sw.getBoundingClientRect();
+    const br = active.getBoundingClientRect();
+    pill.style.width = br.width + 'px';
+    pill.style.transform = 'translateX(' + (br.left - sr.left - 3) + 'px)';
+  }
+})();
+
+/* ════════════════════════════════════════
+   SCROLL-REVEAL CARDS
+════════════════════════════════════════ */
+(function() {
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const els = Array.from(document.querySelectorAll('.listing-card'));
+      const i = els.indexOf(e.target);
+      e.target.style.transitionDelay = (i % 4) * 0.06 + 's';
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.06, rootMargin: '0px 0px -20px 0px' });
+  const observer = new MutationObserver(() => {
+    document.querySelectorAll('.listing-card').forEach(el => {
+      if (el.style.opacity !== '1') {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(14px)';
+        el.style.transition = 'opacity 0.42s ease, transform 0.42s ease';
+        io.observe(el);
+      }
+    });
+  });
+  observer.observe(document.getElementById('listingsGrid'), { childList: true });
+})();
+
+/* ════════════════════════════════════════
+   PAGE-IN TRANSITION
+════════════════════════════════════════ */
+document.body.style.opacity = '0';
+window.addEventListener('load', () => {
+  document.body.style.transition = 'opacity 0.38s ease';
+  document.body.style.opacity = '1';
+});
+
+/* ── INIT ── */
+renderListings();
+</script>
+</body>
+</html>

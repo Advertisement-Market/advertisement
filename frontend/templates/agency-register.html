@@ -1,0 +1,2806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Register Your Agency — The AdBasket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --saffron:#4F46E5;--saffron-light:#EEF2FF;--saffron-dark:#3730A3;
+  --ink:#0D1117;--ink-muted:#4B5563;--ink-faint:#9CA3AF;
+  --cream:#F8F9FC;--cream-warm:#F1F4F9;--cream-deep:#E8EDF5;
+  --gold:#D97706;--gold-light:#FEF3C7;--gold-dark:#92400E;
+  --teal:#0891B2;--teal-light:#E0F2FE;
+  --green:#059669;--green-light:#D1FAE5;
+  --white:#FFFFFF;
+  --border:rgba(13,17,23,0.07);--border-medium:rgba(13,17,23,0.12);--border-strong:rgba(13,17,23,0.2);
+  --font-display:'Cormorant Garamond',serif;--font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
+  --shadow-card:0 2px 12px rgba(79,70,229,0.06),0 8px 32px rgba(13,17,23,0.04);
+  --shadow-hover:0 12px 48px rgba(79,70,229,0.14),0 32px 80px rgba(13,17,23,0.06);
+  --sidebar-w:288px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-body);background:var(--cream);color:var(--ink);line-height:1.6;font-size:15px;min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* GRAIN */
+body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.018;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;}
+
+/* INDIA STRIPE */
+/* ── LAYOUT SHELL ── */
+.reg-shell{display:flex;min-height:100vh;padding-top:0;}
+
+/* ── SIDEBAR ── */
+.reg-sidebar{
+  background:var(--ink);
+  width:var(--sidebar-w);
+  position:fixed;left:0;top:0;bottom:0;
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+  z-index:200;
+}
+/* Subtle gradient accent on sidebar */
+.reg-sidebar::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:180px;
+  background:linear-gradient(180deg,rgba(79,70,229,0.12) 0%,transparent 100%);
+  pointer-events:none;
+}
+
+.sidebar-inner{padding:36px 28px;display:flex;flex-direction:column;height:100%;position:relative;}
+
+.sidebar-logo{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--white);text-decoration:none;letter-spacing:-0.5px;display:inline-flex;align-items:baseline;gap:0;margin-bottom:4px;}
+.sidebar-logo .logo-the{font-style:italic;font-weight:300;font-size:22px;color:rgba(255,255,255,0.2);letter-spacing:-0.5px;}
+.sidebar-logo .logo-ad{color:var(--white);}
+.sidebar-logo .logo-bsk{color:#F97316;}
+.sidebar-tagline{font-size:12px;color:rgba(255,255,255,0.35);font-weight:300;margin-bottom:36px;letter-spacing:0.2px;}
+
+/* Steps */
+.steps-list{display:flex;flex-direction:column;gap:0;flex:1;}
+.step-item{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:10px 0;position:relative;cursor:pointer;
+}
+/* Connector line */
+.step-item:not(:last-child)::after{
+  content:'';position:absolute;
+  left:16px;top:42px;bottom:-6px;width:1px;
+  background:rgba(255,255,255,0.08);
+  transition:background 0.4s;
+}
+.step-item.done:not(:last-child)::after{background:rgba(217,119,6,0.45);}
+.step-item.active:not(:last-child)::after{background:rgba(217,119,6,0.25);}
+
+/* Dot */
+.step-dot{
+  width:32px;height:32px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.22);
+  flex-shrink:0;transition:all 0.3s;
+  position:relative;z-index:1;background:var(--ink);
+}
+.step-item.active .step-dot{
+  border-color:var(--gold);background:var(--gold);
+  color:var(--white);
+  box-shadow:0 0 0 4px rgba(217,119,6,0.15);
+}
+.step-item.done .step-dot{
+  border-color:rgba(217,119,6,0.6);background:rgba(217,119,6,0.1);
+  color:var(--gold);
+}
+.step-dot-check{display:none;}
+.step-item.done .step-dot-check{display:block;}
+.step-item.done .step-dot-num{display:none;}
+
+/* Step text */
+.step-info{padding-top:5px;}
+.step-info-title{font-size:13px;font-weight:500;color:rgba(255,255,255,0.28);transition:color 0.3s;line-height:1.2;}
+.step-item.active .step-info-title{color:var(--white);font-weight:600;}
+.step-item.done .step-info-title{color:rgba(255,255,255,0.45);}
+.step-info-desc{font-size:11px;color:rgba(255,255,255,0.15);font-weight:300;margin-top:2px;transition:color 0.3s;}
+.step-item.active .step-info-desc{color:rgba(255,255,255,0.4);}
+.step-item.done .step-info-desc{color:rgba(255,255,255,0.2);}
+
+/* Locked steps */
+.step-item.locked{cursor:not-allowed;opacity:0.42;}
+.step-item.locked .step-dot{border-color:rgba(255,255,255,0.06);color:rgba(255,255,255,0.12);}
+.step-item.locked .step-info-title{color:rgba(255,255,255,0.18);}
+.step-item.locked::after{background:rgba(255,255,255,0.04)!important;}
+
+/* Sidebar bottom */
+.sidebar-bottom{
+  margin-top:auto;padding-top:24px;
+  border-top:1px solid rgba(255,255,255,0.07);
+}
+.sidebar-bottom p{font-size:12px;color:rgba(255,255,255,0.28);font-weight:300;margin-bottom:8px;}
+.sidebar-bottom a{color:var(--gold);text-decoration:none;font-size:13px;font-weight:400;transition:opacity 0.2s;display:inline-flex;align-items:center;gap:5px;}
+.sidebar-bottom a:hover{opacity:0.75;}
+
+/* Trust badges on sidebar */
+.sidebar-trust{display:flex;flex-direction:column;gap:8px;margin-top:20px;}
+.sidebar-trust-item{display:flex;align-items:center;gap:8px;font-size:11.5px;color:rgba(255,255,255,0.3);font-weight:300;line-height:1;}
+.sidebar-trust-item svg{opacity:0.4;flex-shrink:0;}
+
+/* ── MAIN AREA ── */
+.reg-main{
+  margin-left:var(--sidebar-w);
+  min-height:100vh;
+  background:var(--cream);
+  display:flex;flex-direction:column;
+  flex:1;
+  min-width:0;
+}
+
+/* Topbar */
+.reg-topbar{
+  position:sticky;top:0;z-index:100;
+  padding:0 52px;height:60px;
+  border-bottom:1px solid var(--border);
+  background:rgba(248,249,252,0.97);
+  backdrop-filter:blur(16px);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px;
+}
+.topbar-left{display:flex;align-items:center;gap:16px;}
+.step-counter{font-size:13px;color:var(--ink-faint);font-weight:300;}
+.step-counter strong{color:var(--ink);font-weight:600;}
+.step-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--gold-light);
+  border:1px solid rgba(217,119,6,0.22);
+  border-radius:50px;padding:4px 12px;
+  font-size:11.5px;font-weight:600;color:var(--gold-dark);
+  font-family:var(--font-mono);letter-spacing:0.5px;
+}
+.cancel-link{
+  font-size:13px;color:var(--ink-faint);text-decoration:none;
+  display:flex;align-items:center;gap:5px;
+  transition:color 0.2s;padding:6px 0;
+}
+.cancel-link:hover{color:var(--ink);}
+
+/* Progress bar */
+.reg-progress{width:100%;height:2px;background:var(--border);}
+.reg-progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--gold),#F59E0B);
+  transition:width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── FORM BODY ── */
+.reg-body{
+  padding:48px 52px 80px;
+  max-width:720px;
+  width:100%;
+  animation:slideIn 0.3s ease both;
+}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* Step header */
+.step-header{margin-bottom:40px;}
+.step-label{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gold);
+  margin-bottom:10px;
+}
+.step-label-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);display:inline-block;}
+.step-heading{
+  font-family:var(--font-display);
+  font-size:clamp(28px,3.5vw,42px);
+  font-weight:600;color:var(--ink);
+  letter-spacing:-1.2px;margin-bottom:8px;line-height:1.1;
+}
+.step-heading em{font-style:italic;color:var(--gold);}
+.step-subheading{font-size:14.5px;color:var(--ink-muted);font-weight:300;line-height:1.7;max-width:540px;}
+
+/* Section divider within a step */
+.form-section{
+  margin-bottom:36px;
+  padding-bottom:36px;
+  border-bottom:1px solid var(--border);
+}
+.form-section:last-of-type{border-bottom:none;}
+.form-section-title{
+  font-size:11px;font-weight:700;letter-spacing:1.8px;
+  text-transform:uppercase;color:var(--ink-faint);
+  margin-bottom:20px;display:flex;align-items:center;gap:10px;
+}
+.form-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Form elements */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:20px;}
+.form-group:last-child{margin-bottom:0;}
+.form-group label{
+  font-size:11.5px;font-weight:600;color:var(--ink-muted);
+  text-transform:uppercase;letter-spacing:0.5px;
+  display:flex;align-items:center;gap:5px;
+}
+.form-group label .req,.form-section-title .req{color:var(--saffron);margin-left:1px;font-weight:700;font-size:13px;text-transform:none;letter-spacing:0;}
+.form-group label .opt{
+  font-size:10.5px;font-weight:400;color:var(--ink-faint);
+  text-transform:none;letter-spacing:0;font-style:italic;
+  margin-left:2px;
+}
+.form-control{
+  font-family:var(--font-body);font-size:14px;color:var(--ink);
+  background:#FAFBFD;
+  border:1.5px solid rgba(13,17,23,0.10);
+  border-radius:12px;padding:13px 16px;
+  outline:none;transition:border-color 0.2s,box-shadow 0.2s,background 0.2s;width:100%;
+  line-height:1.5;
+}
+.form-control:hover{
+  border-color:rgba(13,17,23,0.18);
+  background:#fff;
+}
+.form-control:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3.5px rgba(217,119,6,0.09);
+  background:#fff;
+}
+.form-control::placeholder{color:rgba(156,163,175,0.7);font-weight:300;}
+select.form-control{cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-color:#FAFBFD;
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;}
+textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
+.form-hint{font-size:12px;color:var(--ink-faint);font-weight:300;margin-top:5px;line-height:1.55;}
+.form-hint.success{color:var(--green);}
+.form-hint.warning{color:var(--gold);}
+
+/* Phone input with prefix */
+.phone-wrap{position:relative;}
+.phone-prefix{
+  position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-size:13.5px;color:var(--ink-muted);font-weight:500;
+  border-right:1.5px solid rgba(13,17,23,0.1);padding-right:11px;
+  pointer-events:none;
+}
+.phone-wrap .form-control{padding-left:56px;}
+
+/* Pincode autofill */
+.pincode-autofill{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--green-light);border:1px solid rgba(5,150,105,0.18);
+  border-radius:8px;padding:8px 13px;font-size:12.5px;color:var(--green);
+  font-weight:500;display:none;margin-top:7px;
+  animation:slideIn 0.2s ease both;
+}
+.pincode-autofill::before{
+  content:'';display:inline-block;width:6px;height:6px;
+  border-radius:50%;background:var(--green);flex-shrink:0;
+}
+.pincode-autofill.show{display:inline-flex;}
+
+/* Logo upload zone */
+.logo-upload-zone{
+  border:1.5px dashed rgba(13,17,23,0.14);border-radius:14px;
+  padding:28px 24px;text-align:center;cursor:pointer;transition:all 0.25s;
+  background:#FAFBFD;
+}
+.logo-upload-zone:hover{border-color:var(--gold);background:rgba(254,243,199,0.3);}
+.logo-upload-zone .upload-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:var(--cream-warm);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 12px;color:var(--ink-faint);
+  transition:all 0.25s;
+}
+.logo-upload-zone:hover .upload-icon{background:rgba(217,119,6,0.1);color:var(--gold);}
+.logo-upload-zone .upload-title{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px;}
+.logo-upload-zone .upload-sub{font-size:12px;color:var(--ink-faint);font-weight:300;}
+
+/* ── SERVICE CHECKBOXES ── */
+.service-checks{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;}
+.service-check{
+  border:1.5px solid rgba(13,17,23,0.10);border-radius:14px;
+  padding:16px 18px;cursor:pointer;transition:all 0.22s;
+  display:flex;align-items:flex-start;gap:12px;
+  background:#FAFBFD;
+}
+.service-check:hover{border-color:rgba(217,119,6,0.4);background:rgba(254,243,199,0.2);}
+.service-check.selected{border-color:var(--gold);background:rgba(254,243,199,0.35);box-shadow:0 2px 12px rgba(217,119,6,0.08);}
+.check-box{
+  width:20px;height:20px;border-radius:6px;
+  border:1.5px solid rgba(13,17,23,0.15);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:all 0.22s;margin-top:1px;color:transparent;font-size:11px;
+}
+.service-check.selected .check-box{background:var(--gold);border-color:var(--gold);color:var(--white);}
+.check-label{font-size:13.5px;font-weight:600;color:var(--ink);display:block;margin-bottom:2px;}
+.service-check.selected .check-label{color:var(--gold-dark);}
+.check-desc{font-size:12px;color:var(--ink-faint);font-weight:300;line-height:1.5;}
+
+/* ── PILL TOGGLES (expertise + industry) ── */
+.pill-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.toggle-pill{
+  font-size:13px;font-weight:400;padding:8px 17px;
+  border-radius:50px;border:1.5px solid rgba(13,17,23,0.11);
+  background:#FAFBFD;color:var(--ink-muted);
+  cursor:pointer;transition:all 0.2s;font-family:var(--font-body);
+}
+.toggle-pill:hover{border-color:rgba(217,119,6,0.5);color:var(--gold-dark);background:rgba(254,243,199,0.2);}
+.toggle-pill.selected{background:var(--gold);color:var(--white);border-color:var(--gold);font-weight:500;}
+
+/* Subtle variation for industries */
+.toggle-pill.industry.selected{background:rgba(254,243,199,0.6);color:var(--gold-dark);border-color:rgba(217,119,6,0.45);}
+
+/* ── PORTFOLIO LIST ── */
+.portfolio-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.portfolio-item{
+  background:#FAFBFD;border:1.5px solid rgba(13,17,23,0.09);
+  border-radius:14px;padding:16px 18px;
+  display:flex;gap:14px;align-items:center;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.portfolio-item:hover{border-color:rgba(13,17,23,0.15);box-shadow:0 2px 10px rgba(13,17,23,0.04);}
+.portfolio-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:var(--gold-light);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.portfolio-title{font-size:14px;font-weight:500;color:var(--ink);}
+.portfolio-meta{font-size:12px;color:var(--ink-faint);font-weight:300;margin-top:2px;}
+.add-portfolio-btn{
+  width:100%;padding:12px 16px;border:1.5px dashed rgba(13,17,23,0.13);
+  border-radius:12px;background:transparent;
+  font-family:var(--font-body);font-size:13.5px;color:var(--ink-muted);
+  cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.add-portfolio-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(254,243,199,0.15);}
+
+/* ── VERIFICATION CARDS ── */
+.verification-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;}
+.verification-card{
+  background:#FAFBFD;border:1.5px solid rgba(13,17,23,0.10);
+  border-radius:16px;padding:22px;
+  transition:all 0.22s;
+}
+.verification-card.verified{border-color:rgba(217,119,6,0.3);background:rgba(254,243,199,0.25);}
+.v-icon-wrap{
+  width:40px;height:40px;border-radius:11px;
+  background:var(--cream-warm);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:12px;color:var(--ink-muted);
+}
+.verification-card.verified .v-icon-wrap{background:rgba(217,119,6,0.12);color:var(--gold);}
+.v-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.v-sub{font-size:12.5px;color:var(--ink-muted);font-weight:300;margin-bottom:14px;line-height:1.5;}
+.v-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:4px 11px;
+  border-radius:50px;background:var(--green-light);
+  color:var(--green);border:1px solid rgba(5,150,105,0.22);
+  letter-spacing:0.2px;
+}
+
+/* Info banner */
+.info-banner{
+  display:flex;gap:13px;align-items:flex-start;
+  background:var(--gold-light);border:1px solid rgba(217,119,6,0.2);
+  border-radius:12px;padding:16px 18px;margin-bottom:20px;
+}
+.info-banner-icon{flex-shrink:0;color:var(--gold);margin-top:1px;}
+.info-banner-text{font-size:13.5px;color:var(--ink-muted);font-weight:300;line-height:1.65;}
+.info-banner-text strong{color:var(--ink);font-weight:600;}
+
+/* Warning banner */
+.warning-banner{
+  display:flex;gap:11px;align-items:flex-start;
+  background:rgba(79,70,229,0.05);border:1px solid rgba(79,70,229,0.15);
+  border-radius:12px;padding:14px 16px;margin-bottom:20px;
+  font-size:13px;color:var(--ink-muted);font-weight:300;
+}
+
+/* notif-row highlight */
+
+/* Review block */
+.review-block{
+  background:#FAFBFD;border:1.5px solid rgba(13,17,23,0.09);
+  border-radius:16px;overflow:hidden;margin-bottom:20px;
+}
+.review-row{
+  padding:14px 20px;border-bottom:1px solid rgba(13,17,23,0.06);
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  transition:background 0.2s;
+}
+.review-row:last-child{border-bottom:none;}
+.review-row:hover{background:rgba(254,243,199,0.12);}
+.review-label{
+  font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.6px;color:var(--ink-faint);
+  flex-shrink:0;min-width:90px;padding-top:2px;
+}
+.review-value{font-size:13.5px;color:var(--ink-muted);font-weight:300;flex:1;line-height:1.5;}
+.review-value strong{color:var(--ink);font-weight:500;}
+.edit-link{
+  font-size:12px;color:var(--gold-dark);background:none;border:none;
+  cursor:pointer;font-family:var(--font-body);white-space:nowrap;
+  flex-shrink:0;font-weight:500;padding:2px 0;
+  transition:opacity 0.2s;display:inline-flex;align-items:center;gap:4px;
+}
+.edit-link:hover{opacity:0.7;}
+
+/* Terms checkbox */
+.terms-row{
+  display:flex;align-items:flex-start;gap:13px;
+  padding:16px 18px;background:#FAFBFD;border:1.5px solid rgba(13,17,23,0.09);
+  border-radius:14px;margin-bottom:8px;cursor:pointer;
+  transition:border-color 0.2s;
+}
+.terms-row:hover{border-color:rgba(217,119,6,0.35);}
+.terms-row input[type="checkbox"]{
+  accent-color:var(--gold);margin-top:2px;
+  width:15px;height:15px;flex-shrink:0;cursor:pointer;
+}
+.terms-row span{font-size:13.5px;color:var(--ink-muted);font-weight:300;line-height:1.65;}
+.terms-row a{color:var(--gold-dark);text-decoration:none;font-weight:500;}
+.terms-row a:hover{text-decoration:underline;}
+
+/* notif-row highlight */
+.notif-row{
+  display:flex;align-items:flex-start;gap:12px;
+  font-size:13.5px;color:var(--ink);font-weight:500;
+  margin-bottom:20px;line-height:1.6;
+  background:var(--saffron-light);border:1px solid rgba(79,70,229,0.18);
+  border-radius:12px;padding:14px 16px;
+}
+.notif-row input{accent-color:var(--gold);margin-top:3px;width:15px;height:15px;flex-shrink:0;}
+/* Client instruction hint */
+.client-instruction{
+  display:flex;align-items:center;gap:6px;
+  font-size:11.5px;color:var(--ink-faint);font-weight:300;
+  margin-bottom:10px;
+  line-height:1.5;
+}
+.client-instruction svg{flex-shrink:0;opacity:0.5;}
+/* docs-public notice */
+.docs-public-notice{
+  font-size:13px;font-weight:500;color:var(--green);
+  display:flex;align-items:center;gap:9px;
+  margin-top:20px;padding:11px 15px;
+  background:var(--green-light);border:1px solid rgba(5,150,105,0.2);
+  border-radius:10px;line-height:1;
+}
+.docs-public-notice svg{flex-shrink:0;}
+
+/* ── NAV BUTTONS ── */
+.reg-nav{
+  display:flex;gap:12px;align-items:center;
+  margin-top:40px;padding-top:28px;
+  border-top:1px solid var(--border);
+}
+.btn-back{
+  font-family:var(--font-body);font-size:14px;font-weight:400;
+  color:var(--ink-muted);background:transparent;
+  border:1px solid var(--border-medium);padding:12px 24px;
+  border-radius:50px;cursor:pointer;transition:all 0.2s;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.btn-back:hover{border-color:var(--ink-muted);color:var(--ink);}
+.btn-next{
+  font-family:var(--font-body);font-size:14px;font-weight:500;
+  color:var(--white);background:var(--gold);border:none;
+  padding:12px 32px;border-radius:50px;cursor:pointer;
+  transition:all 0.22s;display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 2px 14px rgba(217,119,6,0.3);
+  text-decoration:none;
+}
+.btn-next:hover{background:#B45309;box-shadow:0 4px 22px rgba(217,119,6,0.4);transform:translateY(-1px);}
+.btn-submit{background:var(--ink);box-shadow:0 2px 14px rgba(13,17,23,0.2);}
+.btn-submit:hover{background:#1e2837;box-shadow:0 4px 22px rgba(13,17,23,0.3);transform:translateY(-1px);}
+.btn-large{font-size:15px!important;padding:14px 36px!important;}
+.nav-save-hint{font-size:12px;color:var(--ink-faint);font-weight:300;margin-left:4px;}
+
+/* ── SUCCESS SCREEN ── */
+.success-screen{
+  text-align:center;max-width:520px;
+  margin:0 auto;padding:72px 24px;
+  animation:slideIn 0.5s ease both;
+}
+.success-icon-wrap{
+  width:80px;height:80px;border-radius:50%;
+  background:var(--saffron-light);
+  border:2px solid rgba(79,70,229,0.15);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 24px;
+}
+.success-title{
+  font-family:var(--font-display);font-size:44px;font-weight:600;
+  color:var(--ink);letter-spacing:-1.5px;margin-bottom:12px;line-height:1.1;
+}
+.success-desc{
+  font-size:16px;color:var(--ink-muted);font-weight:300;
+  line-height:1.75;margin-bottom:36px;
+}
+.success-timeline{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:16px;padding:24px;text-align:left;margin-bottom:32px;
+}
+.timeline-item{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-dot{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--gold-light);border:1px solid rgba(217,119,6,0.2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold);flex-shrink:0;
+}
+.timeline-text{font-size:13.5px;color:var(--ink-muted);font-weight:300;line-height:1.6;padding-top:4px;}
+.timeline-text strong{color:var(--ink);font-weight:600;display:block;margin-bottom:2px;font-size:14px;}
+
+
+/* Portfolio file upload btn */
+.p-upload-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--ink-faint);font-weight:300;
+  border:1px dashed var(--border-medium);border-radius:8px;
+  padding:7px 12px;cursor:pointer;transition:all 0.2s;
+  background:var(--cream);width:100%;
+}
+.p-upload-btn:hover{border-color:var(--gold);color:var(--gold-dark);background:rgba(254,243,199,0.4);}
+.p-upload-btn.has-file{border-color:var(--green);background:var(--green-light);color:var(--green);}
+
+/* Sub-pill (industry & service subcategory checkboxes) */
+.sub-pill{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:400;color:var(--ink-muted);
+  padding:7px 13px;border-radius:50px;
+  border:1.5px solid rgba(13,17,23,0.10);
+  background:#FAFBFD;cursor:pointer;
+  transition:all 0.2s;user-select:none;
+}
+.sub-pill:hover{border-color:rgba(217,119,6,0.45);color:var(--gold-dark);background:rgba(254,243,199,0.2);}
+.sub-pill input[type="checkbox"]{accent-color:var(--gold);cursor:pointer;}
+
+/* Password requirements */
+.pw-reqs{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.pw-req{
+  font-size:11.5px;padding:4px 11px;border-radius:50px;
+  background:rgba(13,17,23,0.04);color:var(--ink-faint);
+  border:1px solid rgba(13,17,23,0.07);
+  font-weight:400;transition:all 0.22s;
+  font-family:var(--font-body);
+}
+
+/* Sub-pill wrapper — display is controlled by JS toggle, not CSS */
+.industry-sub-wrap{flex-wrap:wrap;gap:8px;}
+.svc-sub-wrap{flex-wrap:wrap;gap:8px;}
+/* Expertise tag input */
+.expertise-tag-input{width:100%;}
+.expertise-tag-input .form-control{width:100%;}
+.step-panel{display:none;}
+.step-panel.active{display:block;}
+
+/* ── CUSTOM SELECT ── */
+/* Hide native selects that have been upgraded */
+select.form-control.cs-hidden{
+  position:absolute;opacity:0;pointer-events:none;width:0;height:0;
+}
+.cs-wrap{position:relative;width:100%;}
+.cs-trigger{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;font-family:var(--font-body);font-size:14px;color:var(--ink);
+  background:#FAFBFD;
+  border:1.5px solid rgba(13,17,23,0.10);
+  border-radius:12px;padding:13px 16px;
+  outline:none;cursor:pointer;
+  transition:border-color 0.2s,box-shadow 0.2s,background 0.2s;
+  user-select:none;
+  text-align:left;
+  line-height:1.5;
+}
+.cs-trigger:hover{ border-color:rgba(13,17,23,0.18); background:#fff; }
+.cs-trigger.open{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3.5px rgba(217,119,6,0.09);
+  background:#fff;
+  border-radius:12px 12px 0 0;
+}
+.cs-trigger-text{ flex:1; }
+.cs-trigger-text.placeholder{ color:rgba(156,163,175,0.8);font-weight:300; }
+.cs-chevron{
+  flex-shrink:0;width:16px;height:16px;
+  color:var(--ink-faint);margin-left:10px;
+  transition:transform 0.22s cubic-bezier(0.16,1,0.3,1);
+}
+.cs-trigger.open .cs-chevron{ transform:rotate(180deg); color:var(--gold); }
+
+.cs-dropdown{
+  position:absolute;top:100%;left:0;right:0;z-index:400;
+  background:#fff;
+  border:1.5px solid rgba(13,17,23,0.12);
+  border-top:none;
+  border-radius:0 0 12px 12px;
+  box-shadow:0 12px 32px rgba(13,17,23,0.10), 0 2px 8px rgba(13,17,23,0.06);
+  overflow:hidden;
+  max-height:240px;overflow-y:auto;
+  display:none;
+}
+.cs-dropdown.open{ display:block; animation:cs-drop 0.18s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes cs-drop{ from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);} }
+.cs-option{
+  padding:11px 16px;font-size:14px;color:var(--ink-muted);font-weight:300;
+  cursor:pointer;transition:background 0.14s,color 0.14s;
+  border-bottom:1px solid rgba(13,17,23,0.06);
+}
+.cs-option:last-child{border-bottom:none;}
+.cs-option:hover{ background:var(--cream-warm); color:var(--ink); }
+.cs-option.selected{
+  background:var(--cream-deep);color:var(--ink);font-weight:500;
+}
+.cs-option.placeholder-opt{ color:var(--ink-faint);font-style:italic; }
+/* scrollbar on dropdown */
+.cs-dropdown::-webkit-scrollbar{width:5px;}
+.cs-dropdown::-webkit-scrollbar-track{background:rgba(13,17,23,0.03);}
+.cs-dropdown::-webkit-scrollbar-thumb{background:rgba(13,17,23,0.15);border-radius:4px;}
+.cs-dropdown::-webkit-scrollbar-thumb:hover{background:rgba(13,17,23,0.25);}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:32px;right:32px;
+  background:#fff;
+  color:var(--ink);
+  padding:12px 18px 12px 14px;
+  border-radius:12px;
+  font-size:13px;font-weight:400;line-height:1.45;
+  z-index:9998;
+  transform:translateY(16px);opacity:0;
+  transition:transform 0.28s cubic-bezier(0.16,1,0.3,1), opacity 0.22s ease;
+  border:1px solid rgba(13,17,23,0.09);
+  box-shadow:0 4px 24px rgba(13,17,23,0.12), 0 1px 4px rgba(13,17,23,0.06);
+  max-width:280px;
+  display:flex;align-items:flex-start;gap:10px;
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-bar{
+  width:3px;flex-shrink:0;border-radius:2px;
+  background:var(--gold);
+  align-self:stretch;min-height:16px;
+}
+.toast-bar.success{ background:var(--green); }
+.toast-bar.error  { background:#dc2626; }
+.toast-text{ padding-top:1px; }
+
+/* ── OTP VERIFICATION ── */
+.otp-verify-wrap{
+  margin-top:10px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.otp-send-row{
+  display:flex;align-items:center;gap:10px;
+}
+.btn-send-otp{
+  font-family:var(--font-body);font-size:12.5px;font-weight:600;
+  color:var(--saffron);
+  background:var(--saffron-light);
+  border:1.5px solid rgba(79,70,229,0.25);
+  border-radius:8px;padding:8px 16px;
+  cursor:pointer;transition:all 0.2s;
+  display:inline-flex;align-items:center;gap:7px;
+  white-space:nowrap;flex-shrink:0;
+}
+.btn-send-otp:hover:not(:disabled){background:rgba(79,70,229,0.12);border-color:var(--saffron);}
+.btn-send-otp:disabled{opacity:0.5;cursor:not-allowed;}
+.otp-timer{font-size:12px;color:var(--ink-faint);font-weight:300;}
+.otp-input-row{
+  display:flex;align-items:center;gap:10px;
+  animation:slideIn 0.2s ease both;
+}
+.otp-input-row .form-control{
+  letter-spacing:6px;font-family:var(--font-mono);
+  font-size:15px;font-weight:600;text-align:center;
+  max-width:160px;flex-shrink:0;
+}
+.btn-verify-otp{
+  font-family:var(--font-body);font-size:12.5px;font-weight:600;
+  color:var(--white);background:var(--saffron);
+  border:none;border-radius:8px;padding:9px 18px;
+  cursor:pointer;transition:all 0.2s;
+  display:inline-flex;align-items:center;gap:7px;
+  white-space:nowrap;flex-shrink:0;
+}
+.btn-verify-otp:hover{background:var(--saffron-dark);}
+.otp-verified-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--green-light);border:1px solid rgba(5,150,105,0.2);
+  border-radius:8px;padding:7px 14px;
+  font-size:12.5px;font-weight:600;color:var(--green);
+  animation:slideIn 0.2s ease both;
+}
+.otp-status{font-size:12px;font-weight:400;margin-top:2px;}
+.otp-status.success{color:var(--green);}
+.otp-status.error{color:#dc2626;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  .reg-sidebar{display:none;}
+  .reg-main{margin-left:0;}
+  .reg-body{padding:32px 24px 60px;}
+  .form-row{grid-template-columns:1fr;}
+  .service-checks{grid-template-columns:1fr;}
+  .verification-row{grid-template-columns:1fr;}
+  .reg-topbar{padding:0 24px;}
+}
+@media(max-width:600px){
+  .reg-body{padding:24px 20px 60px;}
+  .step-heading{font-size:28px;}
+}
+</style>
+</head>
+<body>
+
+<div class="reg-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="reg-sidebar">
+    <div class="sidebar-inner">
+      <a href="index.html" class="sidebar-logo"><span class="logo-the">The</span><span class="logo-ad">Ad</span><span class="logo-bsk">Basket</span></a>
+      <div class="sidebar-tagline">Agency Registration</div>
+
+      <div class="steps-list" id="stepsList">
+        <div class="step-item active" data-step="1" onclick="goToStep(1)">
+          <div class="step-dot">
+            <span class="step-dot-num">1</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Login Setup</div>
+            <div class="step-info-desc">Email &amp; password</div>
+          </div>
+        </div>
+        <div class="step-item" data-step="2" onclick="goToStep(2)">
+          <div class="step-dot">
+            <span class="step-dot-num">2</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Agency Info</div>
+            <div class="step-info-desc">Name, type, HQ location</div>
+          </div>
+        </div>
+        <div class="step-item" data-step="3" onclick="goToStep(3)">
+          <div class="step-dot">
+            <span class="step-dot-num">3</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Contact Person</div>
+            <div class="step-info-desc">Primary contact details</div>
+          </div>
+        </div>
+        <div class="step-item" data-step="4" onclick="goToStep(4)">
+          <div class="step-dot">
+            <span class="step-dot-num">4</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Services &amp; Expertise</div>
+            <div class="step-info-desc">What you offer, industries</div>
+          </div>
+        </div>
+        <div class="step-item" data-step="5" onclick="goToStep(5)">
+          <div class="step-dot">
+            <span class="step-dot-num">5</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Business Details</div>
+            <div class="step-info-desc">Scale, geography, pricing</div>
+          </div>
+        </div>
+        <div class="step-item" data-step="6" onclick="goToStep(6)">
+          <div class="step-dot">
+            <span class="step-dot-num">6</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Verification Docs</div>
+            <div class="step-info-desc">GST + PAN for verified tag</div>
+          </div>
+        </div>
+        <div class="step-item" data-step="7" onclick="goToStep(7)">
+          <div class="step-dot">
+            <span class="step-dot-num">7</span>
+            <span class="step-dot-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="step-info">
+            <div class="step-info-title">Review &amp; Submit</div>
+            <div class="step-info-desc">Final check, terms</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-trust">
+        <div class="sidebar-trust-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Secured with 256-bit SSL
+        </div>
+        <div class="sidebar-trust-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Data never shared publicly
+        </div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <p>Already registered?</p>
+        <a href="agency-home.html">Sign in to your account <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="reg-main">
+    <div class="reg-topbar">
+      <div class="topbar-left">
+        <div class="step-pill" id="stepPill">Step 1 / 7</div>
+        <span class="step-counter" id="stepCounterLabel">Agency Information</span>
+      </div>
+      <a href="agency-home.html" class="cancel-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancel
+      </a>
+    </div>
+    <div class="reg-progress"><div class="reg-progress-fill" id="progressFill" style="width:14.3%"></div></div>
+
+    <div class="reg-body">
+
+      <!-- STEP 1: AGENCY INFO -->
+      <div class="step-panel" id="step2">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 2 of 7</div>
+          <h2 class="step-heading">Agency <em>Information</em></h2>
+          <p class="step-subheading">Tell us about your company. This becomes your public profile.</p>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Brand Identity</div>
+          <div class="form-group">
+            <label>Agency / Company Name <span class="req">*</span></label>
+            <input type="text" class="form-control" id="f_agencyName" placeholder="e.g., Pixel &amp; Print Communications Pvt. Ltd."/>
+          </div>
+          <div class="form-group">
+            <label>Tagline <span class="opt">(optional — but recommended)</span></label>
+            <input type="text" class="form-control" id="f_tagline" placeholder="e.g., India's most trusted OOH media planning agency"/>
+            <div class="form-hint">One punchy line that appears on your public profile. A great tagline helps you stand out and attracts more inquiries.</div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Company Details</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Agency Type <span class="req">*</span></label>
+              <select class="form-control" id="f_agencyType">
+                <option value="">Select type</option>
+                <option>Full-Service Ad Agency</option>
+                <option>Media Planning Agency</option>
+                <option>Creative Studio</option>
+                <option>PR &amp; Communications Firm</option>
+                <option>Production House</option>
+                <option>Market Research Firm</option>
+                <option>Digital Agency (with OOH)</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Year Established <span class="req">*</span></label>
+              <input type="number" class="form-control" id="f_yearEst" placeholder="2010" min="1980" max="2026"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>About Your Agency <span class="opt">(optional — but recommended)</span></label>
+            <textarea class="form-control" rows="4" placeholder="Describe your agency's specialisations, notable clients or campaigns, and what makes you stand out. This appears prominently on your public profile."></textarea>
+            <div class="form-hint">Well-written profiles attract 3× more inquiries. Keep it concise and compelling.</div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Location</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Website <span class="opt">(optional)</span></label>
+              <input type="url" class="form-control" placeholder="https://yourwebsite.com"/>
+            </div>
+            <div class="form-group">
+              <label>Headquarters Pincode <span class="req">*</span></label>
+              <input type="text" class="form-control" id="f_pincode" maxlength="6" placeholder="400001" oninput="autofillCity(this)"/>
+              <div class="pincode-autofill" id="hqCityFill"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Office Address <span class="req">*</span></label>
+            <textarea class="form-control" id="f_officeAddress" rows="2" placeholder="e.g., 4th Floor, Pinnacle Business Park, Andheri East, Mumbai – 400093"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Agency Logo <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint);margin-left:4px;">optional</span></div>
+          <div class="form-group">
+            <input type="file" id="logoFileInput" accept="image/png,image/svg+xml,image/jpeg,image/webp" style="display:none;" onchange="handleLogoUpload(this)"/>
+            <div class="logo-upload-zone" id="logoDropZone" onclick="document.getElementById('logoFileInput').click()"
+              ondragover="handleDragOver(event,this)" ondragleave="handleDragLeave(event,this)" ondrop="handleLogoDrop(event)"
+              style="padding:16px 20px;display:flex;align-items:center;gap:14px;text-align:left;">
+              <div class="upload-icon" id="logoUploadIcon" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;margin:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <div>
+                <div class="upload-title" id="logoUploadTitle" style="font-size:13px;">Drop your logo here or click to upload</div>
+                <div class="upload-sub" id="logoUploadSub" style="font-size:11.5px;">PNG / SVG / JPG · Max 2MB · Square format preferred</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reg-nav">
+          <button class="btn-next" onclick="nextStep()">Continue to Services <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+          <span class="nav-save-hint">Progress auto-saved</span>
+        </div>
+      </div>
+
+      <!-- STEP 2: CONTACT PERSON -->
+      <div class="step-panel" id="step3">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 3 of 7</div>
+          <h2 class="step-heading">Contact <em>Person</em></h2>
+          <p class="step-subheading">Your designated AdBasket contact for all business inquiries.</p>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Personal Details</div>
+          <div class="form-row">
+            <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" class="form-control" id="f_firstName" placeholder="Priya"/></div>
+            <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" class="form-control" id="f_lastName" placeholder="Mehta"/></div>
+          </div>
+          <div class="form-group">
+            <label>Designation / Role <span class="req">*</span></label>
+            <input type="text" class="form-control" id="f_desig" placeholder="e.g., Managing Director, Business Head, Account Manager"/>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Contact Channels</div>
+          <div class="form-group">
+            <label>Business Email <span class="req">*</span></label>
+            <input type="email" class="form-control" id="f_email" placeholder="priya@pixelprint.in"/>
+            <div class="form-hint">Must be your agency domain email — not Gmail or Yahoo.</div>
+            <button type="button" onclick="useLoginEmail()" style="margin-top:7px;background:none;border:1.5px solid rgba(79,70,229,0.25);border-radius:8px;padding:6px 13px;font-size:12px;color:var(--saffron);cursor:pointer;font-family:var(--font-body);font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseover="this.style.background='var(--saffron-light)';this.style.borderColor='var(--saffron)'" onmouseout="this.style.background='none';this.style.borderColor='rgba(79,70,229,0.25)'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Use same email as Login Setup
+            </button>
+            <!-- Email OTP -->
+            <div class="otp-verify-wrap" id="emailOtpWrap">
+              <div class="otp-send-row">
+                <button type="button" class="btn-send-otp" id="btnSendEmailOtp" onclick="sendOTP('email')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  Verify Email via OTP
+                </button>
+                <span class="otp-timer" id="emailOtpTimer"></span>
+              </div>
+              <div class="otp-input-row" id="emailOtpInputRow" style="display:none;">
+                <input type="text" class="form-control" id="emailOtpInput" placeholder="— — — —" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/>
+                <button type="button" class="btn-verify-otp" onclick="verifyOTP('email')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Verify
+                </button>
+              </div>
+              <div class="otp-status" id="emailOtpStatus"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number <span class="req">*</span></label>
+            <div class="phone-wrap">
+              <span class="phone-prefix">+91</span>
+              <input type="tel" class="form-control" id="f_phone" placeholder="98765 43210" oninput="handlePhoneInput(this)"/>
+            </div>
+            <div class="form-hint" id="otpHint">Enter your 10-digit mobile number</div>
+            <!-- Mobile OTP -->
+            <div class="otp-verify-wrap" id="mobileOtpWrap">
+              <div class="otp-send-row">
+                <button type="button" class="btn-send-otp" id="btnSendMobileOtp" onclick="sendOTP('mobile')" disabled>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                  Verify Mobile via OTP
+                </button>
+                <span class="otp-timer" id="mobileOtpTimer"></span>
+              </div>
+              <div class="otp-input-row" id="mobileOtpInputRow" style="display:none;">
+                <input type="text" class="form-control" id="mobileOtpInput" placeholder="— — — —" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/>
+                <button type="button" class="btn-verify-otp" onclick="verifyOTP('mobile')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Verify
+                </button>
+              </div>
+              <div class="otp-status" id="mobileOtpStatus"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Office Landline <span class="opt">(optional)</span></label>
+            <div class="phone-wrap">
+              <span class="phone-prefix">+91</span>
+              <input type="tel" class="form-control" placeholder="22 2222 3333"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>LinkedIn Profile <span class="opt">(optional)</span></label>
+            <input type="url" class="form-control" placeholder="https://linkedin.com/in/yourname"/>
+          </div>
+        </div>
+
+        <div class="reg-nav">
+          <button class="btn-back" onclick="prevStep()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="btn-next" onclick="nextStep()">Continue to Services <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+      </div>
+
+      <!-- STEP 3: SERVICES & EXPERTISE -->
+      <div class="step-panel" id="step4">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 4 of 7</div>
+          <h2 class="step-heading">Services &amp; <em>Expertise</em></h2>
+          <p class="step-subheading">The more relevant your offerings, the more targeted your inquiries.</p>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Services Offered <span class="req">*</span> <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint);margin-left:4px;">click a category to expand · select all that apply</span></div>
+          <div id="serviceAccordion" style="display:flex;flex-direction:column;gap:6px;">
+
+            <!-- PR Services -->
+            <div class="svc-cat" data-svc="pr">
+              <div class="svc-cat-header" onclick="toggleSvcCat('pr')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="pr-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">PR &amp; Communications</span>
+                  <span id="pr-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="pr-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="pr-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('pr')"> Media Relations</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('pr')"> Crisis Management</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('pr')"> Brand Reputation</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('pr')"> Press Release Writing</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('pr')"> Event PR</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="pr-other-chk" onchange="syncSvcBadge('pr');toggleOtherInput('pr-other-input',this)"> Other</label>
+                  <input type="text" id="pr-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Media Buying -->
+            <div class="svc-cat" data-svc="media-buy">
+              <div class="svc-cat-header" onclick="toggleSvcCat('media-buy')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="media-buy-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Media Buying &amp; Planning</span>
+                  <span id="media-buy-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="media-buy-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="media-buy-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('media-buy')"> OOH / Outdoor Media</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('media-buy')"> Print Media</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('media-buy')"> TV &amp; Radio</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('media-buy')"> Transit Advertising</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('media-buy')"> Airport Advertising</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('media-buy')"> Mall Activations</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="media-buy-other-chk" onchange="syncSvcBadge('media-buy');toggleOtherInput('media-buy-other-input',this)"> Other</label>
+                  <input type="text" id="media-buy-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Creative Agency -->
+            <div class="svc-cat" data-svc="creative">
+              <div class="svc-cat-header" onclick="toggleSvcCat('creative')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="creative-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Creative Agency</span>
+                  <span id="creative-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="creative-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="creative-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('creative')"> Brand Identity &amp; Design</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('creative')"> Copywriting</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('creative')"> Art Direction</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('creative')"> Campaign Conceptualisation</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('creative')"> Motion Graphics / Animation</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="creative-other-chk" onchange="syncSvcBadge('creative');toggleOtherInput('creative-other-input',this)"> Other</label>
+                  <input type="text" id="creative-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Digital Marketing -->
+            <div class="svc-cat" data-svc="digital">
+              <div class="svc-cat-header" onclick="toggleSvcCat('digital')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="digital-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Digital Marketing</span>
+                  <span id="digital-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="digital-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="digital-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('digital')"> SEO &amp; Content Marketing</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('digital')"> Social Media Marketing</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('digital')"> Google / Meta Ads</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('digital')"> Email Marketing</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('digital')"> Programmatic Advertising</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('digital')"> App Marketing</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="digital-other-chk" onchange="syncSvcBadge('digital');toggleOtherInput('digital-other-input',this)"> Other</label>
+                  <input type="text" id="digital-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Production House -->
+            <div class="svc-cat" data-svc="production">
+              <div class="svc-cat-header" onclick="toggleSvcCat('production')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="production-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Production House</span>
+                  <span id="production-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="production-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="production-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('production')"> TVC &amp; Ad Films</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('production')"> Photography &amp; Product Shoots</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('production')"> Corporate Films</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('production')"> 3D Visualisation</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('production')"> Jingle &amp; Audio Production</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="production-other-chk" onchange="syncSvcBadge('production');toggleOtherInput('production-other-input',this)"> Other</label>
+                  <input type="text" id="production-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Influencer Marketing -->
+            <div class="svc-cat" data-svc="influencer">
+              <div class="svc-cat-header" onclick="toggleSvcCat('influencer')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="influencer-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Influencer Marketing</span>
+                  <span id="influencer-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="influencer-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="influencer-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('influencer')"> Micro Influencers</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('influencer')"> Celebrity Endorsements</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('influencer')"> UGC Campaigns</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('influencer')"> Instagram / Reels</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('influencer')"> YouTube Campaigns</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="influencer-other-chk" onchange="syncSvcBadge('influencer');toggleOtherInput('influencer-other-input',this)"> Other</label>
+                  <input type="text" id="influencer-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Full-Service Agency -->
+            <div class="svc-cat" data-svc="fullsvc">
+              <div class="svc-cat-header" onclick="toggleSvcCat('fullsvc')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="svc-check-box" id="fullsvc-cbox" style="width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-medium);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:11px;color:transparent;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Full-Service Agency</span>
+                  <span id="fullsvc-badge" style="display:none;font-size:10px;font-weight:600;background:var(--gold);color:#fff;border-radius:50px;padding:2px 8px;"></span>
+                </div>
+                <span id="fullsvc-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="fullsvc-sub" style="display:none;padding:12px 16px 14px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="svc-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('fullsvc')"> 360° Campaign Management</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('fullsvc')"> Integrated Brand Strategy</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('fullsvc')"> Research &amp; Consumer Insights</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncSvcBadge('fullsvc')"> ATL + BTL Execution</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;width:100%;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="fullsvc-other-chk" onchange="syncSvcBadge('fullsvc');toggleOtherInput('fullsvc-other-input',this)"> Other</label>
+                  <input type="text" id="fullsvc-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Scale &amp; Range</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Years of Experience <span class="req">*</span></label>
+              <select class="form-control">
+                <option value="">Select range</option>
+                <option>Less than 1 year</option>
+                <option>1–3 years</option>
+                <option>3–5 years</option>
+                <option>5–10 years</option>
+                <option>10–20 years</option>
+                <option>20+ years</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Key Clients <span class="opt">(optional · max 5)</span></label>
+            <div class="client-instruction">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Click the image box to upload your client's logo, then type the client name beside it.
+            </div>
+            <div style="font-size:12px;color:var(--ink-muted);font-weight:300;margin-bottom:12px;padding-left:10px;border-left:2px solid rgba(217,119,6,0.35);line-height:1.6;">
+              Displaying recognisable client logos builds trust and significantly boosts your profile's credibility with new prospects.
+            </div>
+            <!-- Client 1 -->
+            <div class="client-row" id="clientRow1" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="flex-shrink:0;">
+                <input type="file" id="clientLogo1" accept="image/*" style="display:none;" onchange="handleClientLogo(this,1)"/>
+                <div id="clientLogoBox1" onclick="document.getElementById('clientLogo1').click()" title="Click to upload client logo"
+                  style="width:46px;height:46px;border:1.5px dashed rgba(13,17,23,0.15);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#FAFBFD;transition:all 0.2s;flex-shrink:0;position:relative;"
+                  onmouseover="this.style.borderColor='var(--gold)';this.style.background='var(--gold-light)'" onmouseout="this.style.borderColor='rgba(13,17,23,0.15)';this.style.background='#FAFBFD'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                
+              </div>
+              <input type="text" class="form-control" id="clientName1" placeholder="Client name" style="margin-bottom:0;"/>
+            </div>
+            <!-- Client 2 -->
+            <div class="client-row" id="clientRow2" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="flex-shrink:0;">
+                <input type="file" id="clientLogo2" accept="image/*" style="display:none;" onchange="handleClientLogo(this,2)"/>
+                <div id="clientLogoBox2" onclick="document.getElementById('clientLogo2').click()" title="Click to upload client logo"
+                  style="width:46px;height:46px;border:1.5px dashed rgba(13,17,23,0.15);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#FAFBFD;transition:all 0.2s;flex-shrink:0;position:relative;"
+                  onmouseover="this.style.borderColor='var(--gold)';this.style.background='var(--gold-light)'" onmouseout="this.style.borderColor='rgba(13,17,23,0.15)';this.style.background='#FAFBFD'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                
+              </div>
+              <input type="text" class="form-control" id="clientName2" placeholder="Client name" style="margin-bottom:0;"/>
+            </div>
+            <!-- Client 3 -->
+            <div class="client-row" id="clientRow3" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="flex-shrink:0;">
+                <input type="file" id="clientLogo3" accept="image/*" style="display:none;" onchange="handleClientLogo(this,3)"/>
+                <div id="clientLogoBox3" onclick="document.getElementById('clientLogo3').click()" title="Click to upload client logo"
+                  style="width:46px;height:46px;border:1.5px dashed rgba(13,17,23,0.15);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#FAFBFD;transition:all 0.2s;flex-shrink:0;position:relative;"
+                  onmouseover="this.style.borderColor='var(--gold)';this.style.background='var(--gold-light)'" onmouseout="this.style.borderColor='rgba(13,17,23,0.15)';this.style.background='#FAFBFD'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                
+              </div>
+              <input type="text" class="form-control" id="clientName3" placeholder="Client name" style="margin-bottom:0;"/>
+              <button type="button" onclick="removeClientRow(3)" title="Remove client" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px 6px;line-height:1;flex-shrink:0;transition:color 0.2s;display:flex;align-items:center;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--ink-faint)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <!-- Client 4 — hidden initially -->
+            <div class="client-row" id="clientRow4" style="display:none;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="flex-shrink:0;">
+                <input type="file" id="clientLogo4" accept="image/*" style="display:none;" onchange="handleClientLogo(this,4)"/>
+                <div id="clientLogoBox4" onclick="document.getElementById('clientLogo4').click()" title="Click to upload client logo"
+                  style="width:46px;height:46px;border:1.5px dashed rgba(13,17,23,0.15);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#FAFBFD;transition:all 0.2s;flex-shrink:0;position:relative;"
+                  onmouseover="this.style.borderColor='var(--gold)';this.style.background='var(--gold-light)'" onmouseout="this.style.borderColor='rgba(13,17,23,0.15)';this.style.background='#FAFBFD'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                
+              </div>
+              <input type="text" class="form-control" id="clientName4" placeholder="Client name" style="margin-bottom:0;"/>
+              <button type="button" onclick="removeClientRow(4)" title="Remove client" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px 6px;line-height:1;flex-shrink:0;transition:color 0.2s;display:flex;align-items:center;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--ink-faint)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <!-- Client 5 — hidden initially -->
+            <div class="client-row" id="clientRow5" style="display:none;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="flex-shrink:0;">
+                <input type="file" id="clientLogo5" accept="image/*" style="display:none;" onchange="handleClientLogo(this,5)"/>
+                <div id="clientLogoBox5" onclick="document.getElementById('clientLogo5').click()" title="Click to upload client logo"
+                  style="width:46px;height:46px;border:1.5px dashed rgba(13,17,23,0.15);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#FAFBFD;transition:all 0.2s;flex-shrink:0;position:relative;"
+                  onmouseover="this.style.borderColor='var(--gold)';this.style.background='var(--gold-light)'" onmouseout="this.style.borderColor='rgba(13,17,23,0.15)';this.style.background='#FAFBFD'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                
+              </div>
+              <input type="text" class="form-control" id="clientName5" placeholder="Client name" style="margin-bottom:0;"/>
+              <button type="button" onclick="removeClientRow(5)" title="Remove client" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px 6px;line-height:1;flex-shrink:0;transition:color 0.2s;display:flex;align-items:center;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--ink-faint)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <button type="button" id="addClientBtn" onclick="addClientRow()" class="add-portfolio-btn" style="margin-top:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Key Client
+            </button>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Industries Served <span class="req">*</span> <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint);margin-left:4px;">click a category to expand · select all that apply</span></div>
+          <div id="industryAccordion" style="display:flex;flex-direction:column;gap:6px;">
+
+            <!-- 1. FINANCE & PROTECTION -->
+            <div class="industry-cat" data-cat="finance">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('finance')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="finance-cat-chk" onchange="toggleCatCheck('finance',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Finance &amp; Protection</span>
+                </label>
+                <span id="finance-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="finance-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('finance')"> Financial Services</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('finance')"> Banking &amp; Insurance</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('finance')"> Legal Services</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('finance')"> Accounting &amp; Auditing</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="finance-other-chk" onchange="syncCatBadge('finance');toggleOtherInput('finance-other-input',this)"> Other</label>
+                  <input type="text" id="finance-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. COMMERCE & LIFESTYLE -->
+            <div class="industry-cat" data-cat="commerce">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('commerce')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="commerce-cat-chk" onchange="toggleCatCheck('commerce',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Commerce &amp; Lifestyle</span>
+                </label>
+                <span id="commerce-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="commerce-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('commerce')"> Retail &amp; E-Commerce</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('commerce')"> Food &amp; Beverage</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('commerce')"> Personal Care &amp; Beauty</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('commerce')"> Textiles &amp; Apparel</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('commerce')"> Furniture &amp; Home Goods</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="commerce-other-chk" onchange="syncCatBadge('commerce');toggleOtherInput('commerce-other-input',this)"> Other</label>
+                  <input type="text" id="commerce-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. HEALTH & LIFE SCIENCES -->
+            <div class="industry-cat" data-cat="health">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('health')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="health-cat-chk" onchange="toggleCatCheck('health',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Health &amp; Life Sciences</span>
+                </label>
+                <span id="health-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="health-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('health')"> Healthcare &amp; Pharmaceuticals</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('health')"> Biotechnology &amp; Life Sciences</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="health-other-chk" onchange="syncCatBadge('health');toggleOtherInput('health-other-input',this)"> Other</label>
+                  <input type="text" id="health-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. TECHNOLOGY & CONNECTIVITY -->
+            <div class="industry-cat" data-cat="tech">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('tech')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="tech-cat-chk" onchange="toggleCatCheck('tech',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Technology &amp; Connectivity</span>
+                </label>
+                <span id="tech-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="tech-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('tech')"> Information Technology &amp; Software</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('tech')"> Telecommunications</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('tech')"> Electronics &amp; Semiconductors</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="tech-other-chk" onchange="syncCatBadge('tech');toggleOtherInput('tech-other-input',this)"> Other</label>
+                  <input type="text" id="tech-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. MEDIA, ENTERTAINMENT & SPORTS -->
+            <div class="industry-cat" data-cat="media">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('media')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="media-cat-chk" onchange="toggleCatCheck('media',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Media, Entertainment &amp; Sports</span>
+                </label>
+                <span id="media-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="media-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('media')"> Media &amp; Entertainment</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('media')"> Sports &amp; Recreation</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('media')"> Advertising &amp; Marketing</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="media-other-chk" onchange="syncCatBadge('media');toggleOtherInput('media-other-input',this)"> Other</label>
+                  <input type="text" id="media-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. MOBILITY & MANUFACTURING -->
+            <div class="industry-cat" data-cat="mobility">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('mobility')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="mobility-cat-chk" onchange="toggleCatCheck('mobility',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Mobility &amp; Manufacturing</span>
+                </label>
+                <span id="mobility-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="mobility-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('mobility')"> Automotive</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('mobility')"> Aerospace &amp; Defense</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="mobility-other-chk" onchange="syncCatBadge('mobility');toggleOtherInput('mobility-other-input',this)"> Other</label>
+                  <input type="text" id="mobility-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7. TRAVEL, LIVING & REAL ESTATE -->
+            <div class="industry-cat" data-cat="travel">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('travel')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="travel-cat-chk" onchange="toggleCatCheck('travel',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Travel, Living &amp; Real Estate</span>
+                </label>
+                <span id="travel-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="travel-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('travel')"> Hospitality &amp; Tourism</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('travel')"> Real Estate</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="travel-other-chk" onchange="syncCatBadge('travel');toggleOtherInput('travel-other-input',this)"> Other</label>
+                  <input type="text" id="travel-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 8. EDUCATION & PROFESSIONAL SERVICES -->
+            <div class="industry-cat" data-cat="education">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('education')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="education-cat-chk" onchange="toggleCatCheck('education',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Education &amp; Professional Services</span>
+                </label>
+                <span id="education-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="education-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('education')"> Education</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('education')"> Consulting &amp; Professional Services</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="education-other-chk" onchange="syncCatBadge('education');toggleOtherInput('education-other-input',this)"> Other</label>
+                  <input type="text" id="education-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- 9. ENERGY & MATERIALS -->
+            <div class="industry-cat" data-cat="energy">
+              <div class="industry-cat-header" onclick="toggleIndustryCat('energy')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border-medium);border-radius:10px;cursor:pointer;background:var(--white);transition:all 0.2s;user-select:none;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="energy-cat-chk" onchange="toggleCatCheck('energy',this)" style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:500;color:var(--ink);">Energy &amp; Materials</span>
+                </label>
+                <span id="energy-arrow" style="display:flex;align-items:center;color:var(--ink-faint);transition:transform 0.2s;padding:4px 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              </div>
+              <div id="energy-sub" style="display:none;padding:10px 14px 12px;border:1px solid var(--border-medium);border-top:none;border-radius:0 0 10px 10px;background:var(--cream);flex-wrap:wrap;gap:8px;" class="industry-sub-wrap">
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('energy')"> Renewable Energy</label>
+                <label class="sub-pill"><input type="checkbox" onchange="syncCatBadge('energy')"> Chemicals</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <label class="sub-pill" style="flex-shrink:0;"><input type="checkbox" id="energy-other-chk" onchange="syncCatBadge('energy');toggleOtherInput('energy-other-input',this)"> Other</label>
+                  <input type="text" id="energy-other-input" class="form-control" placeholder="Specify..." style="display:none;height:32px;padding:4px 10px;font-size:12.5px;"/>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="form-section" style="border-bottom:none;">
+          <div class="form-section-title">Expertise Tags <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint);margin-left:4px;">shown on your public profile</span></div>
+          <div class="form-group expertise-tag-input">
+            <input type="text" class="form-control" id="f_expertiseTags" placeholder="e.g., FMCG, Retail, Real Estate, Automotive, Healthcare"/>
+            <div class="form-hint">Separate tags with commas. These appear prominently on your public profile.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px;" class="form-section" id="portfolioSection">
+          <div class="form-section-title" style="display:flex;align-items:center;gap:8px;">Portfolio / Case Studies <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint);">optional — strongly recommended</span><span style="flex:1;height:1px;background:var(--border);display:block;"></span></div>
+          <div class="portfolio-list" id="portfolioList">
+            <div class="portfolio-item" id="pitem_1">
+              <div class="portfolio-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
+              <div style="flex:1;">
+                <div class="portfolio-title"><input type="text" class="p-title-input" style="border:none;background:transparent;font-size:14px;font-weight:500;color:var(--ink);outline:none;width:100%;font-family:var(--font-body);" placeholder="Campaign name or project title"/></div>
+                <div class="portfolio-meta"><input type="text" class="p-meta-input" style="border:none;background:transparent;font-size:12px;color:var(--ink-faint);font-weight:300;outline:none;width:100%;font-family:var(--font-body);" placeholder="Budget · Billboards · Duration · Industry"/></div>
+                <div class="p-file-area" style="margin-top:8px;">
+                  <input type="file" id="pfile_1" accept=".pdf,.ppt,.pptx,.doc,.docx,image/*" style="display:none;" onchange="handlePortfolioFile(this,'pfile_1_label','pfile_1_zone')"/>
+                  <div id="pfile_1_zone" class="p-upload-btn" onclick="document.getElementById('pfile_1').click()" ondragover="handleDocDragOver(event,this)" ondragleave="handleDocDragLeave(event,this)" ondrop="handlePortfolioFileDrop(event,'pfile_1','pfile_1_label','pfile_1_zone')">
+                    <span id="pfile_1_label">Attach case study file <span style="font-size:10.5px;font-weight:300;opacity:0.7;">PDF, PPT, DOC, or image</span></span>
+                  </div>
+                </div>
+              </div>
+              <button onclick="removePortfolioItem('pitem_1')" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px 8px;line-height:1;align-self:flex-start;display:flex;align-items:center;transition:color 0.2s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--ink-faint)'" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="portfolio-item" id="pitem_2">
+              <div class="portfolio-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
+              <div style="flex:1;">
+                <div class="portfolio-title"><input type="text" class="p-title-input" style="border:none;background:transparent;font-size:14px;font-weight:500;color:var(--ink);outline:none;width:100%;font-family:var(--font-body);" placeholder="Campaign name or project title"/></div>
+                <div class="portfolio-meta"><input type="text" class="p-meta-input" style="border:none;background:transparent;font-size:12px;color:var(--ink-faint);font-weight:300;outline:none;width:100%;font-family:var(--font-body);" placeholder="Budget · Billboards · Duration · Industry"/></div>
+                <div class="p-file-area" style="margin-top:8px;">
+                  <input type="file" id="pfile_2" accept=".pdf,.ppt,.pptx,.doc,.docx,image/*" style="display:none;" onchange="handlePortfolioFile(this,'pfile_2_label','pfile_2_zone')"/>
+                  <div id="pfile_2_zone" class="p-upload-btn" onclick="document.getElementById('pfile_2').click()" ondragover="handleDocDragOver(event,this)" ondragleave="handleDocDragLeave(event,this)" ondrop="handlePortfolioFileDrop(event,'pfile_2','pfile_2_label','pfile_2_zone')">
+                    <span id="pfile_2_label">Attach case study file <span style="font-size:10.5px;font-weight:300;opacity:0.7;">PDF, PPT, DOC, or image</span></span>
+                  </div>
+                </div>
+              </div>
+              <button onclick="removePortfolioItem('pitem_2')" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px 8px;line-height:1;align-self:flex-start;display:flex;align-items:center;transition:color 0.2s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--ink-faint)'" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+          </div>
+          <button class="add-portfolio-btn" onclick="addPortfolio()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Case Study / Campaign
+          </button>
+        </div>
+
+        <div class="reg-nav">
+          <button class="btn-back" onclick="prevStep()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="btn-next" onclick="nextStep()">Continue to Business Details <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+      </div>
+
+      <!-- STEP 4: BUSINESS DETAILS -->
+      <div class="step-panel" id="step5">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 5 of 7</div>
+          <h2 class="step-heading">Business <em>Details</em></h2>
+          <p class="step-subheading">Lets clients see your capacity and service location before they reach you.</p>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Track Record</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Campaigns Completed (Approx.) <span class="req">*</span></label>
+              <input type="number" class="form-control" id="f_campaigns" placeholder="e.g., 120" min="0" step="1" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+            </div>
+            <div class="form-group">
+              <label>Tender Budgets to Bid On <span class="req">*</span></label>
+              <select class="form-control">
+                <option>₹0 – ₹1 Lakh</option>
+                <option>₹1L – ₹10L</option>
+                <option>₹10L – ₹50L</option>
+                <option>₹50L – ₹1 Crore</option>
+                <option>₹1 Crore – ₹50 Crore</option>
+                <option>₹50 Crore – ₹200 Crore</option>
+                <option>₹200 Crore+</option>
+                <option>All budgets</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Pricing Model <span class="req">*</span></label>
+              <select class="form-control">
+                <option value="">Select pricing model</option>
+                <option>Fixed</option>
+                <option>Monthly Retainer</option>
+                <option>Commission-Based</option>
+                <option>Flexible</option>
+              </select>
+              <div class="form-hint"><strong style="color:var(--ink);">Fixed</strong> — one-time fee &nbsp;·&nbsp; <strong style="color:var(--ink);">Retainer</strong> — recurring &nbsp;·&nbsp; <strong style="color:var(--ink);">Commission</strong> — % of spend</div>
+            </div>
+            <div class="form-group">
+              <label>Languages</label>
+              <input type="text" class="form-control" placeholder="Hindi, English, Marathi"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section" style="border-bottom:none;">
+          <div class="form-section-title">Geography</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Geographic Coverage <span class="req">*</span></label>
+              <select class="form-control" id="f_geoCoverage" onchange="updateOperationField()">
+                <option value="">Select coverage</option>
+                <option value="pan_india">Pan India</option>
+                <option value="single_city">Single City</option>
+                <option value="multi_city">Multiple Cities (More than 2)</option>
+                <option value="state">State-level</option>
+                <option value="regional">Regional (North / South / West / East)</option>
+              </select>
+            </div>
+            <div class="form-group" id="operationFieldGroup" style="display:none;">
+              <label id="operationFieldLabel">City of Operation <span class="req">*</span></label>
+              <input type="text" class="form-control" id="f_cities" placeholder="e.g., Mumbai"/>
+              <div class="form-hint" id="operationFieldHint"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reg-nav">
+          <button class="btn-back" onclick="prevStep()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="btn-next" onclick="nextStep()">Continue to Verification <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+      </div>
+
+      <!-- STEP 5: VERIFICATION DOCS -->
+      <div class="step-panel" id="step6">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 6 of 7</div>
+          <h2 class="step-heading">Verification <em>Documents</em></h2>
+          <p class="step-subheading">Clients trust verified agencies. Add your GST &amp; PAN now.</p>
+        </div>
+
+        <div class="info-banner">
+          <div class="info-banner-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="info-banner-text">
+            <strong>Verified tag = 3× more inquiries.</strong> Agencies with both GST + PAN verified receive significantly more direct business leads. It takes under 30 seconds to enter.
+          </div>
+        </div>
+
+        <div class="verification-row">
+          <div class="verification-card">
+            <div class="v-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="v-title">GST Registration</div>
+            <input type="text" class="form-control" placeholder="27AAPFU0939F1Z5" maxlength="15" id="f_gst" oninput="validateGST(this)" style="margin-bottom:10px;font-family:var(--font-mono);letter-spacing:1.5px;font-size:13px;"/>
+            <div id="gstStatus" style="font-size:12px;color:var(--ink-faint);"></div>
+          </div>
+          <div class="verification-card">
+            <div class="v-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <div class="v-title">PAN Card <span style="font-size:11.5px;font-weight:300;color:var(--ink-faint);font-style:italic;">(Optional — not compulsory)</span></div>
+            <input type="text" class="form-control" placeholder="AAPFU0939F" maxlength="10" id="f_pan" oninput="validatePAN(this)" style="margin-bottom:10px;font-family:var(--font-mono);letter-spacing:1.5px;font-size:13px;text-transform:uppercase;"/>
+            <div id="panStatus" style="font-size:12px;color:var(--ink-faint);"></div>
+          </div>
+        </div>
+
+        <div class="docs-public-notice">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Documents are never shared publicly.</span>
+        </div>
+
+        <div class="form-section" style="margin-top:28px;padding-top:0;border-bottom:none;">
+          <div class="form-section-title">Other Identification</div>
+          <div class="form-group"><label>Company Registration Number <span class="opt">(optional)</span></label><input type="text" id="f_regNum" class="form-control" placeholder="U74999MH2020PTC123456"/></div>
+        </div>
+
+        <div class="reg-nav">
+          <button class="btn-back" onclick="prevStep()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="btn-next" onclick="nextStep()">Continue to Review <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+      </div>
+
+      <!-- STEP 1: LOGIN SETUP -->
+      <div class="step-panel active" id="step1">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 1 of 7</div>
+          <h2 class="step-heading">Login <em>Setup</em></h2>
+          <p class="step-subheading">Create your login credentials first — this secures your account from the start.</p>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Credentials</div>
+          <div class="form-group">
+            <label>Login Email <span class="req">*</span></label>
+            <input type="email" class="form-control" id="f_loginEmail" placeholder="priya@pixelprint.in"/>
+            <div class="form-hint">Use your agency's official business email address.</div>
+          </div>
+          <div class="form-group">
+            <label>Password <span class="req">*</span></label>
+            <div style="position:relative;">
+              <input type="password" class="form-control" id="f_password" oninput="checkPassword(this)" placeholder="Min. 8 characters with uppercase, number, symbol" style="padding-right:44px;"/>
+              <button type="button" onclick="togglePwVisibility('f_password','eyeIcon1')" tabindex="-1"
+                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px;display:flex;align-items:center;justify-content:center;transition:color 0.2s;"
+                onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-faint)'" title="Toggle password visibility">
+                <svg id="eyeIcon1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="pw-reqs">
+              <span class="pw-req" id="pwreq_length">8+ characters</span>
+              <span class="pw-req" id="pwreq_upper">Uppercase letter</span>
+              <span class="pw-req" id="pwreq_number">Number</span>
+              <span class="pw-req" id="pwreq_special">Special character</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password <span class="req">*</span></label>
+            <div style="position:relative;">
+              <input type="password" class="form-control" id="f_confirmPassword" oninput="checkConfirmPassword(this)" placeholder="Re-enter your password" style="padding-right:44px;"/>
+              <button type="button" onclick="togglePwVisibility('f_confirmPassword','eyeIcon2')" tabindex="-1"
+                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px;display:flex;align-items:center;justify-content:center;transition:color 0.2s;"
+                onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-faint)'" title="Toggle password visibility">
+                <svg id="eyeIcon2" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="form-hint" id="confirmPwHint"></div>
+          </div>
+        </div>
+
+        <div class="notif-row">
+          <input type="checkbox" checked/>
+          <span>Receive email notifications for new matching tenders and direct inquiries <strong style="color:var(--ink);font-weight:500;">(recommended)</strong></span>
+        </div>
+
+        <div class="reg-nav">
+          <button class="btn-next" onclick="nextStep()">Continue to Agency Info <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+          <span class="nav-save-hint">Progress auto-saved</span>
+        </div>
+      </div>
+
+      <!-- STEP 7: REVIEW -->
+      <div class="step-panel" id="step7">
+        <div class="step-header">
+          <div class="step-label"><span class="step-label-dot"></span>Step 7 of 7</div>
+          <h2 class="step-heading">Review &amp; <em>Submit</em></h2>
+          <p class="step-subheading">Please review your information. Your profile will go live within 48 hrs.</p>
+        </div>
+
+        <div class="review-block">
+          <div class="review-row"><div class="review-label">Login Email</div><div class="review-value" id="rv_loginemail">—</div><button class="edit-link" onclick="goToStep(1)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Agency</div><div class="review-value" id="rv_agency"><strong>—</strong></div><button class="edit-link" onclick="goToStep(2)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Tagline</div><div class="review-value" id="rv_tagline">—</div><button class="edit-link" onclick="goToStep(2)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Headquarters</div><div class="review-value" id="rv_hq">—</div><button class="edit-link" onclick="goToStep(2)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Logo</div><div class="review-value" id="rv_logo">—</div><button class="edit-link" onclick="goToStep(2)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Contact</div><div class="review-value" id="rv_contact">—</div><button class="edit-link" onclick="goToStep(3)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Services</div><div class="review-value" id="rv_services">—</div><button class="edit-link" onclick="goToStep(4)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Industries</div><div class="review-value" id="rv_industries">—</div><button class="edit-link" onclick="goToStep(4)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Key Clients</div><div class="review-value" id="rv_clients">—</div><button class="edit-link" onclick="goToStep(4)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Portfolio</div><div class="review-value" id="rv_portfolio">—</div><button class="edit-link" onclick="goToStep(4)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Business</div><div class="review-value" id="rv_business">—</div><button class="edit-link" onclick="goToStep(5)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Reg. No.</div><div class="review-value" id="rv_regnum">—</div><button class="edit-link" onclick="goToStep(6)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+          <div class="review-row"><div class="review-label">Verification</div><div class="review-value" id="rv_verification">—</div><button class="edit-link" onclick="goToStep(6)">Edit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+        </div>
+
+        <div class="warning-banner" id="panWarningBanner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--saffron);margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          PAN not yet entered. <a href="#" onclick="goToStep(6);return false;" style="color:var(--saffron);font-weight:500;margin-left:4px;">Add PAN now <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a> to unlock the full Verified tag and get 3× more inquiries.
+        </div>
+
+        <div class="terms-row">
+          <input type="checkbox" id="termsCheck"/>
+          <span>I confirm all information is accurate and agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a> of The AdBasket.</span>
+        </div>
+        <div style="font-size:12px;color:var(--ink-faint);font-weight:300;margin-bottom:8px;padding:0 4px;">Profile will be live within 48 hrs after admin verification.</div>
+
+        <div class="reg-nav">
+          <button class="btn-back" onclick="prevStep()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="btn-next btn-submit" onclick="submitRegistration()">Submit Agency for Review <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="step-panel" id="stepSuccess">
+        <div class="success-screen">
+          <div class="success-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="success-title">Application Sent!</div>
+          <p class="success-desc">Your agency registration is under review. Our team verifies all agencies within 48 hrs before your profile goes live on The AdBasket.</p>
+          <div class="success-timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <div class="timeline-text"><strong>Confirmation email sent</strong>Check your registered email for your registration receipt and what to expect next.</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+              <div class="timeline-text"><strong>Admin verification in progress</strong>GST, company details and profile reviewed — typically within 48 hrs.</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+              <div class="timeline-text"><strong>Profile goes live</strong>Your agency appears in The AdBasket's agency directory — visible to thousands of businesses immediately.</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
+              <div class="timeline-text"><strong>Start receiving inquiries &amp; tenders</strong>Businesses can find and contact you. Browse active tenders to submit bids right away.</div>
+            </div>
+          </div>
+          <a href="agency-home.html" class="btn-next btn-large" style="display:inline-flex;text-decoration:none;">Back to Agency Hub <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+        </div>
+      </div>
+
+    </div><!-- /reg-body -->
+  </div><!-- /reg-main -->
+</div><!-- /reg-shell -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let currentStep = 1;
+const totalSteps = 7;
+const stepLabels = ['','Login Setup','Agency Information','Contact Person','Services & Expertise','Business Details','Verification Docs','Review & Submit'];
+const uploadedFiles = {};
+let portfolioCounter = 2;
+
+// ── STEP NAVIGATION ────────────────────────────────────
+function updateStepUI(){
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('step'+currentStep).classList.add('active');
+  document.getElementById('stepPill').textContent = 'Step '+currentStep+' / '+totalSteps;
+  document.getElementById('stepCounterLabel').textContent = stepLabels[currentStep];
+  document.getElementById('progressFill').style.width = ((currentStep/totalSteps)*100)+'%';
+  document.querySelectorAll('#stepsList .step-item').forEach((el,i)=>{
+    el.classList.remove('active','done','locked');
+    const s = i+1;
+    if(s === currentStep) el.classList.add('active');
+    else if(s < currentStep) el.classList.add('done');
+    // Lock steps not yet reached (unless user has passed step 6)
+    if(maxReachedStep < 7 && s > maxReachedStep) el.classList.add('locked');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(currentStep===7) syncReviewPanel();
+}
+function nextStep(){
+  if(!validateStep(currentStep)) return;
+  if(currentStep < totalSteps){
+    currentStep++;
+    if(currentStep > maxReachedStep) maxReachedStep = currentStep;
+    updateStepUI();
+  }
+}
+function prevStep(){ if(currentStep>1){currentStep--;updateStepUI();} }
+// Track the highest step the user has legitimately reached
+let maxReachedStep = 1;
+
+function goToStep(n){
+  if(n < 1 || n > totalSteps) return;
+  // After completing step 6 (maxReachedStep >= 7), allow free jumping to any step
+  if(maxReachedStep >= 7){
+    currentStep = n;
+    updateStepUI();
+    return;
+  }
+  // Before completing step 6: can only go back, or to already-visited steps
+  if(n <= maxReachedStep){
+    currentStep = n;
+    updateStepUI();
+  } else {
+    showToast('Please complete the current step first', 'error');
+  }
+}
+
+// ── VALIDATION ─────────────────────────────────────────
+function showFieldError(el, msg){
+  el.style.borderColor='#dc2626';
+  el.style.boxShadow='0 0 0 3px rgba(220,38,38,0.1)';
+  let hint = el.nextElementSibling;
+  if(!hint || !hint.classList.contains('field-err')){
+    hint = document.createElement('div');
+    hint.className='form-hint field-err';
+    hint.style.color='#dc2626';
+    el.parentNode.insertBefore(hint, el.nextSibling);
+  }
+  hint.textContent = msg;
+}
+function clearFieldError(el){
+  el.style.borderColor='';
+  el.style.boxShadow='';
+  const hint = el.nextElementSibling;
+  if(hint && hint.classList.contains('field-err')) hint.remove();
+}
+function markRequired(el){
+  el.addEventListener('input', ()=>{ if(el.value.trim()) clearFieldError(el); });
+  el.addEventListener('change', ()=>{ if(el.value.trim()) clearFieldError(el); });
+}
+
+function validateStep(step){
+  let ok = true;
+  const req = (id, msg)=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const val = el.value ? el.value.trim() : '';
+    if(!val){ showFieldError(el, msg||'This field is required'); ok=false; }
+    else clearFieldError(el);
+    markRequired(el);
+  };
+
+  // Step 1 = Login Setup
+  if(step===1){
+    const pwEl = document.getElementById('f_password');
+    const cpEl = document.getElementById('f_confirmPassword');
+    const loginEmailEl = document.getElementById('f_loginEmail');
+    if(loginEmailEl && !loginEmailEl.value.trim()){ showFieldError(loginEmailEl,'Login email is required'); ok=false; markRequired(loginEmailEl); }
+    else if(loginEmailEl && loginEmailEl.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmailEl.value.trim())){
+      showFieldError(loginEmailEl,'Enter a valid email address'); ok=false;
+    }
+    if(pwEl && !pwEl.value.trim()){ showFieldError(pwEl,'Password is required'); ok=false; markRequired(pwEl); }
+    else if(pwEl && pwEl.value.length < 8){ showFieldError(pwEl,'Password must be at least 8 characters'); ok=false; }
+    if(cpEl && !cpEl.value.trim()){ showFieldError(cpEl,'Please confirm your password'); ok=false; markRequired(cpEl); }
+    else if(pwEl && cpEl && cpEl.value !== pwEl.value){ showFieldError(cpEl,'Passwords do not match'); ok=false; }
+  }
+  // Step 2 = Agency Info
+  if(step===2){
+    req('f_agencyName','Agency name is required');
+    req('f_agencyType','Please select an agency type');
+    req('f_yearEst','Year established is required');
+    req('f_pincode','Headquarters pincode is required');
+    req('f_officeAddress','Office address is required');
+    const pin = document.getElementById('f_pincode');
+    if(pin && pin.value.trim() && !/^\d{6}$/.test(pin.value.trim())){
+      showFieldError(pin,'Enter a valid 6-digit pincode'); ok=false;
+    }
+  }
+  // Step 3 = Contact Person
+  if(step===3){
+    req('f_firstName','First name is required');
+    req('f_lastName','Last name is required');
+    req('f_desig','Designation is required');
+    req('f_email','Business email is required');
+    const emailEl = document.getElementById('f_email');
+    if(emailEl && emailEl.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())){
+      showFieldError(emailEl,'Enter a valid email address'); ok=false;
+    }
+    req('f_phone','Mobile number is required');
+    const phoneEl = document.getElementById('f_phone');
+    if(phoneEl && phoneEl.value.trim() && !/^\d{10}$/.test(phoneEl.value.replace(/\s/g,''))){
+      showFieldError(phoneEl,'Enter a valid 10-digit mobile number'); ok=false;
+    }
+  }
+  // Step 4 = Services & Expertise
+  if(step===4){
+    const anyService = document.querySelectorAll('#serviceAccordion .svc-sub-wrap input[type="checkbox"]:checked').length > 0;
+    if(!anyService){
+      let errBanner = document.getElementById('serviceSelectErr');
+      if(!errBanner){
+        errBanner = document.createElement('div');
+        errBanner.id='serviceSelectErr';
+        errBanner.className='form-hint';
+        errBanner.style.color='#dc2626';
+        errBanner.style.marginTop='8px';
+        errBanner.textContent='Please select at least one service';
+        const accordion = document.getElementById('serviceAccordion');
+        if(accordion) accordion.after(errBanner);
+      }
+      ok=false;
+    } else {
+      const err = document.getElementById('serviceSelectErr');
+      if(err) err.remove();
+    }
+    const anyIndustry = document.querySelectorAll('#industryAccordion .industry-sub-wrap input[type="checkbox"]:checked').length > 0
+                     || document.querySelectorAll('#industryAccordion input[type="checkbox"][id$="-cat-chk"]:checked').length > 0;
+    if(!anyIndustry){
+      let indErr = document.getElementById('industrySelectErr');
+      if(!indErr){
+        indErr = document.createElement('div');
+        indErr.id='industrySelectErr';
+        indErr.className='form-hint';
+        indErr.style.color='#dc2626';
+        indErr.style.marginTop='8px';
+        indErr.textContent='Please select at least one industry';
+        const accordion = document.getElementById('industryAccordion');
+        if(accordion) accordion.after(indErr);
+      }
+      ok=false;
+    } else {
+      const err = document.getElementById('industrySelectErr');
+      if(err) err.remove();
+    }
+  }
+  // Step 5 = Business Details
+  if(step===5){
+    req('f_campaigns','Please enter number of campaigns completed');
+    const geo = document.getElementById('f_geoCoverage');
+    if(geo && !geo.value){ showFieldError(geo,'Please select geographic coverage'); ok=false; }
+    const opField = document.getElementById('f_cities');
+    const opGroup = document.getElementById('operationFieldGroup');
+    if(opGroup && opGroup.style.display !== 'none' && opField && !opField.value.trim()){
+      showFieldError(opField,'This field is required'); ok=false;
+    }
+  }
+  // Step 6 = Verification Docs
+  if(step===6){
+    const gstEl = document.getElementById('f_gst');
+    if(gstEl && gstEl.value.trim() && gstEl.value.trim().length!==15){
+      showFieldError(gstEl,'GST number must be exactly 15 characters'); ok=false;
+    }
+  }
+
+  if(!ok){
+    // Scroll to first error
+    const firstErr = document.querySelector('#step'+step+' [style*="border-color: rgb(220, 38, 38)"], #step'+step+' [style*="border-color:rgb(220"]');
+    if(firstErr) firstErr.scrollIntoView({behavior:'smooth', block:'center'});
+    showToast('Please fill in all required fields correctly', 'error');
+  }
+  return ok;
+}
+
+// ── HELPERS ────────────────────────────────────────────
+function gv(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+function setReview(id,html){ const el=document.getElementById(id); if(el) el.innerHTML=html; }
+
+// ── SYNC REVIEW PANEL ──────────────────────────────────
+function syncReviewPanel(){
+  // Login email
+  setReview('rv_loginemail', gv('f_loginEmail') || '<span style="color:var(--ink-faint);font-style:italic;">Not entered</span>');
+
+  // Agency
+  const name = gv('f_agencyName') || '—';
+  const type = gv('f_agencyType') || '';
+  const yr   = gv('f_yearEst')    || '';
+  setReview('rv_agency', `<strong>${name}</strong>${type||yr ? '<br/>'+[type,yr?'Est. '+yr:''].filter(Boolean).join(' · ') : ''}`);
+
+  // Tagline
+  setReview('rv_tagline', gv('f_tagline') || '<span style="color:var(--ink-faint);font-style:italic;">Not entered</span>');
+
+  // Headquarters
+  const cityFill = document.getElementById('hqCityFill');
+  const pincode  = gv('f_pincode');
+  let hq = '—';
+  if(cityFill && cityFill.classList.contains('show')){
+    hq = cityFill.textContent;
+  } else if(pincode){
+    hq = pincode;
+  }
+  setReview('rv_hq', hq);
+
+  // Logo
+  const logoFile = uploadedFiles['logo'];
+  if(logoFile){
+    setReview('rv_logo', `<span style="color:var(--green);font-weight:500;">${logoFile.name}</span> <span style="color:var(--ink-faint);font-size:12px;">(${(logoFile.size/1024).toFixed(1)} KB)</span>`);
+  } else {
+    setReview('rv_logo', '<span style="color:var(--ink-faint);font-style:italic;">No logo uploaded</span>');
+  }
+
+  // Contact
+  const fn    = gv('f_firstName')||''; const ln = gv('f_lastName')||'';
+  const desig = gv('f_desig')    ||'';
+  const email = gv('f_email')    ||'';
+  const phone = gv('f_phone')    ||'';
+  const fullName = [fn,ln].filter(Boolean).join(' ') || '—';
+  const emailVerifiedTag = otpState.email.verified  ? ' <span style="font-size:10.5px;background:var(--green-light);color:var(--green);border-radius:4px;padding:1px 6px;font-weight:600;display:inline-flex;align-items:center;gap:3px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> verified</span>' : '';
+  const phoneVerifiedTag = otpState.mobile.verified ? ' <span style="font-size:10.5px;background:var(--green-light);color:var(--green);border-radius:4px;padding:1px 6px;font-weight:600;display:inline-flex;align-items:center;gap:3px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> verified</span>' : '';
+  setReview('rv_contact', `${fullName}${desig?' · '+desig:''}<br/>${email||'—'}${emailVerifiedTag}${phone?' · +91 '+phone+phoneVerifiedTag:''}`);
+
+  // Services — read from new service accordion
+  const svcItems = [];
+  document.querySelectorAll('#serviceAccordion .svc-cat').forEach(cat=>{
+    const svc = cat.dataset.svc;
+    const checked = [...cat.querySelectorAll('.svc-sub-wrap input[type="checkbox"]:checked')];
+    if(checked.length){
+      checked.forEach(c=>{
+        const lbl = c.closest('label');
+        if(lbl) svcItems.push(lbl.textContent.trim());
+      });
+    }
+  });
+  setReview('rv_services', svcItems.join(', ') || '<span style="color:var(--ink-faint);font-style:italic;">None selected</span>');
+
+  // Industries — read both category checkboxes and sub-checkboxes
+  const industryItems = [];
+  document.querySelectorAll('#industryAccordion .industry-cat').forEach(cat=>{
+    const catId = cat.dataset.cat;
+    const catChk = document.getElementById(catId+'-cat-chk');
+    const subChecks = [...cat.querySelectorAll('.industry-sub-wrap input[type="checkbox"]:checked')];
+    if(catChk && catChk.checked){
+      const catName = cat.querySelector('span[style*="font-weight:500"]');
+      if(catName) industryItems.push(catName.textContent.trim());
+    } else if(subChecks.length){
+      subChecks.forEach(c=>{
+        const label = c.closest('label');
+        if(label) industryItems.push(label.textContent.trim());
+      });
+    }
+  });
+  setReview('rv_industries', industryItems.join(', ') || '<span style="color:var(--ink-faint);font-style:italic;">None selected</span>');
+
+  // Key clients
+  const clientNames = [];
+  for(let i=1;i<=5;i++){
+    const n=document.getElementById('clientName'+i);
+    if(n && n.value.trim()) clientNames.push(n.value.trim());
+  }
+  let clientHtml = clientNames.length ? clientNames.join(', ') : '<span style="color:var(--ink-faint);font-style:italic;">Not entered</span>';
+  setReview('rv_clients', clientHtml);
+
+  // Portfolio
+  const items = [...document.querySelectorAll('#portfolioList .portfolio-item')];
+  if(items.length===0){
+    setReview('rv_portfolio', '<span style="color:var(--ink-faint);font-style:italic;">No case studies added</span>');
+  } else {
+    const rows = items.map(item=>{
+      const title    = item.querySelector('.p-title-input') ? item.querySelector('.p-title-input').value.trim() : '';
+      const meta     = item.querySelector('.p-meta-input')  ? item.querySelector('.p-meta-input').value.trim()  : '';
+      const hasFile  = item.querySelector('.p-upload-btn.has-file') !== null;
+      const fileTag  = hasFile ? ` <span style="color:var(--green);font-size:11px;">· file attached</span>` : '';
+      return `<div style="margin-bottom:4px;"><strong style="color:var(--ink);font-size:13.5px;">${title||'Untitled'}</strong>${fileTag}${meta?'<br/><span style="font-size:12px;color:var(--ink-faint);">'+meta+'</span>':''}</div>`;
+    }).join('');
+    setReview('rv_portfolio', rows);
+  }
+
+  // Business (step 4)
+  const campaigns = gv('f_campaigns') || '—';
+  const cities    = gv('f_cities')    || '';
+  setReview('rv_business', `${campaigns} campaigns${cities ? '<br/>'+cities : ''}`);
+
+  // Reg number (now optional)
+  const regNum = gv('f_regNum');
+  setReview('rv_regnum', regNum || '<span style="color:var(--ink-faint);font-style:italic;">Not provided (optional)</span>');
+
+  // Verification
+  const gstVal = gv('f_gst'); const panVal = gv('f_pan');
+  const gstOk  = gstVal.length===15;
+  const panOk  = panVal.length===10 && /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panVal);
+  let vText = '';
+  vText += gstOk ? '<span style="color:var(--green);font-weight:500;">GST Verified</span>' : '<span style="color:var(--gold-dark);">GST Pending</span>';
+  vText += ' &nbsp;·&nbsp; ';
+  vText += panOk ? '<span style="color:var(--green);font-weight:500;">PAN Verified</span>' : '<span style="color:var(--gold-dark);">PAN Pending</span>';
+  if(gstVal) vText += `<br/><span style="font-size:12px;color:var(--ink-faint);font-family:var(--font-mono);">${gstVal}</span>`;
+  if(panVal) vText += ` <span style="font-size:12px;color:var(--ink-faint);font-family:var(--font-mono);">${panVal}</span>`;
+  setReview('rv_verification', vText);
+
+  // PAN warning banner
+  const warn = document.getElementById('panWarningBanner');
+  if(warn) warn.style.display = panOk ? 'none' : 'flex';
+}
+
+// ── SUBMIT ─────────────────────────────────────────────
+function submitRegistration(){
+  if(!document.getElementById('termsCheck').checked){
+    showToast('Please accept the Terms & Privacy Policy to continue', 'error');
+    return;
+  }
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('stepSuccess').classList.add('active');
+  document.getElementById('progressFill').style.width='100%';
+  document.getElementById('stepPill').textContent='Complete';
+  // Update the first timeline item with actual registered email
+  const email = gv('f_email') || gv('f_loginEmail');
+  if(email){
+    const timelineItems = document.querySelectorAll('.timeline-text');
+    if(timelineItems[0]) timelineItems[0].innerHTML = `<strong>Confirmation email sent</strong>Check <span style="color:var(--saffron);font-weight:500;">${email}</span> for your registration receipt and what to expect next.`;
+  }
+}
+
+// ── TOGGLE OTHER INPUT ─────────────────────────────────
+function toggleOtherInput(inputId, chk){
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  inp.style.display = chk.checked ? 'block' : 'none';
+  if(chk.checked) inp.focus();
+  else inp.value = '';
+}
+
+// ── CLIENT LOGO UPLOAD ────────────────────────────────
+function handleClientLogo(input, n){
+  const file = input.files[0]; if(!file) return;
+  if(!file.type.startsWith('image/')){ showToast('Please upload an image file', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const box = document.getElementById('clientLogoBox'+n);
+    if(box) box.innerHTML = `<img src="${e.target.result}" style="width:36px;height:36px;object-fit:contain;border-radius:8px;"/>`;
+  };
+  reader.readAsDataURL(file);
+  showToast('Client logo uploaded', 'success');
+}
+
+// ── SERVICE ACCORDION ──────────────────────────────────
+function toggleSvcCat(svc){
+  const sub   = document.getElementById(svc+'-sub');
+  const arrow = document.getElementById(svc+'-arrow');
+  const cbox  = document.getElementById(svc+'-cbox');
+  if(!sub) return;
+  const isOpen = sub.style.display !== 'none';
+  sub.style.display = isOpen ? 'none' : 'flex';
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+  // Update header highlight
+  const header = document.querySelector(`[data-svc="${svc}"] .svc-cat-header`);
+  if(!isOpen && header){ header.style.background='var(--gold-light)'; header.style.borderColor='rgba(217,119,6,0.4)'; }
+  else if(header){ 
+    const anyChecked = [...document.querySelectorAll(`#${svc}-sub input[type="checkbox"]:checked`)].length > 0;
+    if(!anyChecked){ header.style.background='var(--white)'; header.style.borderColor=''; }
+  }
+}
+function syncSvcBadge(svc){
+  const checks = [...document.querySelectorAll(`#${svc}-sub input[type="checkbox"]:checked`)];
+  const badge  = document.getElementById(svc+'-badge');
+  const cbox   = document.getElementById(svc+'-cbox');
+  const header = document.querySelector(`[data-svc="${svc}"] .svc-cat-header`);
+  const n = checks.length;
+  if(badge){ badge.textContent = n > 0 ? n+' selected' : ''; badge.style.display = n > 0 ? 'inline' : 'none'; }
+  if(cbox){ 
+    if(n > 0){ cbox.style.background='var(--gold)'; cbox.style.borderColor='var(--gold)'; cbox.style.color='#fff'; }
+    else { cbox.style.background=''; cbox.style.borderColor='var(--border-medium)'; cbox.style.color='transparent'; }
+  }
+  if(header){
+    if(n > 0){ header.style.background='var(--gold-light)'; header.style.borderColor='rgba(217,119,6,0.4)'; }
+    else { header.style.background='var(--white)'; header.style.borderColor=''; }
+  }
+  // Remove the serviceSelectErr if any service selected
+  const anyServiceSelected = document.querySelectorAll('[data-svc] .svc-sub-wrap input[type="checkbox"]:checked').length > 0;
+  if(anyServiceSelected){ const err = document.getElementById('serviceSelectErr'); if(err) err.remove(); }
+}
+
+// ── PHONE / NUMBER INPUT GUARDS ────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  // Phone inputs — digits only
+  document.querySelectorAll('input[type="tel"]').forEach(el=>{
+    el.addEventListener('input', function(){
+      this.value = this.value.replace(/[^\d\s]/g,'');
+      // Keep OTP button state in sync for the mobile number field
+      if(this.id === 'f_phone') handlePhoneInput(this);
+    });
+    el.setAttribute('inputmode','numeric');
+  });
+  // Pincode — digits only, max 6
+  const pin = document.getElementById('f_pincode');
+  if(pin){
+    pin.setAttribute('inputmode','numeric');
+    pin.addEventListener('input', function(){
+      this.value = this.value.replace(/\D/g,'').slice(0,6);
+    });
+  }
+  // Year established
+  const yr = document.getElementById('f_yearEst');
+  if(yr){ yr.setAttribute('inputmode','numeric'); }
+  // Campaigns
+  const camp = document.getElementById('f_campaigns');
+  if(camp){ camp.setAttribute('inputmode','numeric'); }
+  // GST — uppercase alphanumeric only
+  const gst = document.getElementById('f_gst');
+  if(gst){
+    gst.addEventListener('input', function(){
+      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    });
+    gst.setAttribute('inputmode','text');
+  }
+  // PAN — uppercase letters and digits
+  const pan = document.getElementById('f_pan');
+  if(pan){
+    pan.addEventListener('input', function(){
+      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    });
+    pan.setAttribute('inputmode','text');
+  }
+});
+
+// ── INDUSTRY ACCORDION ─────────────────────────────────
+function toggleIndustryCat(cat){
+  const sub   = document.getElementById(cat+'-sub');
+  const arrow = document.getElementById(cat+'-arrow');
+  if(!sub) return;
+  const isOpen = sub.style.display !== 'none';
+  sub.style.display = isOpen ? 'none' : 'flex';
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+function toggleCatCheck(cat, chk){
+  // If checking the category, auto-open the sub-panel
+  if(chk.checked){
+    const sub = document.getElementById(cat+'-sub');
+    const arrow = document.getElementById(cat+'-arrow');
+    if(sub && sub.style.display === 'none'){
+      sub.style.display = 'flex';
+      if(arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+  }
+  syncCatBadge(cat);
+}
+function syncCatBadge(cat){
+  const header = document.querySelector(`[data-cat="${cat}"] .industry-cat-header`);
+  const catChk = document.getElementById(cat+'-cat-chk');
+  const subChecks = document.querySelectorAll(`#${cat}-sub input[type="checkbox"]:not(#${cat}-other-chk)`);
+  const anySubChecked = [...subChecks].some(c=>c.checked);
+  if(header){
+    if((catChk && catChk.checked) || anySubChecked){
+      header.style.background='var(--gold-light)';
+      header.style.borderColor='rgba(217,119,6,0.4)';
+    } else {
+      header.style.background='var(--white)';
+      header.style.borderColor='';
+    }
+  }
+  // Clear the industry error banner as soon as anything is selected
+  const anyIndustry = document.querySelectorAll('#industryAccordion .industry-sub-wrap input[type="checkbox"]:checked').length > 0
+                   || document.querySelectorAll('#industryAccordion input[type="checkbox"][id$="-cat-chk"]:checked').length > 0;
+  if(anyIndustry){ const err = document.getElementById('industrySelectErr'); if(err) err.remove(); }
+}
+
+// ── KEY CLIENTS ADD ROW ────────────────────────────────
+let visibleClients = 3;
+function addClientRow(){
+  // Find the next hidden client row to show
+  const allRows = document.querySelectorAll('[id^="clientRow"]');
+  const hiddenRow = [...allRows].find(r => r.style.display === 'none');
+  if(!hiddenRow){
+    showToast('Maximum 5 key clients allowed', 'error');
+    return;
+  }
+  hiddenRow.style.display = 'flex';
+  hiddenRow.style.animation = 'slideIn 0.25s ease both';
+  visibleClients = [...allRows].filter(r => r.style.display !== 'none').length;
+  if(visibleClients >= 5){
+    document.getElementById('addClientBtn').style.display = 'none';
+  }
+  showToast('Client row added');
+}
+
+// ── PINCODE AUTOFILL (Indian Post API) ────────────────
+const _pinSvgSearch = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+const _pinSvgPin   = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+const _pinSvgWarn  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;color:#D97706;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+async function autofillCity(input){
+  const val = input.value.trim();
+  const fill = document.getElementById('hqCityFill');
+  if(val.length < 6){ fill.classList.remove('show'); return; }
+  if(!/^\d{6}$/.test(val)){ fill.classList.remove('show'); return; }
+  fill.innerHTML = _pinSvgSearch + 'Detecting location…';
+  fill.classList.add('show');
+  try {
+    const res  = await fetch(`https://api.postalpincode.in/pincode/${val}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    if(!res.ok) throw new Error('Network response was not ok');
+    const data = await res.json();
+    if(data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0){
+      const po = data[0].PostOffice[0];
+      const area    = po.Name    || '';
+      const city    = po.District|| po.Division || '';
+      const state   = po.State   || '';
+      const country = po.Country || 'India';
+      const label   = [area, city, state, country].filter(Boolean).join(', ');
+      fill.innerHTML = _pinSvgPin + label;
+      fill.classList.add('show');
+      showToast('Location detected: ' + [city, state].filter(Boolean).join(', '), 'success');
+    } else {
+      fill.innerHTML = _pinSvgWarn + 'Pincode not found — please verify and enter address manually';
+      fill.classList.add('show');
+    }
+  } catch(e){
+    // Fallback: try alternate CORS proxy
+    try {
+      const res2 = await fetch(`https://pincode.vercel.app/${val}`);
+      const data2 = await res2.json();
+      if(data2 && data2.city){
+        const label = [data2.area||'', data2.city||'', data2.state||'', 'India'].filter(Boolean).join(', ');
+        fill.innerHTML = _pinSvgPin + label;
+        fill.classList.add('show');
+        showToast('Location detected: ' + [data2.city, data2.state].filter(Boolean).join(', '), 'success');
+      } else {
+        fill.innerHTML = _pinSvgWarn + 'Could not detect location — please enter address manually';
+        fill.classList.add('show');
+      }
+    } catch(e2){
+      fill.innerHTML = _pinSvgWarn + 'Location lookup unavailable — please enter address manually';
+      fill.classList.add('show');
+    }
+  }
+}
+
+// ── DYNAMIC GEOGRAPHY OPERATION FIELD ─────────────────
+function updateOperationField(){
+  const geo   = document.getElementById('f_geoCoverage');
+  const group = document.getElementById('operationFieldGroup');
+  const label = document.getElementById('operationFieldLabel');
+  const hint  = document.getElementById('operationFieldHint');
+  const field = document.getElementById('f_cities');
+  if(!geo || !group) return;
+  const val = geo.value;
+  const map = {
+    'pan_india'   : null,
+    'single_city' : { label:'City of Operation', hint:'Enter the city you operate in.', placeholder:'e.g., Mumbai' },
+    'multi_city'  : { label:'Cities of Operation', hint:'Enter all cities separated by commas.', placeholder:'e.g., Mumbai, Pune, Nashik, Bengaluru' },
+    'state'       : { label:'State of Operation', hint:'Enter the state(s) you cover.', placeholder:'e.g., Maharashtra, Gujarat' },
+    'regional'    : { label:'Region of Operation', hint:'Select your region: North, South, West, or East India.', placeholder:'e.g., West India (Maharashtra, Gujarat, Goa)' },
+  };
+  if(!val || val === 'pan_india'){
+    group.style.display = 'none';
+    return;
+  }
+  const cfg = map[val];
+  if(cfg){
+    group.style.display = 'block';
+    group.style.animation = 'slideIn 0.2s ease both';
+    if(label) label.innerHTML = cfg.label + ' <span class="req">*</span>';
+    if(hint)  hint.textContent = cfg.hint;
+    if(field) field.placeholder = cfg.placeholder;
+  }
+}
+
+// ── REMOVE CLIENT ROW ──────────────────────────────────
+function removeClientRow(n){
+  const row = document.getElementById('clientRow'+n);
+  if(row){
+    row.style.opacity='0';
+    row.style.transition='opacity 0.2s';
+    setTimeout(()=>{
+      row.style.display='none';
+      row.style.opacity='';
+      // Recount visible rows
+      visibleClients = [...document.querySelectorAll('[id^="clientRow"]')]
+        .filter(r => r.style.display !== 'none').length;
+      // Show add button again if below max
+      const addBtn = document.getElementById('addClientBtn');
+      if(addBtn) addBtn.style.display = visibleClients < 5 ? '' : 'none';
+    }, 200);
+    showToast('Client removed');
+  }
+}
+
+// ── TOGGLE PASSWORD VISIBILITY ─────────────────────────
+function togglePwVisibility(inputId, iconId){
+  const input = document.getElementById(inputId);
+  const icon  = document.getElementById(iconId);
+  if(!input) return;
+  if(input.type === 'password'){
+    input.type = 'text';
+    if(icon) icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    if(icon) icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+// ── USE LOGIN EMAIL IN CONTACT STEP ───────────────────
+function useLoginEmail(){
+  const loginEmail = document.getElementById('f_loginEmail');
+  const bizEmail   = document.getElementById('f_email');
+  if(!loginEmail || !bizEmail) return;
+  const val = loginEmail.value.trim();
+  if(!val){
+    showToast('Please enter your login email in Step 1 first', 'error');
+    return;
+  }
+  bizEmail.value = val;
+  bizEmail.style.borderColor = 'var(--green)';
+  bizEmail.style.boxShadow   = '0 0 0 3.5px rgba(5,150,105,0.09)';
+  setTimeout(()=>{ bizEmail.style.borderColor=''; bizEmail.style.boxShadow=''; }, 2000);
+  showToast('Business email filled from Login Setup', 'success');
+}
+
+// ── GST / PAN ──────────────────────────────────────────
+function validateGST(input){
+  input.value = input.value.toUpperCase();
+  const card   = input.closest('.verification-card');
+  const status = document.getElementById('gstStatus');
+  if(input.value.length===15){
+    showToast('GST number format valid', 'success');
+    if(card) card.classList.add('verified');
+    if(status){ status.innerHTML=`<span class="v-tag" style="display:inline-flex;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>&nbsp;GST Format Valid</span>`; }
+  } else {
+    if(card) card.classList.remove('verified');
+    if(status) status.innerHTML='';
+  }
+}
+function validatePAN(input){
+  input.value = input.value.toUpperCase();
+  const el   = document.getElementById('panStatus');
+  const card = input.closest('.verification-card');
+  if(input.value.length===10){
+    const valid = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(input.value);
+    if(el){ el.textContent=valid?'PAN format valid':'Invalid PAN format'; el.style.color=valid?'var(--green)':'#dc2626'; }
+    if(valid){ if(card) card.classList.add('verified'); showToast('PAN number format valid', 'success'); }
+    else { showToast('Invalid PAN format', 'error'); }
+  } else {
+    if(el){ el.textContent='Enter 10-character PAN'; el.style.color='var(--ink-faint)'; }
+    if(card) card.classList.remove('verified');
+  }
+}
+
+// ── PASSWORD ───────────────────────────────────────────
+function checkPassword(input){
+  const pw = input.value;
+  const reqs = {
+    'pwreq_length':  { met: pw.length>=8,            label: '8+ characters' },
+    'pwreq_upper':   { met: /[A-Z]/.test(pw),         label: 'Uppercase letter' },
+    'pwreq_number':  { met: /[0-9]/.test(pw),         label: 'Number' },
+    'pwreq_special': { met: /[^A-Za-z0-9]/.test(pw),  label: 'Special character' }
+  };
+  Object.entries(reqs).forEach(([id,r])=>{
+    const dot=document.getElementById(id); if(!dot) return;
+    dot.style.background = r.met ? 'var(--green-light)' : '';
+    dot.style.color      = r.met ? 'var(--green)'       : '';
+    dot.style.borderColor= r.met ? 'rgba(5,150,105,0.25)' : '';
+    dot.textContent = r.label;
+  });
+}
+function checkConfirmPassword(input){
+  const pw   = document.getElementById('f_password')?document.getElementById('f_password').value:'';
+  const hint = document.getElementById('confirmPwHint'); if(!hint) return;
+  if(!input.value){ hint.textContent=''; return; }
+  if(input.value===pw){ hint.textContent='Passwords match'; hint.className='form-hint success'; hint.style.color=''; }
+  else { hint.textContent='Passwords do not match'; hint.className='form-hint'; hint.style.color='#dc2626'; }
+}
+
+// ── LOGO UPLOAD ────────────────────────────────────────
+function handleDragOver(e,zone){ e.preventDefault(); zone.style.borderColor='var(--gold)'; zone.style.background='var(--gold-light)'; }
+function handleDragLeave(e,zone){ zone.style.borderColor=''; zone.style.background=''; }
+function handleLogoDrop(e){
+  e.preventDefault();
+  const zone=document.getElementById('logoDropZone'); handleDragLeave(e,zone);
+  if(e.dataTransfer.files[0]) processLogoFile(e.dataTransfer.files[0]);
+}
+function handleLogoUpload(input){ if(input.files[0]) processLogoFile(input.files[0]); }
+function processLogoFile(file){
+  if(file.size>2*1024*1024){ showToast('File too large. Maximum size is 2MB.', 'error'); return; }
+  if(!['image/png','image/svg+xml','image/jpeg','image/webp'].includes(file.type)){ showToast('Please upload a PNG, SVG, JPG, or WebP file.', 'error'); return; }
+  uploadedFiles['logo']=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('logoUploadIcon').innerHTML=`<img src="${e.target.result}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;"/>`;
+    document.getElementById('logoUploadTitle').innerHTML=`<span style="color:var(--green);">${file.name}</span>`;
+    document.getElementById('logoUploadSub').textContent=(file.size/1024).toFixed(1)+' KB · Click to replace';
+    const zone=document.getElementById('logoDropZone'); zone.style.borderColor='var(--green)'; zone.style.background='var(--green-light)';
+    showToast('Logo uploaded successfully', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── GENERIC DOC UPLOAD ─────────────────────────────────
+function triggerDocUpload(inputId){ document.getElementById(inputId).click(); }
+function handleDocUpload(input,labelId){
+  const file=input.files[0]; if(!file) return;
+  if(file.size>5*1024*1024){ showToast('File too large. Maximum size is 5MB.', 'error'); return; }
+  uploadedFiles[input.id]=file;
+  const label=document.getElementById(labelId);
+  if(label){
+    label.innerHTML=`<span style="color:var(--green);">${file.name}</span> <span style="font-size:11px;color:var(--ink-faint);">${(file.size/1024).toFixed(1)} KB · Click to replace</span>`;
+    const zone=label.closest('.doc-upload-zone'); if(zone) zone.style.borderColor='var(--green)';
+  }
+  showToast('Document uploaded', 'success');
+}
+function handleDocDragOver(e,zone){ e.preventDefault(); zone.style.borderColor='var(--gold)'; zone.style.background='rgba(254,243,199,0.5)'; }
+function handleDocDragLeave(e,zone){ zone.style.borderColor=''; zone.style.background=''; }
+function handleDocDrop(e,inputId,labelId){
+  e.preventDefault(); const zone=e.currentTarget; handleDocDragLeave(e,zone);
+  const file=e.dataTransfer.files[0]; if(!file) return;
+  const fakeInput={id:inputId,files:e.dataTransfer.files};
+  handleDocUpload(fakeInput,labelId);
+}
+
+// ── PORTFOLIO FILE UPLOAD ──────────────────────────────
+function handlePortfolioFile(input, labelId, zoneId){
+  const file=input.files[0]; if(!file) return;
+  if(file.size>10*1024*1024){ showToast('File too large. Maximum size is 10MB.', 'error'); return; }
+  uploadedFiles[input.id]=file;
+  const label=document.getElementById(labelId);
+  const zone =document.getElementById(zoneId);
+  if(label) label.innerHTML=`<span>${file.name}</span> <span style="font-size:10.5px;opacity:0.7;">${(file.size/1024).toFixed(1)} KB · Click to replace</span>`;
+  if(zone)  zone.classList.add('has-file');
+  showToast('Case study file attached', 'success');
+}
+function handlePortfolioFileDrop(e, inputId, labelId, zoneId){
+  e.preventDefault(); const zone=document.getElementById(zoneId); handleDocDragLeave(e,zone);
+  const file=e.dataTransfer.files[0]; if(!file) return;
+  const fakeInput={id:inputId,files:e.dataTransfer.files};
+  handlePortfolioFile(fakeInput, labelId, zoneId);
+}
+
+// ── OTP VERIFICATION ────────────────────────────────────
+const otpState = {
+  mobile: { code: null, verified: false, timer: null, countdown: 0 },
+  email:  { code: null, verified: false, timer: null, countdown: 0 }
+};
+
+function generateOTP(){ return String(Math.floor(100000 + Math.random() * 900000)); }
+
+function handlePhoneInput(input){
+  const digits = input.value.replace(/\D/g,'');
+  input.value = digits;
+  const btn = document.getElementById('btnSendMobileOtp');
+  if(btn) btn.disabled = digits.length !== 10 || otpState.mobile.verified;
+  const hint = document.getElementById('otpHint');
+  if(hint) hint.textContent = digits.length === 10 ? 'Click "Verify Mobile via OTP" to verify your number' : 'Enter your 10-digit mobile number';
+}
+
+function sendOTP(type){
+  const isEmail = type === 'email';
+  const inputEl = isEmail ? document.getElementById('f_email') : document.getElementById('f_phone');
+  if(!inputEl || !inputEl.value.trim()){ showToast(isEmail ? 'Enter your email first' : 'Enter your 10-digit number first', 'error'); return; }
+  if(isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputEl.value.trim())){ showToast('Enter a valid email address', 'error'); return; }
+
+  const code = generateOTP();
+  otpState[type].code = code;
+  otpState[type].verified = false;
+
+  // Show OTP input row
+  const inputRow = document.getElementById(type === 'email' ? 'emailOtpInputRow' : 'mobileOtpInputRow');
+  if(inputRow) inputRow.style.display = 'flex';
+
+  const statusEl = document.getElementById(type === 'email' ? 'emailOtpStatus' : 'mobileOtpStatus');
+  if(statusEl){ statusEl.textContent = `OTP sent to ${isEmail ? inputEl.value.trim() : '+91 ' + inputEl.value.trim()} (demo: ${code})`; statusEl.className = 'otp-status success'; }
+
+  showToast(`OTP sent! (Demo code: ${code})`, 'success');
+  startOTPTimer(type);
+}
+
+function startOTPTimer(type){
+  const timerEl = document.getElementById(type === 'email' ? 'emailOtpTimer' : 'mobileOtpTimer');
+  const btnEl   = document.getElementById(type === 'email' ? 'btnSendEmailOtp' : 'btnSendMobileOtp');
+  clearInterval(otpState[type].timer);
+  otpState[type].countdown = 30;
+  if(btnEl) btnEl.disabled = true;
+  if(timerEl) timerEl.textContent = `Resend in 30s`;
+  function tick(){
+    otpState[type].countdown--;
+    if(timerEl) timerEl.textContent = otpState[type].countdown > 0 ? `Resend in ${otpState[type].countdown}s` : '';
+    if(otpState[type].countdown <= 0){
+      clearInterval(otpState[type].timer);
+      if(btnEl && !otpState[type].verified){
+        btnEl.disabled = false;
+        if(type === 'mobile'){
+          const ph = document.getElementById('f_phone');
+          if(ph && ph.value.replace(/\D/g,'').length !== 10) btnEl.disabled = true;
+        }
+      }
+    }
+  }
+  otpState[type].timer = setInterval(tick, 1000);
+}
+
+function verifyOTP(type){
+  const inputEl = document.getElementById(type === 'email' ? 'emailOtpInput' : 'mobileOtpInput');
+  const statusEl = document.getElementById(type === 'email' ? 'emailOtpStatus' : 'mobileOtpStatus');
+  const inputRow = document.getElementById(type === 'email' ? 'emailOtpInputRow' : 'mobileOtpInputRow');
+  const sendRow  = document.getElementById(type === 'email' ? 'btnSendEmailOtp' : 'btnSendMobileOtp');
+  const timerEl  = document.getElementById(type === 'email' ? 'emailOtpTimer' : 'mobileOtpTimer');
+  const wrapEl   = document.getElementById(type === 'email' ? 'emailOtpWrap' : 'mobileOtpWrap');
+
+  if(!inputEl || !inputEl.value.trim()){ showToast('Enter the OTP first', 'error'); return; }
+  if(!otpState[type].code){ showToast('Please send OTP first', 'error'); return; }
+
+  if(inputEl.value.trim() === otpState[type].code){
+    otpState[type].verified = true;
+    clearInterval(otpState[type].timer);
+    // Replace OTP UI with verified badge
+    if(wrapEl){
+      wrapEl.innerHTML = `<div class="otp-verified-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        ${type === 'email' ? 'Email Verified' : 'Mobile Verified'}
+      </div>`;
+    }
+    showToast(type === 'email' ? 'Email verified successfully!' : 'Mobile number verified!', 'success');
+  } else {
+    if(statusEl){ statusEl.textContent = 'Incorrect OTP. Please try again.'; statusEl.className = 'otp-status error'; }
+    if(inputEl){ inputEl.style.borderColor = '#dc2626'; setTimeout(()=>inputEl.style.borderColor='', 1500); }
+    showToast('Incorrect OTP', 'error');
+  }
+}
+
+// ── PORTFOLIO ADD/REMOVE ───────────────────────────────
+function addPortfolio(){
+  portfolioCounter++;
+  const n=portfolioCounter;
+  const list=document.getElementById('portfolioList');
+  const item=document.createElement('div');
+  item.className='portfolio-item'; item.id='pitem_'+n;
+  item.style.animation='slideIn 0.25s ease both';
+  item.innerHTML=`
+    <div class="portfolio-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
+    <div style="flex:1;">
+      <div class="portfolio-title"><input type="text" class="p-title-input" style="border:none;background:transparent;font-size:14px;font-weight:500;color:var(--ink);outline:none;width:100%;font-family:var(--font-body);" placeholder="Campaign name or project title"/></div>
+      <div class="portfolio-meta"><input type="text" class="p-meta-input" style="border:none;background:transparent;font-size:12px;color:var(--ink-faint);font-weight:300;outline:none;width:100%;font-family:var(--font-body);" placeholder="Budget · Billboards · Duration · Industry"/></div>
+      <div class="p-file-area" style="margin-top:8px;">
+        <input type="file" id="pfile_${n}" accept=".pdf,.ppt,.pptx,.doc,.docx,image/*" style="display:none;" onchange="handlePortfolioFile(this,'pfile_${n}_label','pfile_${n}_zone')"/>
+        <div id="pfile_${n}_zone" class="p-upload-btn" onclick="document.getElementById('pfile_${n}').click()" ondragover="handleDocDragOver(event,this)" ondragleave="handleDocDragLeave(event,this)" ondrop="handlePortfolioFileDrop(event,'pfile_${n}','pfile_${n}_label','pfile_${n}_zone')">
+          <span id="pfile_${n}_label">Attach case study file <span style="font-size:10.5px;font-weight:300;opacity:0.7;">PDF, PPT, DOC, or image</span></span>
+        </div>
+      </div>
+    </div>
+    <button onclick="removePortfolioItem('pitem_${n}')" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:4px 8px;line-height:1;align-self:flex-start;display:flex;align-items:center;transition:color 0.2s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--ink-faint)'" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  `;
+  list.appendChild(item);
+  item.querySelector('.p-title-input').focus();
+  showToast('Case study row added', 'success');
+}
+function removePortfolioItem(id){
+  const el=document.getElementById(id);
+  if(el){ el.style.animation=''; el.style.opacity='0'; el.style.transition='opacity 0.2s'; setTimeout(()=>el.remove(),200); showToast('Case study removed'); }
+}
+
+// ── CUSTOM SELECTS ──────────────────────────────────────
+function initCustomSelects(){
+  document.querySelectorAll('select.form-control:not(.cs-hidden)').forEach(sel=>{
+    // Build wrapper
+    const wrap = document.createElement('div');
+    wrap.className = 'cs-wrap';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    sel.classList.add('cs-hidden');
+
+    // Determine initial label
+    const getLabel = ()=> {
+      const opt = sel.options[sel.selectedIndex];
+      return opt ? opt.text : '';
+    };
+    const isPlaceholder = ()=> sel.selectedIndex === 0 && (!sel.options[0] || !sel.options[0].value);
+
+    // Trigger button
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'cs-trigger';
+    const textSpan = document.createElement('span');
+    textSpan.className = 'cs-trigger-text' + (isPlaceholder() ? ' placeholder' : '');
+    textSpan.textContent = getLabel();
+    const chevron = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    chevron.setAttribute('viewBox','0 0 24 24');
+    chevron.setAttribute('fill','none');
+    chevron.setAttribute('stroke','currentColor');
+    chevron.setAttribute('stroke-width','2');
+    chevron.setAttribute('stroke-linecap','round');
+    chevron.setAttribute('stroke-linejoin','round');
+    chevron.classList.add('cs-chevron');
+    chevron.innerHTML='<polyline points="6 9 12 15 18 9"/>';
+    trigger.appendChild(textSpan);
+    trigger.appendChild(chevron);
+    wrap.appendChild(trigger);
+
+    // Dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'cs-dropdown';
+    Array.from(sel.options).forEach((opt,i)=>{
+      const item = document.createElement('div');
+      item.className = 'cs-option' + (i===0 && !opt.value ? ' placeholder-opt' : '') + (opt.selected ? ' selected' : '');
+      item.textContent = opt.text;
+      item.dataset.value = opt.value;
+      item.dataset.index = i;
+      item.addEventListener('click',()=>{
+        sel.selectedIndex = i;
+        textSpan.textContent = opt.text;
+        textSpan.className = 'cs-trigger-text' + (!opt.value && i===0 ? ' placeholder' : '');
+        dropdown.querySelectorAll('.cs-option').forEach(o=>o.classList.remove('selected'));
+        item.classList.add('selected');
+        closeDropdown();
+        // fire native change
+        sel.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      dropdown.appendChild(item);
+    });
+    wrap.appendChild(dropdown);
+
+    function openDropdown(){
+      // close any other open dropdowns
+      document.querySelectorAll('.cs-trigger.open').forEach(t=>{ if(t!==trigger){ t.classList.remove('open'); t.nextElementSibling && t.nextElementSibling.classList.remove('open'); } });
+      trigger.classList.add('open');
+      dropdown.classList.add('open');
+    }
+    function closeDropdown(){
+      trigger.classList.remove('open');
+      dropdown.classList.remove('open');
+    }
+    trigger.addEventListener('click',e=>{ e.stopPropagation(); trigger.classList.contains('open') ? closeDropdown() : openDropdown(); });
+    document.addEventListener('click',()=>closeDropdown());
+    dropdown.addEventListener('click',e=>e.stopPropagation());
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initCustomSelects);
+
+function showToast(msg, type='default'){
+  const t=document.getElementById('toast');
+  const barClass = type==='success' ? 'success' : type==='error' ? 'error' : '';
+  t.innerHTML=`<div class="toast-bar ${barClass}"></div><div class="toast-text">${msg}</div>`;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
