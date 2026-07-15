@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agency Dashboard — The AdBasket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<style id="shared-css-fallback">
+/* ── Shared tokens (fallback if shared.css is absent) ── */
+:root {
+  --cream:           #F8F9FA;
+  --cream-warm:      #F3F4F6;
+  --cream-deep:      #E9EAEC;
+  --gold:            #D97706;
+  --gold-dark:       #B45309;
+  --gold-light:      #FEF3C7;
+  --indigo:          #4F46E5;
+  --indigo-dark:     #3730A3;
+  --indigo-light:    #EEF2FF;
+  --teal:            #0891B2;
+  --teal-light:      #ECFEFF;
+  --green:           #059669;
+  --green-dark:      #047857;
+  --rose:            #E11D48;
+  --rose-light:      #FFF1F2;
+  --ink-rich:        #0D1117;
+  --ink-muted:       #4B5563;
+  --ink-faint:       #9CA3AF;
+  --border:          rgba(0,0,0,0.06);
+  --border-medium:   rgba(0,0,0,0.10);
+  --font-display:    'Cormorant Garamond', Georgia, serif;
+  --font-body:       'DM Sans', system-ui, sans-serif;
+  --font-mono:       'DM Mono', monospace;
+  --shadow-card:     0 1px 3px rgba(13,17,23,0.05), 0 0 0 1px rgba(13,17,23,0.04);
+  --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Shared button styles */
+.btn-gold {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--gold); color: #fff; border: none;
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 500;
+  padding: 9px 20px; border-radius: 10px; cursor: pointer;
+  transition: background 0.18s, transform 0.12s;
+}
+.btn-gold:hover { background: var(--gold-dark); }
+.btn-gold:active { transform: scale(0.97); }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; color: var(--ink-muted);
+  border: 1px solid var(--border-medium);
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 400;
+  padding: 9px 20px; border-radius: 10px; cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-ghost:hover { background: var(--cream); color: var(--ink-rich); border-color: rgba(0,0,0,0.14); }
+.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; }
+/* Shared form styles */
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--ink-muted); letter-spacing: 0.3px; text-transform: uppercase; }
+.form-control {
+  font-family: var(--font-body); font-size: 13.5px; color: var(--ink-rich);
+  background: #ffffff; border: 1px solid var(--border-medium);
+  border-radius: 10px; padding: 9px 14px; outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.form-control:focus { border-color: var(--gold); background: #fff; box-shadow: 0 0 0 3px rgba(217,119,6,0.08); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink-rich); color: #fff; font-size: 13px; font-weight: 400;
+  padding: 11px 22px; border-radius: 50px; opacity: 0; pointer-events: none;
+  transition: all 0.3s var(--ease-out); z-index: 9999; white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(13,17,23,0.25);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   AGENCY DASHBOARD — The AdBasket
+   Accent: Gold (#D97706)  ·  Sidebar: Rich dark  ·  Body: cream
+   Mirrors advertiser-dashboard & owner-dashboard exactly.
+══════════════════════════════════════════════════════════════ */
+
+/* ── CSS Variable Resolution ── */
+/* All --sb-* and missing tokens are defined here so nothing breaks */
+:root {
+  /* Sidebar tokens — gold identity */
+  --sb-bg:            #0D1117;
+  --sb-border:        rgba(255,255,255,0.07);
+  --sb-text:          rgba(255,255,255,0.42);
+  --sb-text-hover:    rgba(255,255,255,0.72);
+  --sb-text-active:   #ffffff;
+  --sb-section-label: rgba(255,255,255,0.28);
+  --sb-surface:       rgba(217,119,6,0.14);
+  --sb-surface-hover: rgba(255,255,255,0.06);
+
+  /* Missing shared tokens */
+  --green-light:      #D1FAE5;
+  --rose-light:       #FFF1F2;
+  --shadow-float:     0 8px 32px rgba(13,17,23,0.14), 0 2px 8px rgba(13,17,23,0.06);
+  --shadow-hover:     0 8px 32px rgba(13,17,23,0.10), 0 2px 8px rgba(13,17,23,0.05);
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { display: flex; min-height: 100vh; background: #ffffff; font-family: var(--font-body); }
+
+/* ══════════════════════════════
+   SIDEBAR
+══════════════════════════════ */
+.sb {
+  width: 240px; min-height: 100vh; background: var(--sb-bg);
+  display: flex; flex-direction: column;
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; overflow-y: auto;
+}
+.sb::-webkit-scrollbar { width: 0; }
+
+/* Gold top-glow on sidebar */
+.sb::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 180px;
+  background: linear-gradient(180deg, rgba(217,119,6,0.12) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.sb-logo { padding: 28px 22px 20px; border-bottom: 1px solid var(--sb-border); position: relative; }
+.sb-logo a {
+  font-family: var(--font-display); font-size: 22px; font-weight: 700;
+  color: #fff; text-decoration: none; letter-spacing: -0.5px;
+  display: inline-flex; align-items: baseline; gap: 0;
+}
+.sb-logo a .logo-the {
+  font-style: italic; font-weight: 300; font-size: 22px;
+  color: rgba(255,255,255,0.2); letter-spacing: -0.5px;
+}
+.sb-logo a .logo-ad { color: #fff; }
+.sb-logo a .logo-bsk { color: var(--gold); }
+.sb-logo-role {
+  font-size: 10px; font-weight: 500; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--sb-section-label); margin-top: 5px;
+}
+
+.sb-user {
+  padding: 14px 22px; border-bottom: 1px solid var(--sb-border);
+  display: flex; align-items: center; gap: 11px; position: relative;
+}
+.sb-avatar {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--gold), #FBBF24);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  color: #fff; flex-shrink: 0;
+}
+.sb-user-name { font-size: 13px; font-weight: 500; color: var(--sb-text-active); }
+.sb-user-plan { font-size: 11px; color: var(--sb-text); margin-top: 1px; }
+
+.sb-nav { flex: 1; padding: 14px 12px; position: relative; }
+.sb-section {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--sb-section-label); padding: 14px 10px 6px;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 11px; padding: 9px 10px;
+  border-radius: 9px; color: var(--sb-text); text-decoration: none;
+  font-size: 13px; font-weight: 400; cursor: pointer; border: none;
+  background: transparent; width: 100%; text-align: left;
+  font-family: var(--font-body); transition: all 0.18s; position: relative;
+}
+.sb-item:hover { background: var(--sb-surface-hover); color: var(--sb-text-hover); }
+.sb-item.active { background: var(--sb-surface); color: var(--sb-text-active); }
+.sb-item.active::before {
+  content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 2.5px; background: var(--gold); border-radius: 0 2px 2px 0;
+}
+.sb-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; }
+.sb-item.active svg, .sb-item:hover svg { opacity: 1; }
+.sb-badge {
+  margin-left: auto; background: var(--gold); color: #fff;
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 50px;
+}
+.sb-bottom { padding: 14px 12px; border-top: 1px solid var(--sb-border); }
+
+/* ══════════════════════════════
+   MAIN CONTENT
+══════════════════════════════ */
+.main { margin-left: 240px; flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 64px; background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title {
+  font-family: var(--font-display); font-size: 22px; font-weight: 600;
+  color: var(--ink-rich); letter-spacing: -0.5px;
+}
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* Notification button */
+.notif-btn {
+  position: relative; width: 38px; height: 38px; border-radius: 10px;
+  background: #ffffff; border: 1px solid var(--border-medium);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; color: var(--ink-muted);
+}
+.notif-btn:hover { background: var(--gold-light); color: var(--gold-dark); }
+.notif-badge-dot {
+  position: absolute; top: 8px; right: 8px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--rose); border: 2px solid #fff;
+}
+.notif-dropdown {
+  position: absolute; top: 50px; right: 0; width: 340px; background: #fff;
+  border: 1px solid var(--border-medium); border-radius: 16px;
+  box-shadow: var(--shadow-float); z-index: 200; overflow: hidden; display: none;
+}
+.notif-dropdown.open { display: block; }
+.nd-header {
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.nd-header h4 {
+  font-family: var(--font-display); font-size: 18px; font-weight: 600;
+  color: var(--ink-rich); letter-spacing: -0.3px;
+}
+.nd-header button {
+  font-size: 12px; color: var(--gold-dark); background: none; border: none;
+  cursor: pointer; font-family: var(--font-body);
+}
+.nd-item {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 12px; align-items: flex-start;
+  cursor: pointer; transition: background 0.15s;
+}
+.nd-item:hover { background: var(--cream); }
+.nd-item:last-child { border-bottom: none; }
+.nd-item.unread { background: var(--gold-light); }
+.nd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.nd-dot.gold   { background: var(--gold); }
+.nd-dot.indigo { background: var(--indigo); }
+.nd-dot.teal   { background: var(--teal); }
+.nd-dot.green  { background: var(--green); }
+.nd-text { font-size: 13px; color: var(--ink-muted); font-weight: 300; line-height: 1.55; }
+.nd-text strong { color: var(--ink-rich); font-weight: 500; }
+.nd-time { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
+
+/* ── Pages ── */
+.page { padding: 28px 32px; display: none; flex: 1; background: #ffffff; }
+.page.active { display: block; }
+
+/* ══════════════════════════════
+   ONBOARDING CARD
+══════════════════════════════ */
+.onboard-card {
+  background: linear-gradient(135deg, var(--gold) 0%, #B45309 100%);
+  border-radius: 18px; padding: 26px 28px; margin-bottom: 24px;
+  position: relative; overflow: hidden;
+}
+.onboard-card::before {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.06);
+}
+.onboard-card::after {
+  content: ''; position: absolute; bottom: -40px; right: 60px;
+  width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.04);
+}
+.onboard-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; position: relative;
+}
+.onboard-header h3 {
+  font-family: var(--font-display); font-size: 22px; font-weight: 600;
+  color: #fff; letter-spacing: -0.3px;
+}
+.onboard-header p { font-size: 13px; color: rgba(255,255,255,0.65); font-weight: 300; margin-top: 3px; }
+.onboard-progress-bar {
+  background: rgba(255,255,255,0.15); border-radius: 50px;
+  height: 5px; margin-bottom: 18px; position: relative;
+}
+.onboard-progress-fill { background: #fff; border-radius: 50px; height: 100%; transition: width 0.5s var(--ease-out); }
+.onboard-steps { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+.onboard-step {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.1); border-radius: 50px;
+  padding: 7px 14px; font-size: 12.5px; color: rgba(255,255,255,0.75);
+  cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+}
+.onboard-step.done { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.25); }
+.onboard-step:hover { background: rgba(255,255,255,0.18); }
+.onboard-step-check {
+  width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #fff; flex-shrink: 0;
+}
+.onboard-step.done .onboard-step-check { background: rgba(255,255,255,0.3); border-color: transparent; }
+.onboard-dismiss {
+  background: rgba(255,255,255,0.12); border: none; color: rgba(255,255,255,0.65);
+  font-size: 12px; padding: 5px 12px; border-radius: 50px;
+  cursor: pointer; font-family: var(--font-body); transition: all 0.2s;
+}
+.onboard-dismiss:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+/* ══════════════════════════════
+   STAT CARDS
+══════════════════════════════ */
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px 24px; box-shadow: var(--shadow-card); position: relative; overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.stat-card:hover {
+  box-shadow: 0 4px 16px rgba(13,17,23,0.08), 0 0 0 1px rgba(13,17,23,0.05);
+  transform: translateY(-1px);
+}
+.stat-card::after {
+  content: ''; position: absolute; bottom: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%; opacity: 0.07;
+}
+.stat-card.blue::after  { background: var(--gold); }
+.stat-card.teal::after  { background: var(--indigo); }
+.stat-card.gold::after  { background: var(--teal); }
+.stat-card.green::after { background: var(--green); }
+
+.sc-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.7px; color: var(--ink-faint); margin-bottom: 10px;
+}
+.sc-val {
+  font-family: var(--font-display); font-size: 34px; font-weight: 600;
+  color: var(--ink-rich); letter-spacing: -1.5px; line-height: 1;
+}
+.sc-sub {
+  font-size: 12px; color: var(--ink-faint); font-weight: 300;
+  margin-top: 6px; display: flex; align-items: center; gap: 4px;
+}
+.sc-trend { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 50px; }
+.sc-trend.up   { background: var(--green-light); color: var(--green); }
+.sc-trend.down { background: var(--rose-light); color: var(--rose); }
+.sc-icon {
+  position: absolute; top: 18px; right: 18px; width: 38px; height: 38px;
+  border-radius: 11px; display: flex; align-items: center;
+  justify-content: center;
+}
+.sc-icon.blue  { background: #FEF3C7; }
+.sc-icon.teal  { background: var(--indigo-light); }
+.sc-icon.gold  { background: var(--teal-light); }
+.sc-icon.green { background: var(--green-light); }
+
+/* ══════════════════════════════
+   SECTION CARDS & LAYOUT
+══════════════════════════════ */
+.content-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+.section-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s;
+}
+.sc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid var(--border);
+}
+.sc-header h3 {
+  font-family: var(--font-display); font-size: 19px; font-weight: 600;
+  color: var(--ink-rich); letter-spacing: -0.3px;
+}
+.sc-header a, .sc-header button.link {
+  font-size: 12.5px; color: var(--gold-dark); text-decoration: none;
+  font-weight: 500; background: none; border: none; cursor: pointer;
+  font-family: var(--font-body);
+}
+
+/* ══════════════════════════════
+   CHIP / STATUS BADGES
+══════════════════════════════ */
+.chip {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 50px; white-space: nowrap; flex-shrink: 0;
+}
+.chip-new      { background: var(--gold-light); color: var(--gold-dark); }
+.chip-success  { background: var(--green-light); color: var(--green); }
+.chip-pending  { background: #F3F4F6; color: var(--ink-muted); }
+.chip-live     { background: var(--green-light); color: var(--green); }
+.chip-active   { background: var(--indigo-light); color: var(--indigo-dark); }
+.chip-won      { background: #EDE9FE; color: #5B21B6; }
+.chip-lost     { background: var(--rose-light); color: var(--rose); }
+.chip-draft    { background: #F3F4F6; color: var(--ink-muted); }
+.chip-verified { background: var(--green-light); color: var(--green); }
+
+/* ══════════════════════════════
+   TOGGLE SWITCH
+══════════════════════════════ */
+.toggle-switch {
+  width: 36px; height: 20px; border-radius: 50px;
+  background: #E5E7EB; border: 1px solid rgba(0,0,0,0.08);
+  position: relative; cursor: pointer; transition: all 0.22s; flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(13,17,23,0.15); transition: transform 0.22s;
+}
+.toggle-switch.on { background: var(--gold); border-color: var(--gold); }
+.toggle-switch.on::after { transform: translateX(16px); }
+
+/* ══════════════════════════════
+   TENDER / BID ROWS
+══════════════════════════════ */
+.tender-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  transition: background 0.15s; cursor: pointer;
+}
+.tender-item:last-child { border-bottom: none; }
+.tender-item:hover { background: #F8F9FA; }
+.ti-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.ti-info { flex: 1; min-width: 0; }
+.ti-sector {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--ink-faint); margin-bottom: 3px;
+}
+.ti-name {
+  font-size: 13.5px; font-weight: 500; color: var(--ink-rich);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+}
+.ti-meta { font-size: 11.5px; color: var(--ink-muted); font-weight: 300; display: flex; gap: 10px; flex-wrap: wrap; }
+.ti-budget { text-align: right; flex-shrink: 0; }
+.ti-budget-val {
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  color: var(--gold-dark); letter-spacing: -0.5px; display: block;
+}
+.ti-budget-lbl { font-size: 10px; color: var(--ink-faint); font-weight: 300; }
+
+/* ══════════════════════════════
+   BID CARDS
+══════════════════════════════ */
+.bid-card {
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.bid-card:last-child { border-bottom: none; }
+.bid-avatar {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-family: var(--font-display);
+  font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.bid-title  { font-size: 13.5px; font-weight: 500; color: var(--ink-rich); }
+.bid-sub    { font-size: 12px; color: var(--ink-faint); font-weight: 300; margin-top: 2px; }
+.bid-price  {
+  font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  color: var(--gold-dark); letter-spacing: -0.4px; margin-top: 5px;
+}
+.bid-actions { display: flex; gap: 6px; margin-top: 9px; }
+
+/* ══════════════════════════════
+   CLIENT ROW
+══════════════════════════════ */
+.client-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 22px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s;
+}
+.client-row:last-child { border-bottom: none; }
+.client-row:hover { background: #F8F9FA; }
+.client-avatar {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 15px;
+  font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.client-info { flex: 1; min-width: 0; }
+.client-name { font-size: 13.5px; font-weight: 500; color: var(--ink-rich); }
+.client-meta { font-size: 12px; color: var(--ink-faint); font-weight: 300; margin-top: 2px; }
+.client-val  {
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  color: var(--ink-rich); letter-spacing: -0.3px; text-align: right;
+}
+.client-val-sub { font-size: 11px; color: var(--ink-faint); font-weight: 300; }
+
+/* ══════════════════════════════
+   CASE STUDY ITEMS
+══════════════════════════════ */
+.case-row {
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 14px; align-items: flex-start; cursor: pointer; transition: background 0.15s;
+}
+.case-row:last-child { border-bottom: none; }
+.case-row:hover { background: #F8F9FA; }
+.case-thumb {
+  width: 52px; height: 44px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.case-info { flex: 1; min-width: 0; }
+.case-name  { font-size: 13.5px; font-weight: 500; color: var(--ink-rich); margin-bottom: 2px; }
+.case-meta  { font-size: 12px; color: var(--ink-faint); font-weight: 300; }
+.case-result {
+  font-family: var(--font-display); font-size: 15px; font-weight: 700;
+  color: var(--green); white-space: nowrap;
+}
+
+/* ══════════════════════════════
+   ANALYTICS CHART
+══════════════════════════════ */
+.chart-wrap { padding: 22px; }
+.chart-bar-group {
+  display: flex; gap: 4px; align-items: flex-end;
+  height: 160px; margin-bottom: 10px;
+}
+.chart-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; justify-content: flex-end; }
+.chart-bar {
+  border-radius: 4px 4px 0 0; width: 100%;
+  transition: height 0.6s var(--ease-out); min-height: 4px; cursor: pointer;
+}
+.chart-bar.gold-bar   { background: linear-gradient(180deg, var(--gold), rgba(217,119,6,0.45)); }
+.chart-bar.indigo-bar { background: linear-gradient(180deg, var(--indigo), rgba(79,70,229,0.45)); }
+.chart-bar.teal-bar   { background: linear-gradient(180deg, var(--teal), rgba(8,145,178,0.45)); }
+.chart-bar-label { font-size: 10px; color: var(--ink-faint); font-weight: 300; }
+.chart-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+.chart-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-muted); }
+.chart-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ══════════════════════════════
+   PAGE HEADERS
+══════════════════════════════ */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 14px;
+}
+.page-header h2 {
+  font-family: var(--font-display); font-size: 30px; font-weight: 600;
+  color: var(--ink-rich); letter-spacing: -0.8px;
+}
+.page-header p { font-size: 13.5px; color: var(--ink-muted); font-weight: 300; margin-top: 4px; }
+
+/* ══════════════════════════════
+   PROFILE PAGE
+══════════════════════════════ */
+.profile-banner {
+  background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 60%, #FBBF24 100%);
+  border-radius: 16px; padding: 28px 32px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 24px; position: relative; overflow: hidden;
+}
+.profile-banner::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.06);
+}
+.profile-banner::after {
+  content: ''; position: absolute; bottom: -50px; right: 80px;
+  width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,0.04);
+}
+.pb-logo {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: rgba(255,255,255,0.18); backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 28px; font-weight: 700;
+  color: #fff; flex-shrink: 0; position: relative; border: 1.5px solid rgba(255,255,255,0.25);
+}
+.pb-info { flex: 1; min-width: 0; position: relative; }
+.pb-name {
+  font-family: var(--font-display); font-size: 26px; font-weight: 700;
+  color: #fff; letter-spacing: -0.5px; margin-bottom: 4px;
+}
+.pb-sub { font-size: 13px; color: rgba(255,255,255,0.72); font-weight: 300; margin-bottom: 10px; }
+.pb-tags { display: flex; gap: 7px; flex-wrap: wrap; }
+.pb-tag {
+  font-size: 11px; font-weight: 600; padding: 4px 12px;
+  border-radius: 50px; background: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.25);
+}
+.pb-verified {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.18); color: #fff;
+  font-size: 11px; font-weight: 700; padding: 5px 14px;
+  border-radius: 50px; border: 1px solid rgba(255,255,255,0.3);
+  position: relative;
+}
+
+/* ══════════════════════════════
+   SORT SELECT
+══════════════════════════════ */
+.sort-select {
+  font-size: 12px; padding: 6px 10px;
+  border: 1px solid var(--border-medium); border-radius: 9px;
+  background: #ffffff; color: var(--ink-muted);
+  font-family: var(--font-body); cursor: pointer; outline: none;
+}
+
+/* ══════════════════════════════
+   EMPTY STATE
+══════════════════════════════ */
+.empty-state {
+  text-align: center; padding: 64px 20px;
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+}
+.empty-state-icon { font-size: 42px; margin-bottom: 14px; display: flex; justify-content: center; }
+.empty-state h3 {
+  font-family: var(--font-display); font-size: 22px; font-weight: 600;
+  color: var(--ink-rich); margin-bottom: 8px;
+}
+.empty-state p {
+  font-size: 13.5px; color: var(--ink-muted); font-weight: 300;
+  max-width: 340px; margin: 0 auto 20px; line-height: 1.65;
+}
+
+/* ══════════════════════════════
+   FULL BID TABLE (My Bids page)
+══════════════════════════════ */
+.bid-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 22px; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; transition: background 0.15s;
+}
+.bid-row:last-child { border-bottom: none; }
+.bid-row:hover { background: #F8F9FA; }
+.bid-row-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.bid-row-info { flex: 1; min-width: 0; }
+.bid-row-name { font-size: 13.5px; font-weight: 500; color: var(--ink-rich); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bid-row-meta { font-size: 12px; color: var(--ink-faint); font-weight: 300; margin-top: 2px; }
+.bid-row-right { display: flex; gap: 18px; font-size: 12px; color: var(--ink-muted); flex-shrink: 0; }
+.brr-val { font-weight: 500; color: var(--ink-rich); }
+
+/* ══════════════════════════════
+   RESPONSIVE
+══════════════════════════════ */
+@media (max-width: 1200px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 768px) {
+  .sb { display: none; }
+  .main { margin-left: 0; }
+  .topbar { padding: 0 20px; }
+  .page { padding: 20px 16px; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sb">
+  <div class="sb-logo">
+    <a href="index.html"><span class="logo-the">The</span><span class="logo-ad">Ad</span><span class="logo-bsk">Basket</span></a>
+    <div class="sb-logo-role">Agency Portal</div>
+  </div>
+  <div class="sb-user">
+    <div class="sb-avatar">PP</div>
+    <div>
+      <div class="sb-user-name">Pixel & Print Co.</div>
+      <div class="sb-user-plan">Verified Agency · Pro Plan</div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Main</div>
+    <button class="sb-item active" onclick="showPage('overview',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="sb-item" onclick="showPage('tenders',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Tender Board
+      <span class="sb-badge">12</span>
+    </button>
+    <button class="sb-item" onclick="showPage('mybids',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      My Bids
+      <span class="sb-badge">5</span>
+    </button>
+    <button class="sb-item" onclick="showPage('campaigns',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Active Campaigns
+    </button>
+    <div class="sb-section">Clients & Work</div>
+    <button class="sb-item" onclick="showPage('clients',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clients
+    </button>
+    <button class="sb-item" onclick="showPage('casestudies',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Case Studies
+    </button>
+    <div class="sb-section">Insights</div>
+    <button class="sb-item" onclick="showPage('analytics',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      Analytics & Revenue
+    </button>
+    <div class="sb-section">Account</div>
+    <button class="sb-item" onclick="showPage('profile',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Agency Profile
+    </button>
+    <button class="sb-item" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </nav>
+  <div class="sb-bottom">
+    <a href="index.html" class="sb-item" style="display:flex;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Back to Home
+    </a>
+  </div>
+</aside>
+
+<!-- ══════════════ MAIN CONTENT ══════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Overview</div>
+    <div class="topbar-right">
+      <a href="browse.html" class="btn-ghost btn-sm">Browse Billboards →</a>
+      <div style="position:relative;z-index:201;">
+        <button class="notif-btn" onclick="toggleNotif()" id="notifBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge-dot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="nd-header"><h4>Notifications</h4><button onclick="markAllRead()">Mark all read</button></div>
+          <div class="nd-item unread" onclick="markRead(this)">
+            <div class="nd-dot gold"></div>
+            <div><div class="nd-text"><strong>New tender posted</strong> — Automotive brand · Hyderabad · ₹15–25L budget</div><div class="nd-time">1 hour ago</div></div>
+          </div>
+          <div class="nd-item unread" onclick="markRead(this)">
+            <div class="nd-dot green"></div>
+            <div><div class="nd-text">Your bid on <strong>"FMCG Summer Launch"</strong> was shortlisted by the advertiser</div><div class="nd-time">3 hours ago</div></div>
+          </div>
+          <div class="nd-item unread" onclick="markRead(this)">
+            <div class="nd-dot indigo"></div>
+            <div><div class="nd-text"><strong>Direct brief received</strong> from Reliance Retail — respond within 48 hrs</div><div class="nd-time">Yesterday</div></div>
+          </div>
+          <div class="nd-item" onclick="markRead(this)">
+            <div class="nd-dot teal"></div>
+            <div><div class="nd-text">Campaign <strong>"MG Road LED · Tech Brand"</strong> went live — 3 month run confirmed</div><div class="nd-time">2 days ago</div></div>
+          </div>
+          <div class="nd-item" onclick="markRead(this)">
+            <div class="nd-dot gold"></div>
+            <div><div class="nd-text">Your GST verification badge has been <strong>renewed for 2026–27</strong></div><div class="nd-time">5 days ago</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sb-avatar" style="cursor:pointer;">PP</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ OVERVIEW PAGE ══════════════ -->
+  <div class="page active" id="page-overview">
+
+    <!-- Onboarding Checklist -->
+    <div class="onboard-card" id="onboardCard">
+      <div class="onboard-header">
+        <div>
+          <h3>Welcome to The AdBasket, Pixel &amp; Print!</h3>
+          <p>Complete your agency profile to unlock more tenders and direct briefs.</p>
+        </div>
+        <button class="onboard-dismiss" onclick="dismissOnboard()">Dismiss</button>
+      </div>
+      <div class="onboard-progress-bar"><div class="onboard-progress-fill" id="onboardFill" style="width:60%;"></div></div>
+      <div class="onboard-steps">
+        <div class="onboard-step done" onclick="stepClick(this)"><div class="onboard-step-check">✓</div>Register agency</div>
+        <div class="onboard-step done" onclick="stepClick(this)"><div class="onboard-step-check">✓</div>Upload GST certificate</div>
+        <div class="onboard-step done" onclick="stepClick(this)"><div class="onboard-step-check">✓</div>Add agency services</div>
+        <div class="onboard-step" onclick="stepClick(this)"><div class="onboard-step-check"></div>Add a case study</div>
+        <div class="onboard-step" onclick="stepClick(this)"><div class="onboard-step-check"></div>Submit your first bid</div>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="sc-icon blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="sc-label">Active Bids</div>
+        <div class="sc-val">5</div>
+        <div class="sc-sub"><span class="sc-trend up">+3</span> this week</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="sc-icon teal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg></div>
+        <div class="sc-label">Tenders Won</div>
+        <div class="sc-val">12</div>
+        <div class="sc-sub"><span class="sc-trend up">+2</span> this month</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="sc-icon gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg></div>
+        <div class="sc-label">Active Campaigns</div>
+        <div class="sc-val">4</div>
+        <div class="sc-sub">₹34.5L total value</div>
+      </div>
+      <div class="stat-card green">
+        <div class="sc-icon green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="sc-label">Revenue This Month</div>
+        <div class="sc-val">₹18.2L</div>
+        <div class="sc-sub"><span class="sc-trend up">↑24%</span> vs last month</div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <div style="display:flex;flex-direction:column;gap:20px;">
+
+        <!-- Live Tenders to Bid On -->
+        <div class="section-card">
+          <div class="sc-header">
+            <h3>Tenders Matching Your Profile</h3>
+            <button class="link" onclick="showPage('tenders',null)">View all 12 →</button>
+          </div>
+          <div class="tender-item" onclick="showToast('Opening tender details…')">
+            <div class="ti-dot" style="background:var(--gold);"></div>
+            <div class="ti-info">
+              <div class="ti-sector">FMCG / Consumer Goods <span style="font-size:9px;background:var(--gold-light);color:var(--gold-dark);padding:2px 8px;border-radius:50px;font-weight:700;margin-left:4px;">NEW</span></div>
+              <div class="ti-name">Summer launch campaign — Multiple formats welcome</div>
+              <div class="ti-meta"><span>Mumbai</span><span>3 months</span><span>Static or LED</span></div>
+            </div>
+            <div class="ti-budget"><span class="ti-budget-val">₹8–12L</span><span class="ti-budget-lbl">per month</span></div>
+            <button class="btn-gold btn-sm" onclick="event.stopPropagation();showToast('Bid form opening…')">Bid Now →</button>
+          </div>
+          <div class="tender-item" onclick="showToast('Opening tender details…')">
+            <div class="ti-dot" style="background:var(--indigo);"></div>
+            <div class="ti-info">
+              <div class="ti-sector">Automotive</div>
+              <div class="ti-name">New model launch — High-traffic highways preferred</div>
+              <div class="ti-meta"><span>Hyderabad</span><span>3 months</span><span>Gantry / Unipole</span></div>
+            </div>
+            <div class="ti-budget"><span class="ti-budget-val">₹15–25L</span><span class="ti-budget-lbl">per month</span></div>
+            <button class="btn-gold btn-sm" onclick="event.stopPropagation();showToast('Bid form opening…')">Bid Now →</button>
+          </div>
+          <div class="tender-item" onclick="showToast('Opening tender details…')">
+            <div class="ti-dot" style="background:var(--teal);"></div>
+            <div class="ti-info">
+              <div class="ti-sector">Real Estate</div>
+              <div class="ti-name">New township launch — Premium locations preferred</div>
+              <div class="ti-meta"><span>Delhi NCR</span><span>6 months</span><span>Hoardings</span></div>
+            </div>
+            <div class="ti-budget"><span class="ti-budget-val">₹3–5L</span><span class="ti-budget-lbl">per month</span></div>
+            <button class="btn-gold btn-sm" onclick="event.stopPropagation();showToast('Bid form opening…')">Bid Now →</button>
+          </div>
+        </div>
+
+        <!-- Revenue Chart -->
+        <div class="section-card">
+          <div class="sc-header">
+            <h3>Revenue — Last 6 Months</h3>
+            <button class="link" onclick="showPage('analytics',null)">Full analytics →</button>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-bar-group" id="overviewChart"></div>
+            <div class="chart-legend">
+              <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--gold)"></div>Revenue (₹L)</div>
+              <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--indigo)"></div>Bids Submitted</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+
+        <!-- Active Bids -->
+        <div class="section-card">
+          <div class="sc-header"><h3>My Active Bids</h3><button class="link" onclick="showPage('mybids',null)">View all →</button></div>
+          <div class="bid-card">
+            <div class="bid-avatar" style="background:linear-gradient(135deg,var(--gold),#FBBF24);">FM</div>
+            <div style="flex:1;min-width:0;">
+              <div class="bid-title">FMCG Summer Launch · Mumbai</div>
+              <div class="bid-sub">₹8–12L/mo · 3 months · Static or LED</div>
+              <div class="bid-price">Your bid: ₹9.5L / month</div>
+              <div class="bid-actions">
+                <button class="btn-gold btn-sm" onclick="showToast('Opening bid details…')">Track Bid</button>
+                <button class="btn-ghost btn-sm" onclick="showToast('Bid updated!')">Edit</button>
+              </div>
+            </div>
+            <span class="chip chip-new">Shortlisted</span>
+          </div>
+          <div class="bid-card">
+            <div class="bid-avatar" style="background:linear-gradient(135deg,var(--indigo),#818CF8);">AT</div>
+            <div style="flex:1;min-width:0;">
+              <div class="bid-title">Auto Brand · Hyderabad</div>
+              <div class="bid-sub">₹15–25L/mo · 3 months · Gantry</div>
+              <div class="bid-price">Your bid: ₹18L / month</div>
+              <div class="bid-actions">
+                <button class="btn-gold btn-sm" onclick="showToast('Opening bid details…')">Track Bid</button>
+                <button class="btn-ghost btn-sm" onclick="showToast('Bid updated!')">Edit</button>
+              </div>
+            </div>
+            <span class="chip chip-pending">Under Review</span>
+          </div>
+        </div>
+
+        <!-- Direct Briefs / Inquiries -->
+        <div class="section-card">
+          <div class="sc-header"><h3>Direct Briefs</h3><span style="font-size:12.5px;color:var(--ink-faint);">1 new</span></div>
+          <div style="padding:16px 22px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-size:13.5px;font-weight:500;color:var(--ink-rich);">Reliance Retail — Q3 OOH Drive</div>
+                <div style="font-size:12px;color:var(--ink-faint);font-weight:300;margin-top:2px;">Pan India · 12 months · ₹1Cr+ · Sent 1 day ago</div>
+                <div style="display:flex;gap:6px;margin-top:10px;">
+                  <button class="btn-gold btn-sm" onclick="showToast('Opening brief…')">View Brief</button>
+                  <button class="btn-ghost btn-sm" onclick="showToast('Message sent!')">Message</button>
+                </div>
+              </div>
+              <span class="chip chip-new">New</span>
+            </div>
+          </div>
+          <div style="padding:16px 22px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-size:13.5px;font-weight:500;color:var(--ink-rich);">EdTech Startup — Pune College Drive</div>
+                <div style="font-size:12px;color:var(--ink-faint);font-weight:300;margin-top:2px;">Pune · 2 months · ₹2–5L · Sent 4 days ago</div>
+                <div style="display:flex;gap:6px;margin-top:10px;">
+                  <button class="btn-gold btn-sm" onclick="showToast('Opening brief…')">View Brief</button>
+                  <button class="btn-ghost btn-sm" onclick="showToast('Proposal sent!')">Send Proposal</button>
+                </div>
+              </div>
+              <span class="chip chip-pending">Responded</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TENDER BOARD PAGE ══════════════ -->
+  <div class="page" id="page-tenders">
+    <div class="page-header">
+      <div><h2>Tender Board</h2><p>Live advertiser tenders matched to your agency profile. Pro plan — unlimited bids.</p></div>
+      <div style="display:flex;gap:8px;">
+        <select class="sort-select" onchange="showToast('Filter applied.')"><option>All Sectors</option><option>FMCG</option><option>Real Estate</option><option>Automotive</option><option>Education</option><option>Finance</option></select>
+        <select class="sort-select" onchange="showToast('Filter applied.')"><option>All Cities</option><option>Mumbai</option><option>Delhi NCR</option><option>Bengaluru</option><option>Hyderabad</option><option>Pune</option></select>
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="sc-header"><h3>Active Tenders (12)</h3><span style="font-size:12.5px;color:var(--ink-faint);">Updated live</span></div>
+      <div id="tenderBoardList"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ MY BIDS PAGE ══════════════ -->
+  <div class="page" id="page-mybids">
+    <div class="page-header">
+      <div><h2>My Bids</h2><p>Track all bids you've submitted — shortlisted, under review, won, and lost.</p></div>
+    </div>
+    <div class="section-card">
+      <div class="sc-header">
+        <h3>All Bids (5)</h3>
+        <select class="sort-select"><option>All Status</option><option>Shortlisted</option><option>Under Review</option><option>Won</option><option>Lost</option></select>
+      </div>
+      <div id="myBidsList"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ ACTIVE CAMPAIGNS PAGE ══════════════ -->
+  <div class="page" id="page-campaigns">
+    <div class="page-header">
+      <div><h2>Active Campaigns</h2><p>Campaigns you are currently managing on behalf of clients.</p></div>
+      <button class="btn-gold" onclick="showToast('Browse tenders to win new campaigns.')">+ New Campaign</button>
+    </div>
+    <div class="section-card">
+      <div class="sc-header"><h3>Running Campaigns (4)</h3><select class="sort-select"><option>All Status</option><option>Live</option><option>Scheduled</option><option>Completed</option></select></div>
+      <div id="campaignsList"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CLIENTS PAGE ══════════════ -->
+  <div class="page" id="page-clients">
+    <div class="page-header">
+      <div><h2>Clients</h2><p>All brands and businesses you've worked with or are currently serving.</p></div>
+      <button class="btn-gold" onclick="showToast('Client added!')">+ Add Client</button>
+    </div>
+    <div class="section-card">
+      <div class="sc-header"><h3>All Clients (6)</h3><span style="font-size:12.5px;color:var(--ink-faint);">₹1.4Cr total value</span></div>
+      <div id="clientsList"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CASE STUDIES PAGE ══════════════ -->
+  <div class="page" id="page-casestudies">
+    <div class="page-header">
+      <div><h2>Case Studies</h2><p>Showcase your best work. Published case studies improve your tender win rate.</p></div>
+      <button class="btn-gold" onclick="showToast('Case study editor opening…')">+ Add Case Study</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;">
+      <div class="section-card">
+        <div class="sc-header"><h3>Published Case Studies (3)</h3><span style="font-size:12.5px;color:var(--ink-faint);">Visible on your public profile</span></div>
+        <div id="caseStudiesList"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="section-card" style="padding:22px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-faint);margin-bottom:14px;">Profile Strength</div>
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;"><span style="color:var(--ink-muted);font-weight:300;">Profile completeness</span><span style="font-weight:500;">82%</span></div>
+            <div style="background:var(--cream-warm);border-radius:50px;height:6px;"><div style="background:var(--gold);border-radius:50px;height:100%;width:82%;transition:width 0.4s;"></div></div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;"><span style="color:var(--ink-muted);font-weight:300;">Tender response rate</span><span style="font-weight:500;">78%</span></div>
+            <div style="background:var(--cream-warm);border-radius:50px;height:6px;"><div style="background:var(--indigo);border-radius:50px;height:100%;width:78%;transition:width 0.4s;"></div></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;"><span style="color:var(--ink-muted);font-weight:300;">Client satisfaction</span><span style="font-weight:500;">4.9 / 5</span></div>
+            <div style="background:var(--cream-warm);border-radius:50px;height:6px;"><div style="background:var(--green);border-radius:50px;height:100%;width:98%;transition:width 0.4s;"></div></div>
+          </div>
+          <button class="btn-gold" style="width:100%;justify-content:center;" onclick="showPage('profile',null)">View Public Profile →</button>
+        </div>
+        <div class="section-card" style="padding:22px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-faint);margin-bottom:14px;">Quick Stats</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--ink-muted);font-weight:300;">Profile views (30d)</span><span style="font-weight:500;">342</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--ink-muted);font-weight:300;">Direct briefs received</span><span style="font-weight:500;">8</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--ink-muted);font-weight:300;">Tenders won this year</span><span style="font-weight:500;">12</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--ink-muted);font-weight:300;">Total reviews</span><span style="font-weight:500;color:var(--gold-dark);">★ 4.9 · 14 reviews</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ ANALYTICS PAGE ══════════════ -->
+  <div class="page" id="page-analytics">
+    <div class="page-header">
+      <div><h2>Analytics &amp; Revenue</h2><p>Track your agency's bid performance, revenue growth, and client ROI.</p></div>
+      <button class="btn-ghost" onclick="showToast('Report exported!')">Export Report</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card blue"><div class="sc-icon blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="sc-label">Revenue YTD</div><div class="sc-val">₹1.4Cr</div><div class="sc-sub"><span class="sc-trend up">↑31%</span> vs last year</div></div>
+      <div class="stat-card teal"><div class="sc-icon teal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg></div><div class="sc-label">Tender Win Rate</div><div class="sc-val">38%</div><div class="sc-sub">12 of 31 bids won</div></div>
+      <div class="stat-card gold"><div class="sc-icon gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><div class="sc-label">Profile Views</div><div class="sc-val">342</div><div class="sc-sub"><span class="sc-trend up">↑18%</span> this month</div></div>
+      <div class="stat-card green"><div class="sc-icon green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="sc-label">Avg. Client Rating</div><div class="sc-val">4.9</div><div class="sc-sub">across 14 reviews</div></div>
+    </div>
+    <div class="section-card">
+      <div class="sc-header"><h3>Monthly Revenue — Last 6 Months</h3></div>
+      <div class="chart-wrap" style="padding:28px 24px;">
+        <div class="chart-bar-group" id="analyticsChart" style="height:200px;"></div>
+        <div class="chart-legend">
+          <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--gold)"></div>Revenue (₹L)</div>
+          <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--indigo)"></div>Bids Submitted</div>
+          <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--teal)"></div>Tenders Won</div>
+        </div>
+      </div>
+    </div>
+    <div class="section-card" style="margin-top:20px;">
+      <div class="sc-header"><h3>Revenue by Client</h3></div>
+      <div id="analyticsClientBreakdown"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ AGENCY PROFILE PAGE ══════════════ -->
+  <div class="page" id="page-profile">
+    <div class="page-header">
+      <div><h2>Agency Profile</h2><p>Your public-facing profile visible to all advertisers on The AdBasket.</p></div>
+      <button class="btn-gold" onclick="showToast('Profile saved!')">Save Changes</button>
+    </div>
+
+    <!-- Banner Preview -->
+    <div class="profile-banner">
+      <div class="pb-logo">PP</div>
+      <div class="pb-info">
+        <div class="pb-name">Pixel &amp; Print Co.</div>
+        <div class="pb-sub">Full-Service Ad Agency · Mumbai · Since 2014</div>
+        <div class="pb-tags">
+          <span class="pb-tag">OOH Planning</span>
+          <span class="pb-tag">Creative</span>
+          <span class="pb-tag">FMCG</span>
+          <span class="pb-tag">Production</span>
+          <span class="pb-verified">✓ GST Verified</span>
+        </div>
+      </div>
+      <div style="text-align:right;position:relative;flex-shrink:0;">
+        <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:#fff;letter-spacing:-1px;">★ 4.9</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.65);font-weight:300;">14 reviews</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:300;margin-top:4px;">342 profile views / month</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="section-card" style="padding:28px;">
+        <h3 style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink-rich);letter-spacing:-0.3px;margin-bottom:20px;">Agency Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Agency Name</label><input type="text" class="form-control" value="Pixel &amp; Print Co."/></div>
+          <div class="form-group"><label>Founded Year</label><input type="text" class="form-control" value="2014"/></div>
+        </div>
+        <div class="form-group"><label>Tagline</label><input type="text" class="form-control" value="Bold ideas. Visible impact."/></div>
+        <div class="form-group"><label>About Your Agency</label><textarea class="form-control" rows="3" style="resize:vertical;">Full-service OOH advertising agency specializing in high-impact campaigns across Mumbai, Delhi, and Bengaluru. 10+ years of experience, 200+ campaigns delivered.</textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>City</label><input type="text" class="form-control" value="Mumbai"/></div>
+          <div class="form-group"><label>Team Size</label><select class="form-control"><option>1–5</option><option>6–15</option><option selected>16–50</option><option>50+</option></select></div>
+        </div>
+        <div class="form-group"><label>Website</label><input type="url" class="form-control" value="https://pixelandprint.in"/></div>
+        <button class="btn-gold" onclick="showToast('Profile saved!')">Save Details</button>
+      </div>
+      <div class="section-card" style="padding:28px;">
+        <h3 style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink-rich);letter-spacing:-0.3px;margin-bottom:20px;">Services &amp; Specialisations</h3>
+        <div class="form-group"><label>Primary Service Type</label>
+          <select class="form-control">
+            <option selected>Full-Service Agency</option>
+            <option>Media Planning Only</option>
+            <option>Production House</option>
+            <option>OOH Specialist</option>
+            <option>PR and Integrated</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Industry Specialisations</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" checked style="accent-color:var(--gold);"/> FMCG</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" checked style="accent-color:var(--gold);"/> Real Estate</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" checked style="accent-color:var(--gold);"/> Automotive</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" style="accent-color:var(--gold);"/> Education</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" style="accent-color:var(--gold);"/> Finance</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" style="accent-color:var(--gold);"/> Healthcare</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" style="accent-color:var(--gold);"/> Technology</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-muted);cursor:pointer;background:var(--cream);border:1px solid var(--border-medium);padding:5px 12px;border-radius:50px;transition:all 0.18s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-medium)'"><input type="checkbox" style="accent-color:var(--gold);"/> Retail</label>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:16px;"><label>Min Campaign Budget</label>
+          <select class="form-control"><option>Any</option><option>₹1L+</option><option selected>₹5L+</option><option>₹25L+</option><option>₹1Cr+</option></select>
+        </div>
+        <div class="form-group"><label>Coverage Cities</label><input type="text" class="form-control" value="Mumbai, Delhi NCR, Bengaluru, Pune"/></div>
+        <button class="btn-gold" onclick="showToast('Services updated!')">Save Services</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SETTINGS PAGE ══════════════ -->
+  <div class="page" id="page-settings">
+    <div class="page-header"><div><h2>Account Settings</h2><p>Manage your contact details, notifications, and billing plan.</p></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="section-card" style="padding:28px;">
+        <h3 style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink-rich);letter-spacing:-0.3px;margin-bottom:20px;">Contact Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" class="form-control" value="Priya"/></div>
+          <div class="form-group"><label>Last Name</label><input type="text" class="form-control" value="Mehta"/></div>
+        </div>
+        <div class="form-group"><label>Business Email</label><input type="email" class="form-control" value="priya@pixelandprint.in"/></div>
+        <div class="form-group"><label>Phone</label><input type="tel" class="form-control" value="+91 98200 11234"/></div>
+        <div class="form-group"><label>GST Number</label><input type="text" class="form-control" value="27AABCP5678R1Z4" readonly style="background:#F3F4F6;color:var(--ink-muted);"/></div>
+        <div class="form-group"><label>PAN Number</label><input type="text" class="form-control" value="AABCP5678R" readonly style="background:#F3F4F6;color:var(--ink-muted);"/></div>
+        <button class="btn-gold" onclick="showToast('Contact details saved!')">Save Changes</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="section-card" style="padding:28px;">
+          <h3 style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink-rich);letter-spacing:-0.3px;margin-bottom:6px;">Current Plan</h3>
+          <div style="background:var(--gold-light);border:1px solid rgba(217,119,6,0.2);border-radius:12px;padding:18px;margin-bottom:20px;">
+            <div style="font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--gold-dark);letter-spacing:-0.5px;">Pro Agency Plan</div>
+            <div style="font-size:13px;color:var(--gold-dark);font-weight:300;margin-top:4px;">₹4,999/month · Renews 10 Jul 2026</div>
+            <ul style="margin-top:12px;padding-left:18px;font-size:13px;color:var(--gold-dark);font-weight:300;line-height:2;">
+              <li>Unlimited tender bids</li>
+              <li>Verified agency badge</li>
+              <li>5 case study slots</li>
+              <li>Priority listing in search</li>
+              <li>Direct brief inbox</li>
+            </ul>
+          </div>
+          <button class="btn-gold" style="width:100%;justify-content:center;" onclick="showToast('Opening upgrade plans…')">Upgrade to Enterprise →</button>
+          <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:8px;" onclick="showToast('Opening billing portal…')">Manage Billing</button>
+        </div>
+        <div class="section-card" style="padding:28px;">
+          <h3 style="font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink-rich);letter-spacing:-0.3px;margin-bottom:20px;">Notification Preferences</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13.5px;font-weight:400;color:var(--ink-rich);">New tender posted</div><div style="font-size:12px;color:var(--ink-faint);font-weight:300;">Email + App</div></div>
+            <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13.5px;font-weight:400;color:var(--ink-rich);">Bid shortlisted</div><div style="font-size:12px;color:var(--ink-faint);font-weight:300;">Email + App</div></div>
+            <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13.5px;font-weight:400;color:var(--ink-rich);">Direct brief received</div><div style="font-size:12px;color:var(--ink-faint);font-weight:300;">Email + App</div></div>
+            <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13.5px;font-weight:400;color:var(--ink-rich);">Tender won / lost</div><div style="font-size:12px;color:var(--ink-faint);font-weight:300;">Email</div></div>
+            <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13.5px;font-weight:400;color:var(--ink-rich);">Weekly performance report</div><div style="font-size:12px;color:var(--ink-faint);font-weight:300;">Email</div></div>
+            <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════
+   DATA
+══════════════════════════════════════════════ */
+const TENDERS = [
+  {sector:'FMCG / Consumer Goods',name:'Summer launch campaign — Multiple formats welcome',city:'Mumbai',dur:'3 months',fmt:'Static or LED',budget:'₹8–12L',isNew:true,color:'#D97706'},
+  {sector:'Automotive',name:'New model launch — High-traffic highways preferred',city:'Hyderabad',dur:'3 months',fmt:'Gantry / Unipole',budget:'₹15–25L',isNew:false,color:'#4F46E5'},
+  {sector:'Real Estate',name:'New township launch — Premium locations preferred',city:'Delhi NCR',dur:'6 months',fmt:'Hoardings',budget:'₹3–5L',isNew:false,color:'#0891B2'},
+  {sector:'Education',name:'Admission season drive — Near colleges & coaching hubs',city:'Pune',dur:'2 months',fmt:'Bus Shelters',budget:'₹80K–1.5L',isNew:true,color:'#059669'},
+  {sector:'Banking / Finance',name:'Pan India awareness — Metros and Tier 2 cities',city:'Pan India',dur:'12 months',fmt:'LED preferred',budget:'₹50L–1Cr',isNew:false,color:'#8B5CF6'},
+  {sector:'Healthcare / Pharma',name:'OTC product launch — Chemist-cluster targeting',city:'Bengaluru',dur:'1 month',fmt:'Unipoles',budget:'₹1.5–3L',isNew:true,color:'#E53935'},
+  {sector:'Retail / E-Commerce',name:'Festive season mega sale — High-footfall malls',city:'Mumbai',dur:'2 months',fmt:'LED Digital',budget:'₹10–18L',isNew:false,color:'#D97706'},
+  {sector:'Technology / SaaS',name:'B2B awareness — Business districts only',city:'Bengaluru',dur:'3 months',fmt:'Static Hoarding',budget:'₹4–8L',isNew:false,color:'#4F46E5'},
+  {sector:'FMCG / Consumer Goods',name:'New SKU awareness — Tier 2 rollout',city:'Jaipur, Indore',dur:'3 months',fmt:'Any format',budget:'₹2–4L',isNew:true,color:'#D97706'},
+  {sector:'Automotive',name:'EV awareness blitz — Metro stations + highways',city:'Delhi NCR',dur:'2 months',fmt:'LED + Static',budget:'₹20–35L',isNew:false,color:'#4F46E5'},
+  {sector:'Real Estate',name:'Luxury apartments — Premium billboard only',city:'Mumbai',dur:'4 months',fmt:'Unipoles',budget:'₹6–10L',isNew:false,color:'#0891B2'},
+  {sector:'Telecom',name:'Network expansion announcement — Pan South India',city:'Chennai, Hyderabad',dur:'6 months',fmt:'Any',budget:'₹25–50L',isNew:true,color:'#059669'},
+];
+
+const BIDS = [
+  {color:'var(--gold)',init:'FM',name:'FMCG Summer Launch · Mumbai',meta:'₹8–12L/mo · 3 months · Bid on 2 Jun 2026',bid:'₹9.5L/mo',status:'Shortlisted',chip:'chip-new'},
+  {color:'var(--indigo)',init:'AT',name:'Auto Brand Launch · Hyderabad',meta:'₹15–25L/mo · 3 months · Bid on 28 May 2026',bid:'₹18L/mo',status:'Under Review',chip:'chip-pending'},
+  {color:'var(--green)',init:'RL',name:'Reliance Retail · Pan India',meta:'₹50L–1Cr/mo · 12 months · Bid on 20 May 2026',bid:'₹62L/mo',status:'Won',chip:'chip-success'},
+  {color:'var(--teal)',init:'ED',name:'EdTech — Pune Colleges',meta:'₹80K–1.5L/mo · 2 months · Bid on 14 May 2026',bid:'₹1.1L/mo',status:'Lost',chip:'chip-lost'},
+  {color:'#8B5CF6',init:'FN',name:'Banking Brand · Pan India',meta:'₹50L–1Cr/mo · 12 months · Bid on 5 May 2026',bid:'₹55L/mo',status:'Under Review',chip:'chip-pending'},
+];
+
+const CAMPAIGNS = [
+  {color:'linear-gradient(135deg,var(--gold),#FBBF24)',icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`,name:'Reliance Retail — Q3 OOH',meta:'Pan India · 1 Jul – 30 Sep 2026 · LED + Static',impressions:'8.4Cr',spend:'₹62L/mo',status:'Live',chip:'chip-live'},
+  {color:'linear-gradient(135deg,var(--indigo),#818CF8)',icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`,name:'TechCorp B2B · Bengaluru',meta:'Bengaluru · 15 Jun – 15 Sep 2026 · Static Hoarding',impressions:'1.8Cr',spend:'₹5.5L/mo',status:'Live',chip:'chip-live'},
+  {color:'linear-gradient(135deg,var(--teal),#22D3EE)',icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,name:'RealCo Township · Delhi NCR',meta:'Delhi NCR · 1 Jul – 31 Dec 2026 · Hoardings',impressions:'—',spend:'₹3.5L/mo',status:'Scheduled',chip:'chip-pending'},
+  {color:'linear-gradient(135deg,#059669,#34D399)',icon:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`,name:'LearnFast Admission Drive',meta:'Pune · 20 Jun – 20 Aug 2026 · Bus Shelters',impressions:'—',spend:'₹1.1L/mo',status:'Scheduled',chip:'chip-pending'},
+];
+
+const CLIENTS = [
+  {init:'RL',color:'linear-gradient(135deg,var(--gold),#FBBF24)',name:'Reliance Retail',meta:'Active · ₹62L/mo · Since 2024',val:'₹3.2Cr',sub:'lifetime value'},
+  {init:'TC',color:'linear-gradient(135deg,var(--indigo),#818CF8)',name:'TechCorp India',meta:'Active · ₹5.5L/mo · Since 2025',val:'₹38L',sub:'lifetime value'},
+  {init:'RC',color:'linear-gradient(135deg,var(--teal),#22D3EE)',name:'RealCo Developers',meta:'Active · ₹3.5L/mo · Since 2025',val:'₹22L',sub:'lifetime value'},
+  {init:'FM',color:'linear-gradient(135deg,#D97706,#FBBF24)',name:'FreshMart FMCG',meta:'Completed · ₹9.5L/mo · 2026',val:'₹28.5L',sub:'lifetime value'},
+  {init:'LF',color:'linear-gradient(135deg,#059669,#34D399)',name:'LearnFast EdTech',meta:'Active · ₹1.1L/mo · Since 2026',val:'₹2.2L',sub:'lifetime value'},
+  {init:'BK',color:'linear-gradient(135deg,#8B5CF6,#A78BFA)',name:'BlueKing Finance',meta:'Prospect · In discussion',val:'₹15–25L',sub:'estimated value'},
+];
+
+const CASESTUDIES = [
+  {icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`,bg:'linear-gradient(135deg,#7C3AED,#A78BFA)',name:'Reliance Retail — Diwali OOH Blitz',meta:'Pan India · 120 billboards · 30 days · 2024',result:'+34% footfall'},
+  {icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`,bg:'linear-gradient(135deg,#1e3a5f,#2d6a9f)',name:'TechCorp Brand Awareness · Bengaluru',meta:'Bengaluru · 8 LED screens · 3 months · 2025',result:'2.4Cr impressions'},
+  {icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,bg:'linear-gradient(135deg,#1a3a2a,#2d6a4a)',name:'RealCo Township Launch · Delhi NCR',meta:'Delhi NCR · 22 hoardings · 4 months · 2025',result:'900+ site visits'},
+];
+
+const ANALYTICS_CLIENTS = [
+  {init:'RL',color:'var(--gold)',name:'Reliance Retail',campaigns:3,revenue:'₹62L/mo',share:'52%'},
+  {init:'TC',color:'var(--indigo)',name:'TechCorp India',campaigns:1,revenue:'₹5.5L/mo',share:'18%'},
+  {init:'RC',color:'var(--teal)',name:'RealCo Developers',campaigns:1,revenue:'₹3.5L/mo',share:'12%'},
+  {init:'FM',color:'#D97706',name:'FreshMart FMCG',campaigns:2,revenue:'₹9.5L/mo',share:'18%'},
+];
+
+/* ══════════════════════════════════════════════
+   RENDER FUNCTIONS
+══════════════════════════════════════════════ */
+function renderTenderBoard() {
+  const el = document.getElementById('tenderBoardList');
+  if (!el) return;
+  el.innerHTML = TENDERS.map(t => `
+    <div class="tender-item" onclick="showToast('Opening tender details…')">
+      <div class="ti-dot" style="background:${t.color};"></div>
+      <div class="ti-info">
+        <div class="ti-sector">${t.sector}${t.isNew ? ` <span style="font-size:9.5px;background:var(--gold-light);color:var(--gold-dark);padding:2px 8px;border-radius:50px;font-weight:700;letter-spacing:0.3px;">NEW</span>` : ''}</div>
+        <div class="ti-name">${t.name}</div>
+        <div class="ti-meta"><span>${t.city}</span><span>${t.dur}</span><span>${t.fmt}</span></div>
+      </div>
+      <div class="ti-budget"><span class="ti-budget-val">${t.budget}</span><span class="ti-budget-lbl">per month</span></div>
+      <button class="btn-gold btn-sm" onclick="event.stopPropagation();showToast('Opening bid form…')">Bid Now →</button>
+    </div>`).join('');
+}
+
+function renderMyBids() {
+  const el = document.getElementById('myBidsList');
+  if (!el) return;
+  el.innerHTML = BIDS.map(b => `
+    <div class="bid-row" onclick="showToast('Opening bid details…')">
+      <div class="bid-row-dot" style="background:${b.color};"></div>
+      <div class="bid-row-info">
+        <div class="bid-row-name">${b.name}</div>
+        <div class="bid-row-meta">${b.meta}</div>
+      </div>
+      <div class="bid-row-right">
+        <div><div class="brr-val">${b.bid}</div><div style="font-size:11px;color:var(--ink-faint);">your bid</div></div>
+      </div>
+      <span class="chip ${b.chip}">${b.status}</span>
+      <button class="btn-gold btn-sm" onclick="event.stopPropagation();showToast('Opening bid details…')">View</button>
+    </div>`).join('');
+}
+
+function renderCampaigns() {
+  const el = document.getElementById('campaignsList');
+  if (!el) return;
+  el.innerHTML = CAMPAIGNS.map(c => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 22px;border-bottom:1px solid var(--border);gap:14px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''" onclick="showToast('Opening campaign details…')">
+      <div style="width:36px;height:36px;border-radius:9px;background:${c.color};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${c.icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:500;color:var(--ink-rich);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+        <div style="font-size:12px;color:var(--ink-faint);font-weight:300;margin-top:2px;">${c.meta}</div>
+      </div>
+      <div style="display:flex;gap:18px;font-size:12px;color:var(--ink-muted);flex-shrink:0;">
+        <div><div style="font-weight:500;color:var(--ink-rich);">${c.impressions}</div><div style="font-size:11px;color:var(--ink-faint);">impressions</div></div>
+        <div><div style="font-weight:500;color:var(--ink-rich);">${c.spend}</div><div style="font-size:11px;color:var(--ink-faint);">spend</div></div>
+      </div>
+      <span class="chip ${c.chip}">${c.status}</span>
+    </div>`).join('');
+}
+
+function renderClients() {
+  const el = document.getElementById('clientsList');
+  if (!el) return;
+  el.innerHTML = CLIENTS.map(c => `
+    <div class="client-row" onclick="showToast('Opening client profile…')">
+      <div class="client-avatar" style="background:${c.color};">${c.init}</div>
+      <div class="client-info">
+        <div class="client-name">${c.name}</div>
+        <div class="client-meta">${c.meta}</div>
+      </div>
+      <div>
+        <div class="client-val">${c.val}</div>
+        <div class="client-val-sub">${c.sub}</div>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="event.stopPropagation();showToast('Opening client details…')">View</button>
+    </div>`).join('');
+}
+
+function renderCaseStudies() {
+  const el = document.getElementById('caseStudiesList');
+  if (!el) return;
+  el.innerHTML = CASESTUDIES.map(cs => `
+    <div class="case-row" onclick="showToast('Opening case study editor…')">
+      <div class="case-thumb" style="background:${cs.bg};">${cs.icon}</div>
+      <div class="case-info">
+        <div class="case-name">${cs.name}</div>
+        <div class="case-meta">${cs.meta}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="case-result">${cs.result}</div>
+        <button class="btn-ghost btn-sm" style="margin-top:6px;" onclick="event.stopPropagation();showToast('Opening case study editor…')">Edit</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderAnalyticsClientBreakdown() {
+  const el = document.getElementById('analyticsClientBreakdown');
+  if (!el) return;
+  el.innerHTML = ANALYTICS_CLIENTS.map(c => `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--border);">
+      <div class="client-avatar" style="background:${c.color};width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">${c.init}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:500;color:var(--ink-rich);">${c.name}</div>
+        <div style="font-size:12px;color:var(--ink-faint);font-weight:300;margin-top:2px;">${c.campaigns} active campaign${c.campaigns > 1 ? 's' : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink-rich);letter-spacing:-0.3px;">${c.revenue}</div>
+        <div style="font-size:11px;color:var(--ink-faint);font-weight:300;">${c.share} of revenue</div>
+      </div>
+      <div style="width:80px;">
+        <div style="background:var(--cream-warm);border-radius:50px;height:6px;">
+          <div style="background:var(--gold);border-radius:50px;height:100%;width:${c.share};transition:width 0.5s;"></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════
+   CHART
+══════════════════════════════════════════════ */
+const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+const revenue  = [8.2, 10.4, 11.8, 14.2, 16.5, 18.2];
+const bidsData = [3, 5, 6, 7, 8, 9];
+const wonData  = [1, 2, 2, 3, 3, 4];
+
+function renderChart(containerId, maxH) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const maxR = Math.max(...revenue);
+  const maxB = Math.max(...bidsData);
+  const maxW = Math.max(...wonData);
+  el.innerHTML = months.map((m, i) => `
+    <div class="chart-bar-col">
+      <div style="display:flex;align-items:flex-end;gap:3px;width:100%;">
+        <div class="chart-bar gold-bar"   style="height:${(revenue[i]/maxR)*maxH}px;flex:1;" title="₹${revenue[i]}L revenue"></div>
+        <div class="chart-bar indigo-bar" style="height:${(bidsData[i]/maxB)*(maxH*0.6)}px;flex:1;" title="${bidsData[i]} bids"></div>
+        <div class="chart-bar teal-bar"   style="height:${(wonData[i]/maxW)*(maxH*0.4)}px;flex:1;" title="${wonData[i]} won"></div>
+      </div>
+      <div class="chart-bar-label">${m}</div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════
+   PAGE NAVIGATION
+══════════════════════════════════════════════ */
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  if (btn) {
+    btn.classList.add('active');
+  } else {
+    // find and activate the sidebar item that matches this page id
+    document.querySelectorAll('.sb-item').forEach(b => {
+      if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) {
+        b.classList.add('active');
+      }
+    });
+  }
+  const titles = {
+    overview: 'Overview', tenders: 'Tender Board', mybids: 'My Bids',
+    campaigns: 'Active Campaigns', clients: 'Clients', casestudies: 'Case Studies',
+    analytics: 'Analytics & Revenue', profile: 'Agency Profile', settings: 'Account Settings'
+  };
+  document.getElementById('topbarTitle').textContent = titles[id] || 'Dashboard';
+
+  // Lazy render on page switch
+  if (id === 'tenders')    renderTenderBoard();
+  if (id === 'mybids')     renderMyBids();
+  if (id === 'campaigns')  renderCampaigns();
+  if (id === 'clients')    renderClients();
+  if (id === 'casestudies') renderCaseStudies();
+  if (id === 'analytics') {
+    renderAnalyticsClientBreakdown();
+    setTimeout(() => renderChart('analyticsChart', 180), 100);
+  }
+}
+
+/* ══════════════════════════════════════════════
+   NOTIFICATIONS
+══════════════════════════════════════════════ */
+function toggleNotif() {
+  document.getElementById('notifDropdown').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  const btn = document.getElementById('notifBtn');
+  if (!btn.contains(e.target) && !document.getElementById('notifDropdown').contains(e.target)) {
+    document.getElementById('notifDropdown').classList.remove('open');
+  }
+});
+function markRead(el)   { el.classList.remove('unread'); }
+function markAllRead()  {
+  document.querySelectorAll('.nd-item').forEach(i => i.classList.remove('unread'));
+  const dot = document.querySelector('.notif-badge-dot');
+  if (dot) dot.style.display = 'none';
+  showToast('All notifications marked as read.');
+}
+
+/* ══════════════════════════════════════════════
+   ONBOARDING
+══════════════════════════════════════════════ */
+let doneCount = 3;
+function stepClick(el) {
+  if (el.classList.contains('done')) return;
+  el.classList.add('done');
+  el.querySelector('.onboard-step-check').textContent = '✓';
+  doneCount++;
+  document.getElementById('onboardFill').style.width = (doneCount / 5 * 100) + '%';
+  if (doneCount === 5) showToast('Agency profile complete! You\'re now fully visible to advertisers.');
+}
+function dismissOnboard() {
+  document.getElementById('onboardCard').style.display = 'none';
+  showToast('You can update your profile anytime in Agency Profile.');
+}
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3800);
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+setTimeout(() => renderChart('overviewChart', 140), 300);
+</script>
+</body>
+</html>

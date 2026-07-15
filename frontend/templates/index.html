@@ -1,0 +1,2588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The AdBasket — India's Best Advertising Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet"/>
+<style>
+
+/* ══════════════════════════════════════════════════════
+   ADMARKET — REDESIGNED INDEX
+   Palette: Deep Forest Green · Warm Gold · Ivory Cream
+   "Premium Calm" — like a luxury concierge, not a marketplace
+══════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Shared brand tokens (aligned with advertiser-home) ── */
+  --indigo:        #4F46E5;
+  --indigo-dark:   #3730A3;
+  --indigo-mid:    #4338CA;
+  --indigo-light:  #EEF2FF;
+  --indigo-glow:   rgba(79,70,229,0.18);
+  --teal:          #0891B2;
+  --teal-dark:     #0E7490;
+  --teal-light:    #ECFEFF;
+  --gold-role:     #D97706;
+  --gold-dark:     #B45309;
+  --gold-light:    #FFFBEB;
+  --green-role:    #059669;
+
+  /* ── Hero dark palette — indigo night, not forest ── */
+  --forest:        #0F0E1A;   /* deep indigo-near-black */
+  --forest-mid:    #16152B;   /* slightly lighter indigo */
+  --forest-light:  #1E1C38;   /* card surfaces on dark */
+  --forest-border: rgba(255,255,255,0.07);
+
+  /* ── Accent: warm gold — unchanged, premium contrast on indigo ── */
+  --gold:          #C9943A;
+  --gold-bright:   #E0AA4A;
+  --gold-dim:      #A07828;
+  --gold-glow:     rgba(201,148,58,0.16);
+  --gold-glow2:    rgba(201,148,58,0.07);
+
+  /* ── Type on dark ── */
+  --ivory:         #F0EEFF;   /* cool-white with faint indigo warmth */
+  --ivory-2:       rgba(240,238,255,0.62);
+  --ivory-3:       rgba(240,238,255,0.30);
+
+  /* ── Light sections ── */
+  --cream:         #FAFAFE;
+  --cream-2:       #F2F1FC;
+  --cream-warm:    #F5F5FC;
+  --cream-deep:    #ECEAF8;
+  --white:         #FFFFFF;
+  --border-cream:  #E4E2F4;
+  --border-warm:   #D5D3EC;
+  --border-medium: #DDD9F5;
+  --ink:           #0D0C1A;
+  --ink-rich:      #0D0C1A;
+  --ink-mid:       #3D3B5A;
+  --ink-muted:     #5A5872;
+  --ink-soft:      #8A88A6;
+  --ink-faint:     #A8A6C0;
+
+  /* ── Fonts ── */
+  --font-display:  'Playfair Display', Georgia, serif;
+  --font-body:     'Inter', system-ui, sans-serif;
+  --font-mono:     'DM Mono', 'Courier New', monospace;
+
+  /* ── Motion ── */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Shadows ── */
+  --shadow-sm:     0 1px 4px rgba(13,12,26,0.07), 0 4px 16px rgba(13,12,26,0.04);
+  --shadow-md:     0 8px 36px rgba(13,12,26,0.12), 0 2px 8px rgba(13,12,26,0.06);
+  --shadow-lg:     0 20px 60px rgba(13,12,26,0.18), 0 4px 16px rgba(13,12,26,0.08);
+  --shadow-card:   0 1px 3px rgba(13,12,26,0.06), 0 6px 24px rgba(13,12,26,0.06);
+  --shadow-hover:  0 12px 48px rgba(13,12,26,0.15), 0 4px 12px rgba(13,12,26,0.07);
+  --shadow-gold:   0 4px 24px rgba(201,148,58,0.28);
+
+  /* ── Green ── */
+  --green:         #059669;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-body); background: var(--white); color: var(--ink); line-height: 1.6; overflow-x: hidden; }
+img  { max-width: 100%; display: block; }
+a    { color: inherit; text-decoration: none; }
+button { font-family: var(--font-body); cursor: pointer; border: none; }
+input, select, textarea { font-family: var(--font-body); }
+
+@keyframes fadeUp   { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes pulse    { 0%,100%{box-shadow:0 0 0 0 rgba(79,70,229,0.55);}55%{box-shadow:0 0 0 8px rgba(79,70,229,0);} }
+@keyframes ticker   { from{transform:translateX(0);}to{transform:translateX(-50%);} }
+@keyframes float    { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+@keyframes shimmer  { 0%{background-position:200% center;}100%{background-position:-200% center;} }
+
+
+/* ══════════════════════════════════════════
+   INDIA STRIPE — tri-colour, ultra-thin
+══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+.site-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 150;
+  height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 5%; gap: 20px;
+  background: transparent;
+  transition: background 0.35s, border-color 0.35s, box-shadow 0.35s;
+}
+.site-nav.scrolled {
+  background: rgba(10,9,28,0.97);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 12px 40px rgba(0,0,0,0.45);
+}
+
+.nav-left { display:flex; align-items:center; gap:26px; }
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 700;
+  color: var(--ivory); text-decoration: none;
+  letter-spacing: -0.5px; flex-shrink: 0;
+  display: inline-flex; align-items: baseline; gap: 0;
+}
+.nav-logo .logo-the {
+  font-style: italic; font-weight: 300; font-size: 22px;
+  color: rgba(240,238,255,0.2); letter-spacing: -0.5px;
+}
+.nav-logo .logo-ad  { color: var(--ivory); }
+.nav-logo .logo-bsk { color: #A5B4FC; }
+
+/* Role switcher pill nav */
+.role-switcher {
+  display: flex; position: relative;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 50px; padding: 3px; gap: 0;
+}
+.role-pill {
+  position: absolute; top: 3px; left: 3px;
+  height: calc(100% - 6px); border-radius: 50px;
+  background: linear-gradient(135deg, var(--indigo), #6366F1);
+  transition: transform 0.32s var(--ease-spring), width 0.32s var(--ease-spring);
+  pointer-events: none; z-index: 0; opacity: 0;
+  box-shadow: 0 2px 10px rgba(79,70,229,0.45);
+}
+.role-btn {
+  font-size: 12px; font-weight: 500; padding: 6px 14px;
+  border-radius: 50px; background: transparent;
+  color: rgba(255,255,255,0.5); cursor: pointer;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  position: relative; z-index: 1; text-decoration: none;
+  transition: color 0.2s; font-family: var(--font-body);
+}
+.role-btn:hover { color: var(--ivory); }
+.role-btn.active { color: #fff; font-weight: 600; }
+
+.nav-links { display:flex; list-style:none; gap:0; }
+.nav-links a {
+  font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.5);
+  text-decoration: none; padding: 6px 14px; border-radius: 8px;
+  transition: color 0.18s, background 0.18s;
+}
+.nav-links a:hover { color: var(--ivory); background: rgba(255,255,255,0.05); }
+
+.nav-cta { display:flex; align-items:center; gap:8px; }
+
+.btn-nav-ghost {
+  font-size: 13px; font-weight: 500; padding: 8px 18px;
+  border-radius: 9px; border: 1px solid rgba(255,255,255,0.15);
+  background: transparent; color: rgba(255,255,255,0.65);
+  cursor: pointer; transition: all 0.18s; font-family: var(--font-body);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-nav-ghost:hover { background: rgba(255,255,255,0.07); color: var(--ivory); border-color: rgba(255,255,255,0.25); }
+
+.btn-nav-primary {
+  font-size: 13px; font-weight: 600; padding: 8px 20px;
+  border-radius: 9px; background: linear-gradient(135deg, var(--indigo), #6366F1); color: #fff;
+  cursor: pointer; transition: all 0.22s; font-family: var(--font-body);
+  display: inline-flex; align-items: center; gap: 6px;
+  box-shadow: 0 2px 12px rgba(79,70,229,0.35);
+}
+.btn-nav-primary:hover { box-shadow: 0 4px 20px rgba(79,70,229,0.5); transform: translateY(-1px); }
+
+.nav-hamburger { display:none; flex-direction:column; gap:5px; background:none; cursor:pointer; padding:4px; }
+.nav-hamburger span { display:block; width:22px; height:2px; background:var(--ivory); border-radius:2px; transition:all 0.2s; }
+.nav-hamburger.open span:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+.nav-hamburger.open span:nth-child(2) { opacity:0; }
+.nav-hamburger.open span:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+
+.mobile-nav {
+  display: none; flex-direction: column;
+  position: fixed; top: 71px; left:0; right:0;
+  background: #0A091C; border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 16px 5% 24px; gap: 2px; z-index: 149;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  transform: translateY(-10px); opacity:0; pointer-events:none;
+  transition: all 0.24s var(--ease-out);
+}
+.mobile-nav.open { display:flex; transform:translateY(0); opacity:1; pointer-events:all; }
+.mobile-nav a { font-size:14px; color:rgba(255,255,255,0.6); padding:12px 4px; border-bottom:1px solid rgba(255,255,255,0.06); transition:color 0.15s; }
+.mobile-nav a:hover { color:var(--ivory); }
+.mobile-nav-cta { display:flex; gap:8px; padding-top:16px; flex-wrap:wrap; }
+
+
+/* ══════════════════════════════════════════
+   HERO — Forest Night · Gold Warmth
+   Signature: Giant outlined billboard graphic,
+   the product itself as visual identity
+══════════════════════════════════════════ */
+.hero {
+  min-height: 100vh;
+  background: var(--forest);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 100px 5% 80px;
+  position: relative; overflow: hidden;
+}
+
+/* Layered ambient atmosphere */
+.hero-bg { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+
+.hero-bg-glow {
+  position: absolute;
+  top: -60px; left: 50%;
+  transform: translateX(-50%);
+  width: 1100px; height: 700px;
+  background: radial-gradient(ellipse at 50% 20%,
+    rgba(79,70,229,0.22) 0%,
+    rgba(79,70,229,0.08) 38%,
+    rgba(201,148,58,0.05) 60%,
+    transparent 75%);
+  pointer-events: none;
+}
+
+.hero-bg-glow2 {
+  position: absolute;
+  bottom: -100px; right: -150px;
+  width: 700px; height: 700px;
+  background: radial-gradient(ellipse,
+    rgba(20,18,40,0.85) 0%,
+    transparent 70%);
+}
+
+/* Subtle dot matrix — cool indigo tint */
+.hero-bg-dots {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(220,218,255,0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 0%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 0%, transparent 100%);
+}
+
+/* Decorative concentric rings — right side, like advertiser-home */
+.hero-bg-rings {
+  position: absolute;
+  top: 50%; right: 4%;
+  transform: translateY(-52%);
+  width: 520px; height: 520px;
+  pointer-events: none;
+}
+.hero-bg-rings::before {
+  content: '';
+  position: absolute; inset: 0;
+  border: 1px solid rgba(79,70,229,0.10);
+  border-radius: 50%;
+}
+.hero-bg-rings::after {
+  content: '';
+  position: absolute; inset: 80px;
+  border: 1px solid rgba(79,70,229,0.07);
+  border-radius: 50%;
+}
+
+/* The signature element: an oversized billboard silhouette */
+.hero-billboard-bg {
+  position: absolute;
+  right: 3%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(560px, 44vw);
+  pointer-events: none;
+  animation: float 7s ease-in-out infinite;
+  opacity: 0.055;
+}
+.hero-billboard-bg svg { width: 100%; height: auto; }
+
+.hero-inner {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 780px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+/* Live badge */
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(79,70,229,0.12);
+  border: 1px solid rgba(79,70,229,0.28);
+  border-radius: 50px; padding: 6px 18px;
+  font-size: 12px; color: rgba(240,238,255,0.72); font-weight: 400;
+  margin-bottom: 28px; letter-spacing: 0.3px;
+  animation: fadeUp 0.55s ease both;
+}
+.badge-live {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  color: #A5B4FC; text-transform: uppercase;
+}
+.badge-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #818CF8; animation: pulse 2.2s ease infinite;
+}
+
+/* Giant headline */
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: clamp(54px, 8.5vw, 100px);
+  font-weight: 700;
+  letter-spacing: -3.5px;
+  line-height: 0.94;
+  color: var(--ivory);
+  margin-bottom: 10px;
+  animation: fadeUp 0.55s 0.08s ease both;
+}
+.hero-headline-2 {
+  font-family: var(--font-display);
+  font-size: clamp(54px, 8.5vw, 100px);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -3.5px;
+  line-height: 0.94;
+  color: var(--indigo);
+  filter: brightness(1.5);
+  margin-bottom: 28px;
+  animation: fadeUp 0.55s 0.13s ease both;
+}
+
+.hero-sub {
+  font-size: 16px; font-weight: 300;
+  color: var(--ivory-2);
+  line-height: 1.78; max-width: 480px;
+  margin-bottom: 44px;
+  animation: fadeUp 0.55s 0.18s ease both;
+}
+
+/* ── Search toggle ── */
+.search-mode-switcher {
+  display: flex;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50px; padding: 4px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.55s 0.22s ease both;
+  position: relative; width: fit-content;
+}
+.search-mode-pill {
+  position: absolute; top: 4px; left: 4px;
+  height: calc(100% - 8px); border-radius: 50px;
+  background: linear-gradient(135deg, var(--indigo), #6366F1);
+  transition: transform 0.3s var(--ease-spring), width 0.3s var(--ease-spring);
+  pointer-events: none; z-index: 0;
+  box-shadow: 0 2px 12px rgba(79,70,229,0.45);
+}
+.search-mode-btn {
+  font-size: 13px; font-weight: 500; padding: 9px 24px;
+  border-radius: 50px; background: transparent;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px;
+  position: relative; z-index: 1;
+  transition: color 0.2s; font-family: var(--font-body);
+}
+.search-mode-btn.active { color: #fff; font-weight: 600; }
+.search-mode-btn:hover:not(.active) { color: rgba(255,255,255,0.82); }
+
+/* ── Search panels ── */
+.search-wrap { width: 100%; animation: fadeUp 0.55s 0.26s ease both; }
+.search-panel { display: none; }
+.search-panel.active { display: block; }
+
+/* Premium card-style search box */
+.search-box {
+  background: rgba(255,255,255,0.97);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 22px;
+  overflow: visible;
+  box-shadow:
+    0 4px 6px rgba(79,70,229,0.06),
+    0 12px 40px rgba(79,70,229,0.14),
+    0 1px 0 rgba(255,255,255,0.8) inset;
+  transition: box-shadow 0.32s;
+  /* NO transform here — transform creates a stacking context that traps
+     position:absolute dropdown panels inside it */
+}
+.search-box:hover {
+  box-shadow:
+    0 6px 8px rgba(79,70,229,0.08),
+    0 20px 56px rgba(79,70,229,0.2),
+    0 1px 0 rgba(255,255,255,0.8) inset;
+  /* transform removed — was translateY(-2px), trapped the dropdown */
+}
+.search-box:focus-within {
+  box-shadow:
+    0 0 0 2px rgba(79,70,229,0.3),
+    0 8px 12px rgba(79,70,229,0.10),
+    0 24px 64px rgba(79,70,229,0.24),
+    0 1px 0 rgba(255,255,255,0.8) inset;
+  /* transform removed — was translateY(-2px), trapped the dropdown */
+}
+
+.search-fields {
+  display: grid;
+  grid-template-columns: 1fr 180px 180px auto;
+  /* No overflow, no clip-path — corners are handled on the child cells below */
+}
+.search-fields.agency-fields {
+  grid-template-columns: 1fr 200px 180px auto;
+}
+
+/* Round the corners of the first and last cells to match the card radius,
+   without any overflow:hidden or clip-path on the container */
+.search-fields .sf:first-child       { border-radius: 22px 0 0 22px; }
+.search-fields .search-btn:last-child { border-radius: 0 22px 22px 0; }
+
+.sf {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 26px;
+  height: 80px;
+  border-right: 1px solid rgba(79,70,229,0.08);
+  cursor: text;
+  transition: background 0.22s;
+  position: relative;
+}
+.sf:last-of-type { border-right: none; }
+.sf:hover { background: rgba(79,70,229,0.025); }
+.sf:focus-within { background: rgba(79,70,229,0.03); }
+
+/* Bottom accent line on focus */
+.sf::after {
+  content: '';
+  position: absolute; bottom: 0; left: 26px; right: 26px; height: 2px;
+  background: linear-gradient(90deg, var(--indigo), #818CF8);
+  border-radius: 2px 2px 0 0;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sf:focus-within::after { transform: scaleX(1); }
+
+/* Icon — centred to the full field height, not just text */
+.sf-icon {
+  color: var(--indigo);
+  opacity: 0.35;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  align-self: center;
+  transition: opacity 0.2s, transform 0.22s;
+  margin-top: 1px; /* optical centre nudge */
+}
+.sf:focus-within .sf-icon { opacity: 0.8; transform: scale(1.1); }
+.sf:hover .sf-icon { opacity: 0.55; }
+
+/* Body — flex column, centred vertically in the 80px row */
+.sf-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* Label — uppercase, tracked, slightly bolder */
+.sf-label {
+  font-family: 'DM Sans', var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--indigo);
+  opacity: 0.42;
+  display: block;
+  line-height: 1;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+.sf:focus-within .sf-label { opacity: 0.85; }
+.sf:hover .sf-label { opacity: 0.58; }
+
+/* Input value — DM Sans Medium, comfortable reading weight */
+.sf-input {
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'DM Sans', var(--font-body);
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  color: var(--ink);
+  padding: 0;
+  line-height: 1.2;
+}
+.sf-input::placeholder {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(90,88,114,0.38);
+  letter-spacing: 0.1px;
+}
+
+/* ── Custom dropdown (replaces native select) ── */
+.sf-select-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Hidden native select (keeps form value, accessibility) */
+.sf-select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 2;
+  pointer-events: none; /* prevent native dropdown from intercepting clicks */
+}
+
+/*
+  Trigger display text.
+  Font explicitly set to DM Sans — index.html's body font is Inter,
+  which reads heavier and more corporate. DM Sans is what makes
+  agency-register's dropdown feel light and refined.
+*/
+.sf-select-display {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #0D1117; /* agency-register's --ink, not the purple-tinted ink of index */
+  line-height: 1.5;
+  pointer-events: none;
+  padding-right: 2px;
+  letter-spacing: 0;
+}
+/* Placeholder — italic, neutral grey, same font size, no jump on selection */
+.sf-select-display.placeholder {
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(156,163,175,0.85); /* agency-register's exact placeholder grey */
+}
+
+/* Active-selection state on the .sf field wrapper — indigo left-border confirmation */
+.sf.has-value {
+  border-left: 2px solid rgba(79,70,229,0.45);
+}
+
+/*
+  Dropdown panel.
+  — background: #FAFBFD, the slightly warm off-white agency-register uses (not pure #fff)
+  — border radius 14px — bigger and more generous than before
+  — wider: left: -32px / min-width: calc(100% + 64px) gives more breathing room
+  — deeper shadow for presence
+*/
+.sf-dropdown-panel {
+  display: none;
+  position: fixed; /* fixed so it works after teleport to body */
+  background: #FAFBFD;
+  border: 1.5px solid rgba(13,17,23,0.11);
+  border-radius: 14px;
+  box-shadow:
+    0 2px 8px rgba(13,17,23,0.06),
+    0 16px 40px rgba(13,17,23,0.11);
+  z-index: 9000;
+  overflow: hidden;
+  padding: 0;
+}
+.sf-dropdown-panel.open {
+  display: block;
+  animation: dropdownIn 0.18s var(--ease-out) both;
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sf-dropdown-panel.open { display: block; }
+
+/*
+  Options.
+  — DM Sans forced (not Inter)
+  — font-size 14px — matches agency-register's .cs-option exactly
+  — font-weight 300 — the light weight is what gives agency-register its airy quality
+  — color: #4B5563 — agency-register's --ink-muted, a pure neutral grey (not the
+    purple-tinted --ink-muted of index.html which is #5A5872)
+  — padding 13px 20px — bigger than before, more generous row height
+  — border-bottom on every row as a clear divider (agency-register style)
+*/
+.sf-dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: #4B5563;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(13,17,23,0.07); /* clearly visible row separator */
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.sf-dropdown-option:last-child { border-bottom: none; }
+
+/* Hover & keyboard focus — #F1F4F9, the exact cream-warm from agency-register */
+.sf-dropdown-option:hover,
+.sf-dropdown-option.focused {
+  background: #F1F4F9;
+  color: #0D1117;
+}
+
+/* Selected — cream-deep, font-weight 500, neutral dark text */
+.sf-dropdown-option.selected {
+  background: #E8EDF5;
+  color: #0D1117;
+  font-weight: 500;
+}
+
+/*
+  Reset option ("All formats" / "Any budget") — styled like agency-register's
+  placeholder-opt: italic, faint, signals it clears rather than sets a filter
+*/
+.sf-dropdown-option[data-value=""] {
+  color: #9CA3AF;
+  font-style: italic;
+  font-weight: 300;
+}
+.sf-dropdown-option[data-value=""].selected {
+  background: transparent;
+  color: #9CA3AF;
+  font-weight: 300;
+}
+.sf-dropdown-option[data-value=""]:hover,
+.sf-dropdown-option[data-value=""].focused {
+  background: rgba(13,17,23,0.025);
+  color: #6B7280;
+  font-style: italic;
+}
+
+/* SVG icons per option — replace colour dots */
+.sf-dropdown-option .opt-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.45;
+  color: #4B5563;
+  transition: opacity 0.13s, color 0.13s;
+}
+.sf-dropdown-option:hover .opt-icon,
+.sf-dropdown-option.focused .opt-icon { opacity: 0.75; color: #0D1117; }
+.sf-dropdown-option.selected .opt-icon { opacity: 0.9; color: #4F46E5; }
+
+/*
+  Chevron.
+  — idle: neutral grey #9CA3AF
+  — open: turns indigo #4F46E5
+*/
+.sf-chevron {
+  flex-shrink: 0;
+  color: #9CA3AF;
+  transition: color 0.2s, transform 0.22s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: none;
+}
+.sf-select-wrap.open .sf-chevron {
+  color: #4F46E5;
+  transform: rotate(180deg);
+}
+
+/*
+  Divider — the separator between the reset option and the real options.
+  Slightly more visible than before to clearly break the two groups.
+*/
+.sf-dropdown-divider {
+  height: 1px;
+  background: rgba(13,17,23,0.09);
+  margin: 0;
+}
+
+/* Scrollbar — matches agency-register's subtle scrollbar exactly */
+.sf-dropdown-panel::-webkit-scrollbar { width: 5px; }
+.sf-dropdown-panel::-webkit-scrollbar-track { background: rgba(13,17,23,0.03); }
+.sf-dropdown-panel::-webkit-scrollbar-thumb { background: rgba(13,17,23,0.15); border-radius: 4px; }
+.sf-dropdown-panel::-webkit-scrollbar-thumb:hover { background: rgba(13,17,23,0.25); }
+
+/* Premium search button — indigo gradient */
+.search-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, var(--indigo) 0%, #6366F1 100%);
+  color: #fff;
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  padding: 0 36px; min-height: 76px;
+  border-radius: 0 20px 20px 0;
+  cursor: pointer; white-space: nowrap; letter-spacing: 0.2px;
+  transition: all 0.22s var(--ease-out);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+  position: relative; overflow: hidden;
+}
+.search-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.22s;
+}
+.search-btn:hover::before { opacity: 1; }
+.search-btn:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 8px 32px rgba(79,70,229,0.45);
+  transform: none;
+}
+.search-btn:active { transform: scale(0.98); }
+
+.search-quick {
+  display: flex; gap: 7px; flex-wrap: wrap;
+  justify-content: center; margin-top: 16px;
+}
+.quick-label { font-size: 11.5px; color: var(--ivory-3); font-weight: 300; align-self: center; }
+.quick-pill {
+  font-size: 11.5px; font-weight: 400; color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50px; padding: 5px 14px;
+  text-decoration: none; transition: all 0.18s; cursor: pointer;
+}
+.quick-pill:hover { background: rgba(79,70,229,0.22); border-color: rgba(79,70,229,0.4); color: #fff; }
+
+/* ── Hero stats row ── */
+.hero-stats {
+  display: flex; gap: 0; margin-top: 44px;
+  border-top: 1px solid rgba(255,255,255,0.07); padding-top: 36px;
+  width: 100%; justify-content: center;
+  animation: fadeUp 0.55s 0.32s ease both;
+}
+.hero-stat {
+  flex: 1; text-align: center; padding: 0 24px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  max-width: 220px;
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-num {
+  font-family: var(--font-display); font-size: 32px; font-weight: 700;
+  color: var(--ivory); letter-spacing: -1.5px; line-height: 1; display: block;
+}
+.hero-stat-num em { font-style: normal; color: #A5B4FC; }
+.hero-stat-lbl { font-size: 11px; color: var(--ivory-3); font-weight: 300; margin-top: 5px; display: block; letter-spacing: 0.1px; }
+
+.hero-signin {
+  margin-top: 22px; font-size: 12.5px; color: var(--ivory-3); font-weight: 300;
+  animation: fadeUp 0.55s 0.36s ease both;
+}
+.hero-signin a { color: #A5B4FC; font-weight: 500; }
+.hero-signin a:hover { text-decoration: underline; }
+
+
+/* ══════════════════════════════════════════
+   LIVE TICKER
+══════════════════════════════════════════ */
+.live-ticker {
+  background: var(--indigo); overflow: hidden; padding: 12px 0; position: relative;
+}
+.live-ticker::before, .live-ticker::after {
+  content:''; position:absolute; top:0; bottom:0; width:120px; z-index:2; pointer-events:none;
+}
+.live-ticker::before { left:0;  background:linear-gradient(90deg,  var(--indigo), transparent); }
+.live-ticker::after  { right:0; background:linear-gradient(-90deg, var(--indigo), transparent); }
+.ticker-track { display:flex; width:max-content; animation:ticker 40s linear infinite; }
+.ticker-item {
+  display:inline-flex; align-items:center; gap:10px; padding:0 32px;
+  color:rgba(255,255,255,0.65); font-size:12px; font-weight:300; white-space:nowrap;
+}
+.ticker-item strong { color:rgba(255,255,255,0.92); font-weight:500; }
+.ticker-dot { width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,0.25); }
+.t-tag {
+  font-size:9px; font-weight:700; letter-spacing:0.7px; padding:2px 8px;
+  border-radius:50px; text-transform:uppercase; flex-shrink:0;
+}
+.t-new    { background:rgba(201,148,58,0.28);  color:#FBBF24; }
+.t-tender { background:rgba(255,255,255,0.18);  color:#fff; }
+.t-booked { background:rgba(5,150,105,0.28);  color:#6EE7B7; }
+
+
+/* ══════════════════════════════════════════
+   SECTION SHARED TYPOGRAPHY
+══════════════════════════════════════════ */
+.section-eyebrow {
+  display: block; font-size: 10px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--ink-soft); margin-bottom: 16px;
+}
+.section-heading {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: 700; color: var(--ink);
+  letter-spacing: -1.5px; line-height: 1.05; margin-bottom: 14px;
+}
+.section-heading em { font-style: italic; color: var(--indigo); }
+.section-heading.on-dark { color: var(--ivory); }
+.section-heading.on-dark em { color: #A5B4FC; }
+.section-sub {
+  font-size: 15px; font-weight: 300; color: var(--ink-mid);
+  max-width: 520px; line-height: 1.78;
+}
+.section-header { margin-bottom: 52px; }
+
+
+/* ══════════════════════════════════════════
+   THREE PORTALS — cream bg
+   Each portal has a prominent vertical accent + clean card
+══════════════════════════════════════════ */
+.portals-section {
+  padding: 96px 5% 104px;
+  background: var(--cream);
+  border-top: 1px solid var(--border-cream);
+}
+.portals-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+}
+
+.portal-card {
+  background: var(--white);
+  border: 1px solid var(--border-cream);
+  border-radius: 24px; overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.28s var(--ease-out), box-shadow 0.28s, border-color 0.28s;
+  position: relative;
+}
+.portal-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-warm);
+}
+
+/* Left accent bar instead of top — more premium feel */
+.portal-accent {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 0;
+}
+.portal-card.adv .portal-accent { background: linear-gradient(180deg, var(--indigo), #818CF8); }
+.portal-card.own .portal-accent { background: linear-gradient(180deg, var(--teal), #22D3EE); }
+.portal-card.age .portal-accent { background: linear-gradient(180deg, var(--gold-role), #FBBF24); }
+
+.portal-body { padding: 32px 30px 30px 36px; display: flex; flex-direction: column; flex: 1; }
+
+.portal-icon-wrap {
+  width: 50px; height: 50px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 22px; flex-shrink: 0;
+}
+.portal-card.adv .portal-icon-wrap { background: var(--indigo-light); }
+.portal-card.own .portal-icon-wrap { background: var(--teal-light); }
+.portal-card.age .portal-icon-wrap { background: var(--gold-light); }
+
+.portal-role-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.portal-card.adv .portal-role-label { color: var(--indigo); }
+.portal-card.own .portal-role-label { color: var(--teal-dark); }
+.portal-card.age .portal-role-label { color: var(--gold-dark); }
+
+.portal-title {
+  font-family: var(--font-display); font-size: 24px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 12px;
+}
+.portal-desc {
+  font-size: 13.5px; color: var(--ink-mid); font-weight: 300;
+  line-height: 1.75; margin-bottom: 22px; flex: 1;
+}
+
+.portal-list {
+  list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px;
+}
+.portal-list li {
+  font-size: 12.5px; color: var(--ink-mid); font-weight: 400;
+  display: flex; align-items: center; gap: 9px;
+}
+.portal-list li::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+}
+.portal-card.adv .portal-list li::before { background: var(--indigo); }
+.portal-card.own .portal-list li::before { background: var(--teal); }
+.portal-card.age .portal-list li::before { background: var(--gold-role); }
+
+.portal-cta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 600;
+  padding: 12px 22px; border-radius: 12px; border: none;
+  cursor: pointer; text-decoration: none; transition: all 0.22s; width: 100%;
+}
+.portal-card.adv .portal-cta { background: var(--indigo); color: #fff; box-shadow: 0 2px 10px rgba(79,70,229,0.2); }
+.portal-card.adv .portal-cta:hover { background: var(--indigo-dark); box-shadow: 0 6px 20px rgba(79,70,229,0.32); transform: translateY(-1px); }
+.portal-card.own .portal-cta { background: var(--teal); color: #fff; box-shadow: 0 2px 10px rgba(8,145,178,0.2); }
+.portal-card.own .portal-cta:hover { background: var(--teal-dark); box-shadow: 0 6px 20px rgba(8,145,178,0.32); transform: translateY(-1px); }
+.portal-card.age .portal-cta { background: var(--gold-role); color: #fff; box-shadow: 0 2px 10px rgba(217,119,6,0.2); }
+.portal-card.age .portal-cta:hover { background: var(--gold-dark); box-shadow: 0 6px 20px rgba(217,119,6,0.32); transform: translateY(-1px); }
+
+.portal-secondary-link {
+  display: block; text-align: center; margin-top: 10px;
+  font-size: 12px; color: var(--ink-soft); font-weight: 400; transition: color 0.18s;
+}
+.portal-secondary-link:hover { color: var(--ink-mid); }
+
+
+/* ══════════════════════════════════════════
+   FEATURED BILLBOARDS — white bg
+══════════════════════════════════════════ */
+.featured-section {
+  padding: 96px 5% 104px;
+  background: var(--white);
+  border-top: 1px solid var(--border-cream);
+}
+.section-header-split {
+  display: flex; justify-content: space-between;
+  align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 16px;
+}
+
+.listings-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+}
+
+.listing-card {
+  background: var(--white); border: 1px solid var(--border-cream);
+  border-radius: 18px; overflow: hidden;
+  text-decoration: none; display: block;
+  transition: transform 0.24s var(--ease-out), box-shadow 0.24s;
+  box-shadow: var(--shadow-sm);
+}
+.listing-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+
+.lc-img {
+  height: 152px; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.lc-img-bg {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.5s var(--ease-out);
+}
+.listing-card:hover .lc-img-bg { transform: scale(1.06); }
+.bg-city    { background: linear-gradient(135deg,#1a2a4a,#2a4270,#3558a0); }
+.bg-led     { background: linear-gradient(135deg,#0a1e36,#0b3d6a,#0a70a8); }
+.bg-highway { background: linear-gradient(135deg,#162416,#253e25,#325832); }
+.bg-metro   { background: linear-gradient(135deg,#1a0828,#3a0860,#561570); }
+
+.lc-badges { position:absolute; bottom:8px; left:8px; display:flex; gap:4px; flex-wrap:wrap; }
+.lc-badge { font-size:9px; font-weight:700; padding:2px 9px; border-radius:50px; backdrop-filter:blur(8px); letter-spacing:0.3px; }
+.lb-premium { background:rgba(201,148,58,0.85); color:#fff; }
+.lb-digital { background:rgba(8,145,178,0.85); color:#fff; }
+.lb-traffic { background:rgba(79,70,229,0.85); color:#fff; }
+.lb-highway { background:rgba(5,150,105,0.85); color:#fff; }
+
+.lc-status { position:absolute; top:8px; right:8px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:50px; }
+.ls-avail  { background:rgba(209,250,229,0.92); color:#047857; }
+.ls-booked { background:rgba(254,243,199,0.92); color:var(--gold-dark); }
+
+.lc-body { padding: 16px 18px; }
+.lc-city  { font-size:10px; color:var(--ink-soft); font-weight:500; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px; }
+.lc-name  { font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--ink); letter-spacing:-0.2px; margin-bottom:7px; line-height:1.2; }
+.lc-specs { font-size:11.5px; color:var(--ink-mid); font-weight:300; margin-bottom:14px; }
+.lc-foot  {
+  display:flex; align-items:center; justify-content:space-between;
+  border-top:1px solid var(--border-cream); padding-top:12px;
+}
+.lc-price     { font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--ink); letter-spacing:-0.4px; }
+.lc-price-sub { font-size:10px; color:var(--ink-soft); font-weight:300; }
+.lc-btn {
+  font-size:11.5px; font-weight:500; padding:5px 13px; border-radius:8px;
+  background:var(--indigo-light); color:var(--indigo); border:none;
+  cursor:pointer; font-family:var(--font-body); transition:all 0.18s;
+}
+.lc-btn:hover { background:var(--indigo); color:#fff; }
+
+
+/* ══════════════════════════════════════════
+   SPLIT — TENDERS + AGENCIES — cream bg
+══════════════════════════════════════════ */
+.split-section {
+  padding: 96px 5% 104px;
+  background: var(--cream);
+  border-top: 1px solid var(--border-cream);
+}
+.split-grid {
+  display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0; margin-top: 56px;
+}
+.split-divider { background: var(--border-cream); margin: 0 56px; align-self: stretch; }
+
+.col-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; display: block; }
+.col-label.c-teal { color: var(--teal); }
+.col-label.c-gold { color: var(--gold-role); }
+.col-heading {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.5vw, 32px);
+  font-weight: 700; color: var(--ink);
+  letter-spacing: -1px; line-height: 1.08; margin-bottom: 9px;
+}
+.col-heading em { font-style: italic; }
+.col-heading.c-teal em { color: var(--teal); }
+.col-heading.c-gold em { color: var(--gold-role); }
+.col-sub { font-size: 13.5px; color: var(--ink-mid); font-weight: 300; line-height: 1.75; margin-bottom: 28px; }
+
+/* Tender rows */
+.tender-list { display:flex; flex-direction:column; gap:8px; }
+.tender-row {
+  background: var(--white); border: 1px solid var(--border-cream);
+  border-radius: 14px; padding: 15px 18px;
+  display: grid; grid-template-columns: 10px 1fr auto;
+  gap: 14px; align-items: center; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.tender-row:hover { transform: translateX(4px); box-shadow: var(--shadow-sm); border-color: var(--border-warm); }
+.t-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.t-fmcg   { background:var(--indigo); }
+.t-realty { background:var(--teal); }
+.t-auto   { background:var(--green-role); }
+.t-edu    { background:var(--gold-role); }
+.t-fin    { background:#8B5CF6; }
+.t-info   { min-width:0; }
+.t-sector { font-size:9.5px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px; }
+.t-new-tag { display:inline-block; font-size:9px; font-weight:700; padding:1px 7px; background:var(--teal-light); color:var(--teal-dark); border-radius:50px; margin-left:6px; vertical-align:middle; }
+.t-desc { font-size:13px; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
+.t-meta { font-size:11px; color:var(--ink-mid); font-weight:300; display:flex; gap:12px; flex-wrap:wrap; }
+.t-budget { text-align:right; flex-shrink:0; }
+.t-budget-val { font-family:var(--font-display); font-size:17px; font-weight:700; color:var(--teal); letter-spacing:-0.5px; display:block; }
+.t-budget-lbl { font-size:10px; color:var(--ink-soft); font-weight:300; }
+.col-footer { margin-top:18px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+/* Agency rows */
+.agency-list { display:flex; flex-direction:column; gap:10px; }
+.agency-row {
+  background: var(--white); border: 1px solid var(--border-cream);
+  border-radius: 14px; padding: 16px 18px;
+  display: flex; gap: 14px; align-items: flex-start;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+.agency-row:hover { transform: translateX(4px); box-shadow: var(--shadow-sm); }
+.agency-avatar {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  color: #fff; flex-shrink: 0;
+}
+.av-indigo { background: linear-gradient(135deg, var(--indigo), #818CF8); }
+.av-teal   { background: linear-gradient(135deg, var(--teal), #22D3EE); }
+.av-gold   { background: linear-gradient(135deg, var(--gold-role), #FBBF24); }
+.agency-info { flex:1; min-width:0; }
+.agency-name { font-size:14px; font-weight:600; color:var(--ink); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.agency-type { font-size:11.5px; color:var(--ink-soft); font-weight:300; margin-bottom:6px; }
+.agency-tags { display:flex; gap:5px; flex-wrap:wrap; }
+.agency-tag  { font-size:10.5px; font-weight:500; padding:2px 9px; border-radius:50px; background:var(--gold-light); color:var(--gold-dark); border:1px solid rgba(217,119,6,0.14); }
+.agency-right { text-align:right; flex-shrink:0; }
+.agency-rating { font-size:12px; color:var(--ink-mid); white-space:nowrap; }
+.agency-star   { color:var(--gold-role); }
+.agency-verified { font-size:10px; font-weight:600; color:var(--green-role); margin-top:3px; display:flex; align-items:center; gap:3px; justify-content:flex-end; }
+
+
+/* ══════════════════════════════════════════
+   PLATFORM STATS — deep forest dark band
+══════════════════════════════════════════ */
+.stats-band {
+  background: var(--forest); padding: 72px 5%;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  position: relative; overflow: hidden;
+}
+.stats-band::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 100% at 50% 50%,
+    rgba(79,70,229,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0; max-width: 1040px; margin: 0 auto; position: relative;
+}
+.stat-block {
+  text-align: center; padding: 0 32px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.stat-block:last-child { border-right: none; }
+.stat-val {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 4vw, 56px);
+  font-weight: 700; color: var(--ivory);
+  letter-spacing: -2px; line-height: 1; display: block;
+}
+.stat-val em { font-style: normal; color: #A5B4FC; }
+.stat-lbl {
+  font-size: 12px; color: var(--ivory-3);
+  font-weight: 300; margin-top: 8px; display: block; letter-spacing: 0.1px;
+}
+
+
+/* ══════════════════════════════════════════
+   HOW IT WORKS — white bg, 4-step process
+══════════════════════════════════════════ */
+.how-section {
+  padding: 96px 5% 104px; background: var(--white);
+  border-top: 1px solid var(--border-cream);
+}
+.how-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 36px; margin-top: 56px;
+}
+.how-step {
+  position: relative; padding-top: 12px;
+}
+/* Connector line between steps */
+.how-step::after {
+  content: '';
+  position: absolute; top: 24px; left: calc(100% + 12px);
+  width: calc(36px - 24px); height: 1px;
+  background: var(--border-cream);
+}
+.how-step:last-child::after { display: none; }
+
+.how-step-num {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--indigo); letter-spacing: 1px;
+  display: block; margin-bottom: 16px;
+}
+.how-step-icon {
+  width: 44px; height: 44px; border-radius: 13px;
+  background: var(--cream); border: 1px solid var(--border-cream);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-mid); margin-bottom: 18px;
+  transition: all 0.22s;
+}
+.how-step:hover .how-step-icon {
+  background: var(--indigo); color: #fff;
+  border-color: var(--indigo); box-shadow: 0 4px 16px rgba(79,70,229,0.22);
+}
+.how-step-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: -0.3px; margin-bottom: 9px; }
+.how-step-desc  { font-size: 13px; color: var(--ink-mid); font-weight: 300; line-height: 1.75; }
+
+
+/* ══════════════════════════════════════════
+   CTA SECTION — forest dark with gold
+══════════════════════════════════════════ */
+.cta-section {
+  background: var(--forest);
+  padding: 100px 5% 108px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.cta-section::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 0%,
+      rgba(79,70,229,0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 60% at 50% 100%,
+      rgba(13,12,26,1) 0%, transparent 60%);
+  pointer-events: none;
+}
+.cta-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+  text-transform: uppercase; color: #A5B4FC;
+  display: block; margin-bottom: 18px; position: relative;
+  animation: fadeIn 0.5s ease both;
+}
+.cta-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 700; letter-spacing: -2px; line-height: 1.06;
+  color: var(--ivory);
+  margin: 0 auto 22px; max-width: 680px; position: relative;
+}
+.cta-title em { font-style: italic; color: #A5B4FC; }
+.cta-sub {
+  font-size: 15px; font-weight: 300; color: var(--ivory-2);
+  margin: 0 auto 44px; max-width: 420px; line-height: 1.78; position: relative;
+}
+.cta-actions {
+  display: flex; gap: 12px; justify-content: center;
+  flex-wrap: wrap; position: relative;
+}
+
+
+/* ══════════════════════════════════════════
+   SHARED BUTTONS
+══════════════════════════════════════════ */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  padding: 12px 24px; border-radius: 12px; border: none;
+  background: var(--indigo); color: #fff; cursor: pointer;
+  text-decoration: none; transition: all 0.22s var(--ease-out);
+  box-shadow: 0 2px 10px rgba(79,70,229,0.25);
+}
+.btn-primary:hover { background: var(--indigo-dark); box-shadow: 0 6px 20px rgba(79,70,229,0.36); transform: translateY(-1px); }
+
+.btn-amber {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  padding: 12px 24px; border-radius: 12px; border: none;
+  background: var(--gold); color: var(--ink); cursor: pointer;
+  text-decoration: none; transition: all 0.22s var(--ease-out);
+  box-shadow: 0 2px 12px rgba(201,148,58,0.28);
+}
+.btn-amber:hover { background: var(--gold-bright); box-shadow: var(--shadow-gold); transform: translateY(-1px); }
+
+.btn-teal {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  padding: 12px 24px; border-radius: 12px; border: none;
+  background: var(--teal); color: #fff; cursor: pointer;
+  text-decoration: none; transition: all 0.22s var(--ease-out);
+  box-shadow: 0 2px 10px rgba(8,145,178,0.25);
+}
+.btn-teal:hover { background: var(--teal-dark); box-shadow: 0 6px 20px rgba(8,145,178,0.35); transform: translateY(-1px); }
+
+.btn-gold {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  padding: 12px 24px; border-radius: 12px; border: none;
+  background: var(--gold-role); color: #fff; cursor: pointer;
+  text-decoration: none; transition: all 0.22s var(--ease-out);
+  box-shadow: 0 2px 10px rgba(217,119,6,0.25);
+}
+.btn-gold:hover { background: var(--gold-dark); box-shadow: 0 6px 20px rgba(217,119,6,0.35); transform: translateY(-1px); }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  padding: 12px 24px; border-radius: 12px;
+  background: transparent; color: var(--ink-mid);
+  border: 1px solid var(--border-warm); cursor: pointer;
+  text-decoration: none; transition: all 0.22s;
+}
+.btn-ghost:hover { background: var(--cream); color: var(--ink); border-color: var(--border-cream); }
+
+.btn-ghost-dark {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  padding: 12px 24px; border-radius: 12px;
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65);
+  border: 1px solid rgba(255,255,255,0.13); cursor: pointer;
+  text-decoration: none; transition: all 0.22s;
+}
+.btn-ghost-dark:hover { background: rgba(255,255,255,0.1); color: var(--ivory); border-color: rgba(255,255,255,0.25); }
+
+.btn-sm { font-size: 12.5px !important; padding: 7px 15px !important; border-radius: 9px !important; }
+.btn-lg { font-size: 15px !important; padding: 14px 32px !important; border-radius: 14px !important; }
+
+
+/* ══════════════════════════════════════════
+   FOOTER — rich forest, warm text
+══════════════════════════════════════════ */
+footer {
+  background: #08071A; color: rgba(240,238,255,0.45);
+  padding: 68px 5% 34px;
+}
+.footer-grid {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 52px; padding-bottom: 52px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.footer-logo {
+  font-family: var(--font-display); font-size: 22px; font-weight: 700;
+  color: var(--ivory); text-decoration: none; letter-spacing: -0.5px;
+  display: inline-flex; align-items: baseline; gap: 0; margin-bottom: 14px;
+}
+.footer-logo .logo-the {
+  font-style: italic; font-weight: 300; font-size: 22px;
+  color: rgba(240,238,255,0.2); letter-spacing: -0.5px;
+}
+.footer-logo .logo-ad  { color: var(--ivory); }
+.footer-logo .logo-bsk { color: #A5B4FC; }
+.footer-desc { font-size: 13px; font-weight: 300; color: rgba(240,238,255,0.32); line-height: 1.78; max-width: 280px; }
+.footer-col h5 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; color: rgba(240,238,255,0.25); margin-bottom: 18px; }
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col a { font-size: 13px; font-weight: 300; color: rgba(240,238,255,0.42); text-decoration: none; transition: color 0.18s; }
+.footer-col a:hover { color: var(--ivory); }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 26px; font-size: 11.5px; color: rgba(240,238,255,0.2); font-weight: 300; flex-wrap: wrap; gap: 8px; }
+
+
+/* ══════════════════════════════════════════
+   MODAL — clean and warm
+══════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.28s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: #fff; border-radius: 24px; padding: 44px;
+  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.3); position: relative;
+  transform: scale(0.96) translateY(16px);
+  transition: transform 0.32s var(--ease-out);
+}
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+.modal h3 { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 7px; }
+.modal .sub { font-size: 13.5px; color: var(--ink-soft); font-weight: 300; margin-bottom: 24px; line-height: 1.6; }
+.modal-close { position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; background: var(--cream); border: none; border-radius: 50%; font-size: 18px; cursor: pointer; color: var(--ink-mid); display: flex; align-items: center; justify-content: center; transition: all 0.18s; line-height: 1; }
+.modal-close:hover { background: var(--gold-light); color: var(--gold-dim); }
+.tab-bar { display:flex; gap:4px; background:var(--cream); border:1px solid var(--border-cream); border-radius:50px; padding:4px; margin-bottom:24px; }
+.tab-btn { flex:1; font-size:13px; font-weight:500; padding:7px 18px; border-radius:50px; border:none; background:transparent; color:var(--ink-soft); cursor:pointer; transition:all 0.2s; font-family:var(--font-body); }
+.tab-btn.active { background:#fff; color:var(--ink); box-shadow:0 2px 8px rgba(26,18,8,0.1); }
+.form-group { margin-bottom: 14px; }
+.form-group label { display:block; font-size:11px; font-weight:600; color:var(--ink-mid); letter-spacing:0.2px; margin-bottom:5px; text-transform:uppercase; }
+.form-control { width:100%; background:var(--cream); border:1.5px solid var(--border-cream); border-radius:11px; padding:10px 14px; font-family:var(--font-body); font-size:14px; color:var(--ink); outline:none; transition:all 0.2s; appearance:none; }
+.form-control:focus { border-color:var(--indigo); background:#fff; box-shadow:0 0 0 3px rgba(79,70,229,0.1); }
+.form-control::placeholder { color:var(--ink-soft); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-submit { width:100%; justify-content:center; font-size:14px; padding:13px; border-radius:11px; margin-top:4px; }
+.form-footer { text-align:center; font-size:13px; color:var(--ink-soft); font-weight:300; margin-top:14px; }
+.form-footer a { color:var(--gold-dim); text-decoration:none; }
+.form-footer a:hover { text-decoration:underline; }
+select.form-control { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C8476' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:36px; cursor:pointer; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: var(--ivory);
+  font-size: 13.5px; font-weight: 400; padding: 12px 24px;
+  border-radius: 50px; z-index: 600;
+  opacity: 0; transition: all 0.32s var(--ease-out);
+  pointer-events: none; box-shadow: 0 8px 36px rgba(0,0,0,0.3);
+  max-width: 90vw; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .listings-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid   { grid-template-columns: 1fr 1fr; gap: 36px; }
+}
+@media (max-width: 1024px) {
+  .nav-links     { display: none; }
+  .nav-hamburger { display: flex; }
+  .split-grid    { grid-template-columns: 1fr; }
+  .split-divider { display: none; }
+  .tenders-col   { margin-bottom: 56px; }
+}
+@media (max-width: 900px) {
+  .portals-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+  .how-grid     { grid-template-columns: repeat(2, 1fr); gap: 28px; }
+  .how-step::after { display: none; }
+  .stats-grid   { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+  .stat-block   { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 32px; }
+  .stat-block:nth-child(odd) { border-right: 1px solid rgba(255,255,255,0.06); }
+  .stat-block:last-child, .stat-block:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+  .search-fields, .search-fields.agency-fields { grid-template-columns: 1fr 1fr; }
+  .search-btn    { grid-column: span 2; border-radius: 0 0 18px 18px; min-height: 54px; }
+  .sf:nth-child(3) { display: none; }
+  .hero-billboard-bg { opacity: 0.03; width: 54vw; }
+}
+@media (max-width: 680px) {
+  .hero-stats    { flex-direction: column; gap: 0; }
+  .hero-stat     { border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 14px 0; max-width: 100%; }
+  .hero-stat:last-child { border-bottom: none; }
+  .search-fields, .search-fields.agency-fields { grid-template-columns: 1fr; }
+  .sf            { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .search-btn    { grid-column: 1; border-radius: 0 0 18px 18px; }
+  .listings-grid { grid-template-columns: 1fr; }
+  .how-grid      { grid-template-columns: 1fr; }
+  .footer-grid   { grid-template-columns: 1fr; gap: 28px; }
+  .role-switcher { display: none; }
+  .cta-actions   { flex-direction: column; align-items: center; }
+  .modal         { padding: 30px 22px; }
+  .form-row      { grid-template-columns: 1fr; }
+  .hero-billboard-bg { display: none; }
+}
+/* ══════════════════════════════════════════
+   PREMIUM CUSTOM DROPDOWN OVERLAY
+══════════════════════════════════════════ */
+
+/* Hide native dropdown on webkit — we overlay our own */
+.sf-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Selected value style — bold, dark once chosen */
+.sf-select:not(.empty-val) {
+  font-family: 'DM Sans', var(--font-body);
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.05px;
+}
+
+/* Divider line between each sf field — hairline indigo */
+.search-fields .sf + .sf::before,
+.search-fields.agency-fields .sf + .sf::before {
+  display: none; /* handled by border-right already */
+}
+
+/* ──────────────────────────────────────
+   SEARCH BOX — spacious premium variant
+────────────────────────────────────── */
+.search-box {
+  border-radius: 20px;
+}
+
+/* Input — richer feel when has content */
+.sf-input:not(:placeholder-shown) {
+  font-family: 'DM Sans', var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.05px;
+}
+
+/* City input placeholder — italic serif for premium ambiance */
+#searchCity::placeholder,
+#agencyCity::placeholder {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 16.5px;
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(90,88,114,0.42);
+  letter-spacing: 0.15px;
+}
+
+</style>
+<body>
+
+<!-- INDIA STRIPE -->
+
+<!-- ══════════════════ NAV ══════════════════ -->
+<nav class="site-nav" id="mainNav">
+  <div class="nav-left">
+    <a href="index.html" class="nav-logo"><span class="logo-the">The</span><span class="logo-ad">Ad</span><span class="logo-bsk">Basket</span></a>
+    <div class="role-switcher" id="roleSwitcher">
+      <div class="role-pill" id="rolePill"></div>
+      <a href="advertiser-home.html" class="role-btn">Advertisers</a>
+      <a href="owner-home.html"      class="role-btn">Owners</a>
+      <a href="agency-home.html"     class="role-btn">Agencies</a>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="browse.html">Browse Billboards</a></li>
+    <li><a href="browse-agencies.html">Find Agencies</a></li>
+    <li><a href="#campaigns">Live Campaigns</a></li>
+    <li><a href="#how">How It Works</a></li>
+  </ul>
+  <div class="nav-cta">
+    <button class="btn-nav-ghost" onclick="openModal('login')">Sign In</button>
+    <button class="btn-nav-primary" onclick="openModal('register')">Join Free</button>
+    <button class="nav-hamburger" id="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="mobile-nav" id="mobileNav">
+  <a href="browse.html">Browse Billboards</a>
+  <a href="browse-agencies.html">Find Agencies</a>
+  <a href="#campaigns">Live Campaigns</a>
+  <a href="owner-home.html">For Billboard Owners</a>
+  <a href="agency-home.html">For Agencies</a>
+  <div class="mobile-nav-cta">
+    <button class="btn-ghost-dark" onclick="openModal('login');toggleMobileMenu()" style="padding:10px 18px;">Sign In</button>
+    <button class="btn-amber" onclick="openModal('register');toggleMobileMenu()" style="padding:10px 18px;">Join Free</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════ HERO ══════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-bg">
+    <div class="hero-bg-glow"></div>
+    <div class="hero-bg-glow2"></div>
+    <div class="hero-bg-dots"></div>
+    <div class="hero-bg-rings"></div>
+  </div>
+
+  <!-- Signature: giant billboard silhouette -->
+  <div class="hero-billboard-bg">
+    <svg viewBox="0 0 500 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Billboard panel -->
+      <rect x="20" y="10" width="460" height="260" rx="8" stroke="white" stroke-width="6" fill="none"/>
+      <!-- Support structure -->
+      <rect x="225" y="270" width="50" height="80" stroke="white" stroke-width="5" fill="none"/>
+      <!-- Base platform -->
+      <rect x="140" y="345" width="220" height="12" rx="4" stroke="white" stroke-width="4" fill="none"/>
+      <!-- Inner screen border -->
+      <rect x="38" y="26" width="424" height="228" rx="4" stroke="white" stroke-width="2" fill="none" stroke-dasharray="12 8"/>
+      <!-- Catwalk -->
+      <line x1="20" y1="280" x2="480" y2="280" stroke="white" stroke-width="4"/>
+      <!-- Catwalk brackets -->
+      <line x1="80"  y1="270" x2="80"  y2="285" stroke="white" stroke-width="3"/>
+      <line x1="200" y1="270" x2="200" y2="285" stroke="white" stroke-width="3"/>
+      <line x1="300" y1="270" x2="300" y2="285" stroke="white" stroke-width="3"/>
+      <line x1="420" y1="270" x2="420" y2="285" stroke="white" stroke-width="3"/>
+    </svg>
+  </div>
+
+  <div class="hero-inner">
+
+    <div class="hero-badge">
+      <span class="badge-live"><span class="badge-live-dot"></span>Live</span>
+      India's Best Advertising Marketplace
+    </div>
+
+    <h1 class="hero-headline">India's Billboards.</h1>
+    <h1 class="hero-headline-2">One Platform.</h1>
+
+    <p class="hero-sub">Search, compare, and book from 12,000+ verified outdoor spaces across 180+ cities. Or post a campaign — let owners and agencies come to you.</p>
+
+    <!-- DUAL SEARCH TOGGLE -->
+    <div class="search-mode-switcher" id="searchSwitcher">
+      <div class="search-mode-pill" id="searchModePill"></div>
+      <button class="search-mode-btn active" id="modeBoard" onclick="switchSearchMode('billboards')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="11" rx="2"/><path d="M12 15v5M8 20h8"/></svg>
+        Search Billboards
+      </button>
+      <button class="search-mode-btn" id="modeAgency" onclick="switchSearchMode('agencies')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Find Agencies
+      </button>
+    </div>
+
+    <div class="search-wrap">
+
+      <!-- BILLBOARD SEARCH -->
+      <div class="search-panel active" id="panelBillboards">
+        <div class="search-box">
+          <div class="search-fields">
+            <div class="sf">
+              <span class="sf-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <div class="sf-body">
+                <span class="sf-label">City or Area</span>
+                <input class="sf-input" id="searchCity" type="text" placeholder="Mumbai, Delhi, Bengaluru…" autocomplete="off"/>
+              </div>
+            </div>
+            <div class="sf">
+              <span class="sf-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="11" rx="2"/><path d="M12 15v5M8 20h8"/></svg>
+              </span>
+              <div class="sf-body">
+                <span class="sf-label">Billboard Type</span>
+                <div class="sf-select-wrap">
+                  <select class="sf-select" id="searchType">
+                    <option value="">All formats</option>
+                    <option>Static Hoarding</option>
+                    <option>LED Digital</option>
+                    <option>Unipole</option>
+                    <option>Gantry</option>
+                    <option>Bus Shelter</option>
+                    <option>Building Wrap</option>
+                  </select>
+                  <span class="sf-select-display placeholder" id="searchTypeDisplay">All formats</span>
+                  <svg class="sf-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <div class="sf-dropdown-panel" id="searchTypePanel">
+                    <div class="sf-dropdown-option selected" data-value=""><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>All formats</div>
+                    <div class="sf-dropdown-divider"></div>
+                    <div class="sf-dropdown-option" data-value="Static Hoarding"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M12 16v5M8 21h8"/></svg>Static Hoarding</div>
+                    <div class="sf-dropdown-option" data-value="LED Digital"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>LED Digital</div>
+                    <div class="sf-dropdown-option" data-value="Unipole"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13v9H4z"/><line x1="10" y1="13" x2="10" y2="21"/><line x1="7" y1="21" x2="13" y2="21"/></svg>Unipole</div>
+                    <div class="sf-dropdown-option" data-value="Gantry"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18M3 9v10M21 9v10M3 9l3-5h12l3 5"/><line x1="9" y1="9" x2="9" y2="19"/><line x1="15" y1="9" x2="15" y2="19"/></svg>Gantry</div>
+                    <div class="sf-dropdown-option" data-value="Bus Shelter"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="22" height="12" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><circle cx="7" cy="22" r="1"/><circle cx="17" cy="22" r="1"/></svg>Bus Shelter</div>
+                    <div class="sf-dropdown-option" data-value="Building Wrap"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>Building Wrap</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sf">
+              <span class="sf-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+              <div class="sf-body">
+                <span class="sf-label">Monthly Budget</span>
+                <div class="sf-select-wrap">
+                  <select class="sf-select" id="searchBudget">
+                    <option value="">Any budget</option>
+                    <option>Under ₹50K</option>
+                    <option>₹50K – ₹2L</option>
+                    <option>₹2L – ₹10L</option>
+                    <option>₹10L – ₹50L</option>
+                    <option>₹1 Crore+</option>
+                  </select>
+                  <span class="sf-select-display placeholder" id="searchBudgetDisplay">Any budget</span>
+                  <svg class="sf-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <div class="sf-dropdown-panel" id="searchBudgetPanel">
+                    <div class="sf-dropdown-option selected" data-value=""><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Any budget</div>
+                    <div class="sf-dropdown-divider"></div>
+                    <div class="sf-dropdown-option" data-value="Under ₹50K"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Under ₹50K</div>
+                    <div class="sf-dropdown-option" data-value="₹50K – ₹2L"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>₹50K – ₹2L</div>
+                    <div class="sf-dropdown-option" data-value="₹2L – ₹10L"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="4"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="6" y1="20" x2="6" y2="12"/></svg>₹2L – ₹10L</div>
+                    <div class="sf-dropdown-option" data-value="₹10L – ₹50L"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>₹10L – ₹50L</div>
+                    <div class="sf-dropdown-option" data-value="₹1 Crore+"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>₹1 Crore+</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="search-btn" onclick="handleBillboardSearch()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Search
+            </button>
+          </div>
+        </div>
+        <div class="search-quick">
+          <span class="quick-label">Popular:</span>
+          <a href="browse.html?city=Mumbai"            class="quick-pill">Mumbai</a>
+          <a href="browse.html?city=Delhi"             class="quick-pill">Delhi NCR</a>
+          <a href="browse.html?city=Bengaluru"         class="quick-pill">Bengaluru</a>
+          <a href="browse.html?type=LED+Digital"       class="quick-pill">LED Digital</a>
+          <a href="browse.html?type=Highway"           class="quick-pill">Highway</a>
+          <a href="browse.html?tier=Premium"           class="quick-pill">Premium</a>
+        </div>
+      </div>
+
+      <!-- AGENCY SEARCH -->
+      <div class="search-panel" id="panelAgencies">
+        <div class="search-box">
+          <div class="search-fields agency-fields">
+            <div class="sf">
+              <span class="sf-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <div class="sf-body">
+                <span class="sf-label">City</span>
+                <input class="sf-input" id="agencyCity" type="text" placeholder="Mumbai, Delhi, Pan India…" autocomplete="off"/>
+              </div>
+            </div>
+            <div class="sf">
+              <span class="sf-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </span>
+              <div class="sf-body">
+                <span class="sf-label">Agency Type</span>
+                <div class="sf-select-wrap">
+                  <select class="sf-select" id="agencyType">
+                    <option value="">All types</option>
+                    <option>Full-Service Agency</option>
+                    <option>Media Planning</option>
+                    <option>Production House</option>
+                    <option>OOH Specialist</option>
+                    <option>PR and Integrated</option>
+                  </select>
+                  <span class="sf-select-display placeholder" id="agencyTypeDisplay">All types</span>
+                  <svg class="sf-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <div class="sf-dropdown-panel" id="agencyTypePanel">
+                    <div class="sf-dropdown-option selected" data-value=""><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>All types</div>
+                    <div class="sf-dropdown-divider"></div>
+                    <div class="sf-dropdown-option" data-value="Full-Service Agency"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>Full-Service Agency</div>
+                    <div class="sf-dropdown-option" data-value="Media Planning"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Media Planning</div>
+                    <div class="sf-dropdown-option" data-value="Production House"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m10 8 6 4-6 4V8z"/></svg>Production House</div>
+                    <div class="sf-dropdown-option" data-value="OOH Specialist"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>OOH Specialist</div>
+                    <div class="sf-dropdown-option" data-value="PR and Integrated"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>PR and Integrated</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sf">
+              <span class="sf-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              </span>
+              <div class="sf-body">
+                <span class="sf-label">Campaign Budget</span>
+                <div class="sf-select-wrap">
+                  <select class="sf-select" id="agencyBudget">
+                    <option value="">Any size</option>
+                    <option>Under ₹5L</option>
+                    <option>₹5L – ₹25L</option>
+                    <option>₹25L – ₹1Cr</option>
+                    <option>₹1Cr+</option>
+                  </select>
+                  <span class="sf-select-display placeholder" id="agencyBudgetDisplay">Any size</span>
+                  <svg class="sf-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <div class="sf-dropdown-panel" id="agencyBudgetPanel">
+                    <div class="sf-dropdown-option selected" data-value=""><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Any size</div>
+                    <div class="sf-dropdown-divider"></div>
+                    <div class="sf-dropdown-option" data-value="Under ₹5L"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Under ₹5L</div>
+                    <div class="sf-dropdown-option" data-value="₹5L – ₹25L"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>₹5L – ₹25L</div>
+                    <div class="sf-dropdown-option" data-value="₹25L – ₹1Cr"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="4"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="6" y1="20" x2="6" y2="12"/></svg>₹25L – ₹1Cr</div>
+                    <div class="sf-dropdown-option" data-value="₹1Cr+"><svg class="opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>₹1Cr+</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="search-btn" onclick="handleAgencySearch()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Find
+            </button>
+          </div>
+        </div>
+        <div class="search-quick">
+          <span class="quick-label">Browse:</span>
+          <a href="browse-agencies.html?city=Mumbai"          class="quick-pill">Mumbai Agencies</a>
+          <a href="browse-agencies.html?city=Delhi"           class="quick-pill">Delhi NCR</a>
+          <a href="browse-agencies.html?type=OOH+Specialist"  class="quick-pill">OOH Specialists</a>
+          <a href="browse-agencies.html?verified=true"        class="quick-pill">GST Verified</a>
+          <a href="browse-agencies.html?sort=rating"          class="quick-pill">Top Rated</a>
+        </div>
+      </div>
+
+    </div><!-- /search-wrap -->
+
+    <!-- Stats bar -->
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-num" data-target="12000">0<em>+</em></span>
+        <span class="hero-stat-lbl">Verified listings</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num" data-target="180">0<em>+</em></span>
+        <span class="hero-stat-lbl">Cities across India</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num" data-target="3400">0<em>+</em></span>
+        <span class="hero-stat-lbl">Verified owners</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num" data-target="840">0<em>+</em></span>
+        <span class="hero-stat-lbl">Registered agencies</span>
+      </div>
+    </div>
+
+    <p class="hero-signin">Already on The AdBasket? <a href="#" onclick="openModal('login');return false;">Sign in to your dashboard</a></p>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════ LIVE TICKER ══════════════════ -->
+<div class="live-ticker">
+  <div class="ticker-track">
+    <span class="ticker-item"><span class="t-tag t-new">New</span> <strong>BKC LED Screen</strong> · Mumbai <span class="ticker-dot"></span> ₹5.8L/mo · Available</span>
+    <span class="ticker-item"><span class="t-tag t-tender">Campaign</span> <strong>FMCG brand</strong> · Mumbai <span class="ticker-dot"></span> ₹8–12L budget · Bids open</span>
+    <span class="ticker-item"><span class="t-tag t-booked">Booked</span> <strong>MG Road LED</strong> · Bengaluru <span class="ticker-dot"></span> 6-month campaign confirmed</span>
+    <span class="ticker-item"><span class="t-tag t-new">New</span> <strong>Connaught Place Gantry</strong> · Delhi <span class="ticker-dot"></span> ₹4.2L/mo</span>
+    <span class="ticker-item"><span class="t-tag t-tender">Campaign</span> <strong>Automotive brand</strong> · Hyderabad <span class="ticker-dot"></span> ₹15–25L · Agency bids welcome</span>
+    <span class="ticker-item"><span class="t-tag t-new">New</span> <strong>Sarkhej Highway Unipole</strong> · Ahmedabad <span class="ticker-dot"></span> ₹75K/mo</span>
+    <span class="ticker-item"><span class="t-tag t-booked">Booked</span> <strong>Anna Nagar Bus Shelter</strong> · Chennai <span class="ticker-dot"></span> 3-month deal signed</span>
+    <span class="ticker-item"><span class="t-tag t-tender">Campaign</span> <strong>EdTech brand</strong> · Pune <span class="ticker-dot"></span> ₹2–5L · Near colleges</span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item"><span class="t-tag t-new">New</span> <strong>BKC LED Screen</strong> · Mumbai <span class="ticker-dot"></span> ₹5.8L/mo · Available</span>
+    <span class="ticker-item"><span class="t-tag t-tender">Campaign</span> <strong>FMCG brand</strong> · Mumbai <span class="ticker-dot"></span> ₹8–12L budget · Bids open</span>
+    <span class="ticker-item"><span class="t-tag t-booked">Booked</span> <strong>MG Road LED</strong> · Bengaluru <span class="ticker-dot"></span> 6-month campaign confirmed</span>
+    <span class="ticker-item"><span class="t-tag t-new">New</span> <strong>Connaught Place Gantry</strong> · Delhi <span class="ticker-dot"></span> ₹4.2L/mo</span>
+    <span class="ticker-item"><span class="t-tag t-tender">Campaign</span> <strong>Automotive brand</strong> · Hyderabad <span class="ticker-dot"></span> ₹15–25L · Agency bids welcome</span>
+    <span class="ticker-item"><span class="t-tag t-new">New</span> <strong>Sarkhej Highway Unipole</strong> · Ahmedabad <span class="ticker-dot"></span> ₹75K/mo</span>
+    <span class="ticker-item"><span class="t-tag t-booked">Booked</span> <strong>Anna Nagar Bus Shelter</strong> · Chennai <span class="ticker-dot"></span> 3-month deal signed</span>
+    <span class="ticker-item"><span class="t-tag t-tender">Campaign</span> <strong>EdTech brand</strong> · Pune <span class="ticker-dot"></span> ₹2–5L · Near colleges</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════ THREE PORTALS ══════════════════ -->
+<section class="portals-section">
+  <div class="section-header">
+    <span class="section-eyebrow">Who uses The AdBasket</span>
+    <h2 class="section-heading">Choose your <em>path in.</em></h2>
+    <p class="section-sub">Whether you're placing ads, selling space, or running campaigns — The AdBasket has a dedicated workspace for you.</p>
+  </div>
+
+  <div class="portals-grid">
+
+    <!-- ADVERTISER -->
+    <div class="portal-card adv">
+      <div class="portal-accent"></div>
+      <div class="portal-body">
+        <div class="portal-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="portal-role-label">Business / Brand</div>
+        <div class="portal-title">I want to place ads</div>
+        <div class="portal-desc">Search 12,000+ verified billboards, build a media plan, compare ROI, and book — or post a budget and let owners bid.</div>
+        <ul class="portal-list">
+          <li>Browse and filter 12,000+ listings</li>
+          <li>ROI calculator with Indian market data</li>
+          <li>Post anonymous campaigns</li>
+          <li>Compare up to 3 billboards side by side</li>
+        </ul>
+        <a href="advertiser-home.html" class="portal-cta">Get started free</a>
+        <a href="browse.html" class="portal-secondary-link">Browse billboards first →</a>
+      </div>
+    </div>
+
+    <!-- OWNER -->
+    <div class="portal-card own">
+      <div class="portal-accent"></div>
+      <div class="portal-body">
+        <div class="portal-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="11" rx="2"/><path d="M12 15v5M8 20h8"/></svg>
+        </div>
+        <div class="portal-role-label">Billboard Owner</div>
+        <div class="portal-title">I own billboards</div>
+        <div class="portal-desc">List your inventory, receive inbound quote requests, bid on anonymous business campaigns, and track performance analytics.</div>
+        <ul class="portal-list">
+          <li>List unlimited billboards with photos</li>
+          <li>Inbound quote requests to your dashboard</li>
+          <li>Bid on live business campaigns</li>
+          <li>Availability calendar and booking tools</li>
+        </ul>
+        <a href="owner-register.html" class="portal-cta">List your billboard</a>
+        <a href="owner-home.html" class="portal-secondary-link">Learn how it works →</a>
+      </div>
+    </div>
+
+    <!-- AGENCY -->
+    <div class="portal-card age">
+      <div class="portal-accent"></div>
+      <div class="portal-body">
+        <div class="portal-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold-role)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="portal-role-label">Ad Agency / Service Provider</div>
+        <div class="portal-title">We run campaigns</div>
+        <div class="portal-desc">Build a verified agency profile, bid on brand campaigns worth ₹50K to ₹10Cr+, showcase case studies, and receive direct briefs.</div>
+        <ul class="portal-list">
+          <li>Public verified agency profile</li>
+          <li>Bid on 5,000+ campaigns per month</li>
+          <li>Receive direct inquiries from brands</li>
+          <li>GST and PAN verified badge in 2–3 days</li>
+        </ul>
+        <a href="agency-register.html" class="portal-cta">Register your agency</a>
+        <a href="browse-agencies.html" class="portal-secondary-link">Browse agency profiles →</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════ FEATURED BILLBOARDS ══════════════════ -->
+<section class="featured-section">
+  <div class="section-header-split">
+    <div>
+      <span class="section-eyebrow">Featured This Week</span>
+      <h2 class="section-heading" style="font-size:clamp(26px,3.5vw,40px);margin-bottom:0;">Top billboard spaces.</h2>
+    </div>
+    <a href="browse.html" class="btn-ghost">View all 12,000+</a>
+  </div>
+
+  <div class="listings-grid">
+
+    <a href="browse.html" class="listing-card">
+      <div class="lc-img">
+        <div class="lc-img-bg bg-city">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="5" height="12"/><rect x="9" y="5" width="6" height="16"/><rect x="17" y="11" width="4" height="10"/><line x1="1" y1="21" x2="23" y2="21"/></svg>
+        </div>
+        <div class="lc-badges"><span class="lc-badge lb-premium">Premium</span><span class="lc-badge lb-traffic">High Traffic</span></div>
+        <span class="lc-status ls-avail">Available</span>
+      </div>
+      <div class="lc-body">
+        <div class="lc-city">Mumbai · BKC</div>
+        <div class="lc-name">Bandra-Kurla Complex LED</div>
+        <div class="lc-specs">40 × 25 ft · LED Digital · 1,20,000/day</div>
+        <div class="lc-foot">
+          <div><div class="lc-price">₹5.8L</div><div class="lc-price-sub">per month</div></div>
+          <button class="lc-btn" onclick="event.preventDefault();openModal('register')">Get Quote</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="browse.html" class="listing-card">
+      <div class="lc-img">
+        <div class="lc-img-bg bg-led">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+        </div>
+        <div class="lc-badges"><span class="lc-badge lb-digital">Digital</span><span class="lc-badge lb-traffic">High Traffic</span></div>
+        <span class="lc-status ls-avail">Available</span>
+      </div>
+      <div class="lc-body">
+        <div class="lc-city">Bengaluru · MG Road</div>
+        <div class="lc-name">MG Road LED Screen</div>
+        <div class="lc-specs">30 × 15 ft · LED Digital · 1,10,000/day</div>
+        <div class="lc-foot">
+          <div><div class="lc-price">₹2.8L</div><div class="lc-price-sub">per month</div></div>
+          <button class="lc-btn" onclick="event.preventDefault();openModal('register')">Get Quote</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="browse.html" class="listing-card">
+      <div class="lc-img">
+        <div class="lc-img-bg bg-highway">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3-10 3 5 3-8 3 8 3-5 3 10"/><line x1="3" y1="21" x2="21" y2="21"/></svg>
+        </div>
+        <div class="lc-badges"><span class="lc-badge lb-highway">Highway</span></div>
+        <span class="lc-status ls-avail">Available</span>
+      </div>
+      <div class="lc-body">
+        <div class="lc-city">Pune · Wakad</div>
+        <div class="lc-name">NH-48 Highway Unipole</div>
+        <div class="lc-specs">50 × 25 ft · Unipole · 65,000/day</div>
+        <div class="lc-foot">
+          <div><div class="lc-price">₹1.4L</div><div class="lc-price-sub">per month</div></div>
+          <button class="lc-btn" onclick="event.preventDefault();openModal('register')">Get Quote</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="browse.html" class="listing-card">
+      <div class="lc-img">
+        <div class="lc-img-bg bg-metro">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01M9 6h6M9 10h6M9 14h3"/></svg>
+        </div>
+        <div class="lc-badges"><span class="lc-badge lb-premium">Premium</span></div>
+        <span class="lc-status ls-avail">Available</span>
+      </div>
+      <div class="lc-body">
+        <div class="lc-city">Delhi NCR · Gurugram</div>
+        <div class="lc-name">Golf Course Road Gantry</div>
+        <div class="lc-specs">60 × 20 ft · Gantry · 95,000/day</div>
+        <div class="lc-foot">
+          <div><div class="lc-price">₹3.6L</div><div class="lc-price-sub">per month</div></div>
+          <button class="lc-btn" onclick="event.preventDefault();openModal('register')">Get Quote</button>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════ TENDERS + AGENCIES SPLIT ══════════════════ -->
+<section class="split-section" id="campaigns">
+  <div class="section-header" style="text-align:center;">
+    <span class="section-eyebrow">The AdBasket Marketplace</span>
+    <h2 class="section-heading" style="margin-left:auto;margin-right:auto;">Live campaigns. Verified <em>agencies.</em></h2>
+    <p class="section-sub" style="margin-left:auto;margin-right:auto;text-align:center;">Brands post campaigns anonymously. Owners and agencies compete. Everyone gets a fair shot.</p>
+  </div>
+
+  <div class="split-grid">
+
+    <!-- CAMPAIGNS -->
+    <div class="tenders-col">
+      <span class="col-label c-teal">Active Right Now</span>
+      <h3 class="col-heading c-teal">Campaigns looking <em>for spaces.</em></h3>
+      <p class="col-sub">These businesses have posted their budgets. Billboard owners and agencies can bid anonymously until accepted.</p>
+
+      <div class="tender-list">
+        <div class="tender-row" onclick="showToast('Sign in to view full details and submit a bid.')">
+          <div class="t-dot t-fmcg"></div>
+          <div class="t-info">
+            <div class="t-sector">FMCG / Consumer Goods <span class="t-new-tag">NEW</span></div>
+            <div class="t-desc">Summer launch campaign — Multiple formats welcome</div>
+            <div class="t-meta"><span>Mumbai</span><span>3 months</span><span>Static or LED</span></div>
+          </div>
+          <div class="t-budget"><span class="t-budget-val">₹8–12L</span><span class="t-budget-lbl">per month</span></div>
+        </div>
+        <div class="tender-row" onclick="showToast('Sign in to view full details and submit a bid.')">
+          <div class="t-dot t-realty"></div>
+          <div class="t-info">
+            <div class="t-sector">Real Estate</div>
+            <div class="t-desc">New township launch — Premium locations preferred</div>
+            <div class="t-meta"><span>Delhi NCR</span><span>6 months</span><span>Hoardings</span></div>
+          </div>
+          <div class="t-budget"><span class="t-budget-val">₹3–5L</span><span class="t-budget-lbl">per month</span></div>
+        </div>
+        <div class="tender-row" onclick="showToast('Sign in to view full details and submit a bid.')">
+          <div class="t-dot t-auto"></div>
+          <div class="t-info">
+            <div class="t-sector">Automotive</div>
+            <div class="t-desc">New model launch — High-traffic highways preferred</div>
+            <div class="t-meta"><span>Hyderabad</span><span>3 months</span><span>Gantry / Unipole</span></div>
+          </div>
+          <div class="t-budget"><span class="t-budget-val">₹15–25L</span><span class="t-budget-lbl">per month</span></div>
+        </div>
+        <div class="tender-row" onclick="showToast('Sign in to view full details and submit a bid.')">
+          <div class="t-dot t-fin"></div>
+          <div class="t-info">
+            <div class="t-sector">Banking / Finance</div>
+            <div class="t-desc">Pan India awareness — Metros and Tier 2 cities</div>
+            <div class="t-meta"><span>Pan India</span><span>12 months</span><span>LED preferred</span></div>
+          </div>
+          <div class="t-budget"><span class="t-budget-val">₹50L–1Cr</span><span class="t-budget-lbl">per month</span></div>
+        </div>
+      </div>
+
+      <div class="col-footer">
+        <button class="btn-primary btn-sm" onclick="showCampaignGate()">Post a Campaign</button>
+        <a href="owner-home.html"  class="btn-teal btn-sm">Bid as Owner</a>
+        <a href="agency-home.html" class="btn-gold btn-sm">Bid as Agency</a>
+      </div>
+    </div>
+
+    <div class="split-divider"></div>
+
+    <!-- AGENCIES -->
+    <div class="agencies-col" id="agencies">
+      <span class="col-label c-gold">Verified Professionals</span>
+      <h3 class="col-heading c-gold">Top agencies <em>on the platform.</em></h3>
+      <p class="col-sub">840+ verified OOH agencies — from full-service shops to production houses. Browse profiles, check case studies, send briefs directly.</p>
+
+      <div class="agency-list">
+        <a href="browse-agencies.html" class="agency-row">
+          <div class="agency-avatar av-indigo">PP</div>
+          <div class="agency-info">
+            <div class="agency-name">Pixel &amp; Print Co.</div>
+            <div class="agency-type">Full-Service Ad Agency · Mumbai</div>
+            <div class="agency-tags"><span class="agency-tag">OOH Planning</span><span class="agency-tag">Creative</span><span class="agency-tag">FMCG</span></div>
+          </div>
+          <div class="agency-right">
+            <div class="agency-rating"><span class="agency-star">★</span> 4.9 · 14 reviews</div>
+            <div class="agency-verified">✓ Verified</div>
+          </div>
+        </a>
+        <a href="browse-agencies.html" class="agency-row">
+          <div class="agency-avatar av-teal">ME</div>
+          <div class="agency-info">
+            <div class="agency-name">MediaEdge India</div>
+            <div class="agency-type">Media Planning Agency · Delhi NCR</div>
+            <div class="agency-tags"><span class="agency-tag">Media Planning</span><span class="agency-tag">Real Estate</span><span class="agency-tag">Auto</span></div>
+          </div>
+          <div class="agency-right">
+            <div class="agency-rating"><span class="agency-star">★</span> 4.7 · 21 reviews</div>
+            <div class="agency-verified">✓ Verified</div>
+          </div>
+        </a>
+        <a href="browse-agencies.html" class="agency-row">
+          <div class="agency-avatar av-gold">SC</div>
+          <div class="agency-info">
+            <div class="agency-name">SignCraft Solutions</div>
+            <div class="agency-type">Production House · Bengaluru</div>
+            <div class="agency-tags"><span class="agency-tag">Production</span><span class="agency-tag">Printing</span><span class="agency-tag">South India</span></div>
+          </div>
+          <div class="agency-right">
+            <div class="agency-rating"><span class="agency-star">★</span> 4.8 · 38 reviews</div>
+            <div class="agency-verified">✓ Verified</div>
+          </div>
+        </a>
+        <a href="browse-agencies.html" class="agency-row">
+          <div class="agency-avatar av-indigo">BM</div>
+          <div class="agency-info">
+            <div class="agency-name">BrandMile Communications</div>
+            <div class="agency-type">PR &amp; Media Agency · Pune</div>
+            <div class="agency-tags"><span class="agency-tag">PR</span><span class="agency-tag">Integrated</span><span class="agency-tag">Healthcare</span></div>
+          </div>
+          <div class="agency-right">
+            <div class="agency-rating"><span class="agency-star">★</span> 4.6 · 9 reviews</div>
+            <div class="agency-verified">✓ Verified</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-footer">
+        <a href="browse-agencies.html"  class="btn-gold btn-sm">Browse All 840+ Agencies</a>
+        <a href="agency-register.html"  class="btn-ghost btn-sm">Register Your Agency</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════ PLATFORM STATS ══════════════════ -->
+<section class="stats-band">
+  <div class="stats-grid">
+    <div class="stat-block">
+      <span class="stat-val" data-target="12000">0</span>
+      <span class="stat-lbl">Billboard listings</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-val" data-target="180">0</span>
+      <span class="stat-lbl">Cities across India</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-val" data-target="840">0</span>
+      <span class="stat-lbl">Verified agencies</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-val" data-target="5000">0</span>
+      <span class="stat-lbl">Active campaigns per month</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════ HOW IT WORKS ══════════════════ -->
+<section class="how-section" id="how">
+  <div class="section-header" style="text-align:center;">
+    <span class="section-eyebrow">How The AdBasket Works</span>
+    <h2 class="section-heading" style="margin-left:auto;margin-right:auto;">From search to live campaign in 4 steps.</h2>
+  </div>
+
+  <div class="how-grid">
+
+    <div class="how-step">
+      <span class="how-step-num">01</span>
+      <div class="how-step-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <div class="how-step-title">Search and Filter</div>
+      <div class="how-step-desc">Enter your city, format, and budget. Browse 12,000+ verified listings with real footfall data and availability calendars.</div>
+    </div>
+
+    <div class="how-step">
+      <span class="how-step-num">02</span>
+      <div class="how-step-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <div class="how-step-title">Compare and Shortlist</div>
+      <div class="how-step-desc">Compare billboards side by side, save favourites, and build a media plan with combined cost and reach estimates.</div>
+    </div>
+
+    <div class="how-step">
+      <span class="how-step-num">03</span>
+      <div class="how-step-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="how-step-title">Request or Post Campaign</div>
+      <div class="how-step-desc">Request a quote directly, or post a campaign brief anonymously so verified owners and agencies bid for your campaign.</div>
+    </div>
+
+    <div class="how-step">
+      <span class="how-step-num">04</span>
+      <div class="how-step-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      </div>
+      <div class="how-step-title">Book and Go Live</div>
+      <div class="how-step-desc">Accept the best proposal, confirm dates, and your campaign goes live — fully tracked on your AdBasket dashboard.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════ CTA DARK ══════════════════ -->
+<section class="cta-section">
+  <span class="cta-eyebrow">Get Started Today</span>
+  <h2 class="cta-title">India's billboards.<br/><em>One platform.</em></h2>
+  <p class="cta-sub">Free to search, compare, and shortlist. No account needed to browse.</p>
+  <div class="cta-actions">
+    <a href="browse.html" class="btn-amber btn-lg">Browse Billboards</a>
+    <a href="browse-agencies.html" class="btn-ghost-dark btn-lg">Find an Agency</a>
+    <button class="btn-ghost-dark btn-lg" onclick="openModal('register')">Create Free Account</button>
+  </div>
+</section>
+
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <a href="index.html" class="footer-logo"><span class="logo-the">The</span><span class="logo-ad">Ad</span><span class="logo-bsk">Basket</span></a>
+      <p class="footer-desc">India's marketplace for outdoor advertising. Connecting businesses, billboard owners, and agencies across 180+ cities.</p>
+    </div>
+    <div class="footer-col">
+      <h5>For Advertisers</h5>
+      <ul>
+        <li><a href="browse.html">Browse Billboards</a></li>
+        <li><a href="advertiser-home.html#campaign">Post a Campaign</a></li>
+        <li><a href="advertiser-home.html#roi">ROI Calculator</a></li>
+        <li><a href="advertiser-dashboard.html">My Dashboard</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Owners and Agencies</h5>
+      <ul>
+        <li><a href="owner-home.html">List Your Billboard</a></li>
+        <li><a href="owner-register.html">Owner Signup</a></li>
+        <li><a href="agency-home.html">For Agencies</a></li>
+        <li><a href="agency-register.html">Register Agency</a></li>
+        <li><a href="browse-agencies.html">Browse Agencies</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 The AdBasket India Pvt. Ltd. All rights reserved. Made in India 🇮🇳</span>
+    <span>Privacy · Terms · Sitemap</span>
+  </div>
+</footer>
+
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+/* ── Nav scroll ── */
+window.addEventListener('scroll', () => {
+  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 40);
+});
+
+/* ── Mobile menu ── */
+function toggleMobileMenu() {
+  document.getElementById('mobileNav').classList.toggle('open');
+  document.getElementById('hamburger').classList.toggle('open');
+}
+
+/* ── Role pill hover animation ── */
+(function () {
+  const sw  = document.getElementById('roleSwitcher');
+  const pil = document.getElementById('rolePill');
+  if (!sw || !pil) return;
+
+  /* Restore body visibility if returning via back/forward cache */
+  window.addEventListener('pageshow', () => {
+    document.body.style.opacity = '1';
+    document.body.style.transition = '';
+  });
+
+  function movePill(btn) {
+    const sr = sw.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    pil.style.width     = br.width + 'px';
+    pil.style.transform = 'translateX(' + (br.left - sr.left - 3) + 'px)';
+  }
+  sw.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('mouseenter', function () { pil.style.opacity = '1'; movePill(this); });
+    btn.addEventListener('mouseleave', function () { pil.style.opacity = '0'; });
+    btn.addEventListener('click', function (e) {
+      const href = this.getAttribute('href');
+      if (!href || href === '#') return;
+      /* Robust same-page check by filename */
+      const currentFile = window.location.pathname.replace(/\/$/, '').split('/').pop() || 'index.html';
+      const targetFile  = href.split('/').pop().split('?')[0];
+      if (targetFile === currentFile) return;
+      e.preventDefault();
+      pil.style.opacity = '1'; movePill(this);
+      document.body.style.opacity = '0';
+      document.body.style.transition = 'opacity 0.22s';
+      setTimeout(() => { window.location.href = href; }, 240);
+    });
+  });
+})();
+
+/* ── Search mode switcher ── */
+(function () {
+  const sw  = document.getElementById('searchSwitcher');
+  const pil = document.getElementById('searchModePill');
+  if (!sw || !pil) return;
+  function movePill(btn) {
+    const sr = sw.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    pil.style.width     = br.width + 'px';
+    pil.style.transform = 'translateX(' + (br.left - sr.left - 4) + 'px)';
+    pil.style.opacity   = '1';
+  }
+  const activeBtn = sw.querySelector('.search-mode-btn.active');
+  if (activeBtn) requestAnimationFrame(() => movePill(activeBtn));
+})();
+
+function switchSearchMode(mode) {
+  const btns   = document.querySelectorAll('.search-mode-btn');
+  const panels = document.querySelectorAll('.search-panel');
+  const pil    = document.getElementById('searchModePill');
+  const sw     = document.getElementById('searchSwitcher');
+
+  btns.forEach(b   => b.classList.remove('active'));
+  panels.forEach(p => p.classList.remove('active'));
+
+  const targetBtn   = document.getElementById(mode === 'billboards' ? 'modeBoard'      : 'modeAgency');
+  const targetPanel = document.getElementById(mode === 'billboards' ? 'panelBillboards' : 'panelAgencies');
+  targetBtn.classList.add('active');
+  targetPanel.classList.add('active');
+
+  const sr = sw.getBoundingClientRect();
+  const br = targetBtn.getBoundingClientRect();
+  pil.style.width     = br.width + 'px';
+  pil.style.transform = 'translateX(' + (br.left - sr.left - 4) + 'px)';
+  pil.style.opacity   = '1';
+}
+
+/* ── Search handlers ── */
+function handleBillboardSearch() {
+  const city   = (document.getElementById('searchCity').value   || '').trim();
+  const type   = (document.getElementById('searchType').value   || '');
+  const budget = (document.getElementById('searchBudget').value || '');
+  const p = new URLSearchParams();
+  if (city)   p.set('city',   city);
+  if (type)   p.set('type',   type);
+  if (budget) p.set('budget', budget);
+  window.location.href = 'browse.html' + (p.toString() ? '?' + p : '');
+}
+
+function handleAgencySearch() {
+  const city   = (document.getElementById('agencyCity').value   || '').trim();
+  const type   = (document.getElementById('agencyType').value   || '');
+  const budget = (document.getElementById('agencyBudget').value || '');
+  const p = new URLSearchParams();
+  if (city)   p.set('city',   city);
+  if (type)   p.set('type',   type);
+  if (budget) p.set('budget', budget);
+  window.location.href = 'browse-agencies.html' + (p.toString() ? '?' + p : '');
+}
+
+document.getElementById('searchCity').addEventListener('keydown',  e => { if (e.key === 'Enter') handleBillboardSearch(); });
+document.getElementById('agencyCity').addEventListener('keydown',  e => { if (e.key === 'Enter') handleAgencySearch(); });
+
+/* ── Stat counters ── */
+function animateCounters(els) {
+  els.forEach(el => {
+    const target = parseInt(el.dataset.target);
+    let v = 0;
+    const dur = 1400, step = 16, inc = target / (dur / step);
+    const t = setInterval(() => {
+      v += inc;
+      if (v >= target) { v = target; clearInterval(t); }
+      el.textContent = Math.floor(v).toLocaleString('en-IN') + '+';
+    }, step);
+  });
+}
+const counterEls = document.querySelectorAll('[data-target]');
+const cObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    animateCounters([e.target]);
+    cObs.unobserve(e.target);
+  });
+}, { threshold: 0.4 });
+counterEls.forEach(c => cObs.observe(c));
+
+/* ── Modal ── */
+function openModal(type) {
+  document.getElementById('modalContent').innerHTML = type === 'login' ? loginHTML() : registerHTML();
+  document.getElementById('authModal').classList.add('open');
+}
+function showCampaignGate(){
+  document.getElementById('modalContent').innerHTML = campaignGateHTML();
+  document.getElementById('authModal').classList.add('open');
+}
+function campaignGateHTML(){
+  return '<div style="text-align:center;padding:8px 0;"><div style="width:64px;height:64px;border-radius:20px;background:var(--indigo-light, #EEF2FF);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3 style="font-size:26px;font-weight:600;letter-spacing:-0.5px;margin-bottom:8px;">Registration required</h3><p style="font-size:13.5px;color:#9CA3AF;font-weight:300;margin-bottom:24px;line-height:1.6;">You need to register as an advertiser before posting a campaign. It\'s free and takes just a few minutes.</p><a href="advertiser-register.html" style="display:flex;align-items:center;justify-content:center;gap:6px;background:#4F46E5;color:#fff;font-size:14px;font-weight:500;padding:13px 28px;border-radius:12px;text-decoration:none;box-shadow:0 2px 8px rgba(79,70,229,0.25);">Register as Advertiser →</a><p style="text-align:center;font-size:13px;color:#9CA3AF;font-weight:300;margin-top:14px;">Already registered? <a href="#" onclick="openModal(\'login\');return false;" style="color:#3730A3;text-decoration:none;">Sign in →</a></p></div>';
+}
+function closeModal() { document.getElementById('authModal').classList.remove('open'); }
+document.getElementById('authModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function loginHTML() { return `
+<h3>Welcome back</h3>
+<p class="sub">Sign in to your AdBasket account.</p>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTo('login')">Sign In</button>
+  <button class="tab-btn" onclick="switchTo('register')">Create Account</button>
+</div>
+<div class="form-group"><label>Email Address</label><input type="email" class="form-control" placeholder="you@company.com"/></div>
+<div class="form-group"><label>Password</label><input type="password" class="form-control" placeholder="Your password"/></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-mid);cursor:pointer;"><input type="checkbox" style="accent-color:var(--gold);"/> Remember me</label>
+  <a href="#" style="font-size:13px;color:var(--gold-dim);">Forgot password?</a>
+</div>
+<button class="btn-amber form-submit" onclick="handleLogin()">Sign In</button>
+<p class="form-footer">No account? <a href="#" onclick="switchTo('register');return false;">Register free</a></p>`; }
+
+function registerHTML() { return `
+<h3>Create your account</h3>
+<p class="sub">Free to join. Browse 12,000+ billboard spaces.</p>
+<div class="tab-bar">
+  <button class="tab-btn" onclick="switchTo('login')">Sign In</button>
+  <button class="tab-btn active">Create Account</button>
+</div>
+<div class="form-row">
+  <div class="form-group"><label>First Name</label><input type="text" class="form-control" placeholder="Rahul"/></div>
+  <div class="form-group"><label>Last Name</label><input type="text" class="form-control" placeholder="Sharma"/></div>
+</div>
+<div class="form-group"><label>Business Email</label><input type="email" class="form-control" placeholder="you@company.com"/></div>
+<div class="form-group"><label>Phone (+91)</label><input type="tel" class="form-control" placeholder="+91 98765 43210"/></div>
+<div class="form-group"><label>I am a</label>
+  <select class="form-control">
+    <option value="">Select your role</option>
+    <option>Business / Brand (Advertiser)</option>
+    <option>Billboard Owner</option>
+    <option>Ad Agency / Service Provider</option>
+  </select>
+</div>
+<div class="form-group"><label>Password</label><input type="password" class="form-control" placeholder="Min 8 characters"/></div>
+<div style="margin-bottom:14px;"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--ink-mid);cursor:pointer;font-weight:300;line-height:1.5;"><input type="checkbox" style="accent-color:var(--gold);margin-top:2px;flex-shrink:0;"/> I agree to the <a href="#" style="color:var(--gold-dim);">Terms &amp; Privacy Policy</a></label></div>
+<button class="btn-amber form-submit" onclick="handleRegister()">Create Free Account</button>
+<p class="form-footer">Already registered? <a href="#" onclick="switchTo('login');return false;">Sign in</a></p>`; }
+
+function successHTML() { return `
+<div style="text-align:center;padding:28px 0;">
+  <div style="width:64px;height:64px;border-radius:20px;background:rgba(201,148,58,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  </div>
+  <h3 style="margin-bottom:8px;">You're in!</h3>
+  <p class="sub" style="margin-bottom:28px;">Check your email to verify your account. You can start browsing right now.</p>
+  <a href="browse.html" class="btn-amber" style="font-size:15px;padding:13px 28px;display:inline-flex;">Browse Billboards</a>
+</div>`; }
+
+function switchTo(type)   { document.getElementById('modalContent').innerHTML = type === 'login' ? loginHTML() : registerHTML(); }
+function handleLogin()    { showToast('Welcome back — redirecting to your dashboard…'); setTimeout(() => { closeModal(); window.location = 'advertiser-dashboard.html'; }, 1200); }
+function handleRegister() { document.getElementById('modalContent').innerHTML = successHTML(); }
+
+/* ── Toast ── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3800);
+}
+
+/* ── Scroll reveal ── */
+(function () {
+  const els = document.querySelectorAll('.portal-card, .listing-card, .tender-row, .agency-row, .how-step, .stat-block');
+  const io  = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const i = Array.from(els).indexOf(e.target);
+      e.target.style.transitionDelay = (i % 4) * 0.07 + 's';
+      e.target.style.opacity   = '1';
+      e.target.style.transform = 'translateY(0)';
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+  els.forEach(el => {
+    el.style.opacity   = '0';
+    el.style.transform = 'translateY(16px)';
+    el.style.transition = 'opacity 0.48s ease, transform 0.48s ease';
+    io.observe(el);
+  });
+})();
+
+/* ── Page-in transition ── */
+document.body.style.opacity = '0';
+window.addEventListener('load', () => {
+  document.body.style.transition = 'opacity 0.4s ease';
+  document.body.style.opacity    = '1';
+});
+/* ── Custom dropdown logic — panels teleport to <body> on open ── */
+(function () {
+  const dropdowns = [
+    { selectId: 'searchType',   displayId: 'searchTypeDisplay',   panelId: 'searchTypePanel' },
+    { selectId: 'searchBudget', displayId: 'searchBudgetDisplay', panelId: 'searchBudgetPanel' },
+    { selectId: 'agencyType',   displayId: 'agencyTypeDisplay',   panelId: 'agencyTypePanel' },
+    { selectId: 'agencyBudget', displayId: 'agencyBudgetDisplay', panelId: 'agencyBudgetPanel' },
+  ];
+
+  dropdowns.forEach(({ selectId, displayId, panelId }) => {
+    const panel   = document.getElementById(panelId);
+    const display = document.getElementById(displayId);
+    const select  = document.getElementById(selectId);
+    const wrap    = panel?.closest('.sf-select-wrap');
+    const sfField = wrap?.closest('.sf');
+    if (!wrap || !panel || !display || !select) return;
+
+    // Move panel to <body> so no ancestor stacking context can clip it
+    document.body.appendChild(panel);
+    // Do NOT touch panel.style.display — CSS handles display:none / display:block via .open class
+
+    function positionPanel() {
+      const rect = wrap.getBoundingClientRect();
+      panel.style.position   = 'fixed';
+      panel.style.left       = (rect.left - 6) + 'px';
+      panel.style.minWidth   = (rect.width + 12) + 'px';
+      panel.style.width      = 'auto';
+      // Measure panel height first, then position above the trigger
+      panel.style.visibility = 'hidden';
+      panel.style.display    = 'block';
+      const panelHeight      = panel.offsetHeight;
+      panel.style.display    = '';
+      panel.style.visibility = '';
+      panel.style.top        = (rect.top - panelHeight - 8) + 'px';
+    }
+
+    function openPanel() {
+      closeAll();
+      positionPanel();
+      panel.classList.add('open');
+      wrap.classList.add('open');
+    }
+
+    wrap.addEventListener('click', e => {
+      if (e.target.closest('.sf-dropdown-panel')) return;
+      panel.classList.contains('open') ? closeAll() : openPanel();
+    });
+
+    panel.querySelectorAll('.sf-dropdown-option').forEach(opt => {
+      opt.addEventListener('click', e => {
+        e.stopPropagation();
+        selectOption(opt, wrap, panel, display, select, sfField);
+        closeAll();
+      });
+    });
+
+    // Keyboard nav
+    wrap.addEventListener('keydown', e => {
+      const isOpen = panel.classList.contains('open');
+      const opts   = [...panel.querySelectorAll('.sf-dropdown-option')];
+      const cur    = panel.querySelector('.sf-dropdown-option.focused') || panel.querySelector('.sf-dropdown-option.selected');
+      const curIdx = cur ? opts.indexOf(cur) : -1;
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (!isOpen) { openPanel(); }
+        else if (cur) { selectOption(cur, wrap, panel, display, select, sfField); closeAll(); }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!isOpen) { openPanel(); }
+        setFocus(panel, opts[Math.min(curIdx + 1, opts.length - 1)]);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocus(panel, opts[Math.max(curIdx - 1, 0)]);
+      } else if (e.key === 'Escape') {
+        closeAll();
+      }
+    });
+
+    if (!wrap.getAttribute('tabindex')) wrap.setAttribute('tabindex', '0');
+  });
+
+  function setFocus(panel, opt) {
+    panel.querySelectorAll('.sf-dropdown-option.focused').forEach(o => o.classList.remove('focused'));
+    if (opt) { opt.classList.add('focused'); opt.scrollIntoView({ block: 'nearest' }); }
+  }
+
+  function selectOption(opt, wrap, panel, display, select, sfField) {
+    const val   = opt.dataset.value;
+    const label = opt.textContent.trim();
+    select.value = val;
+    display.textContent = label;
+    if (val === '') {
+      display.classList.add('placeholder');
+      if (sfField) sfField.classList.remove('has-value');
+    } else {
+      display.classList.remove('placeholder');
+      if (sfField) sfField.classList.add('has-value');
+    }
+    panel.querySelectorAll('.sf-dropdown-option').forEach(o => o.classList.remove('selected', 'focused'));
+    opt.classList.add('selected');
+  }
+
+  function closeAll() {
+    document.querySelectorAll('.sf-dropdown-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.sf-select-wrap').forEach(w => w.classList.remove('open'));
+    document.querySelectorAll('.sf-dropdown-option.focused').forEach(o => o.classList.remove('focused'));
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.sf-select-wrap') && !e.target.closest('.sf-dropdown-panel')) closeAll();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+  window.addEventListener('scroll', closeAll, { passive: true });
+  window.addEventListener('resize', closeAll, { passive: true });
+})();
+
+
+</script>
+</html>
