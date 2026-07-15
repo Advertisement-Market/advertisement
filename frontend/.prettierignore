@@ -1,0 +1,6 @@
+dist
+node_modules
+package-lock.json
+# Generated / extracted from templates — preserve as-is for pixel fidelity
+src/pages/**/*.css
+src/styles/base.css
