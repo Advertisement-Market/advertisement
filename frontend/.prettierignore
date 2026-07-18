@@ -1,6 +1,8 @@
 dist
 node_modules
 package-lock.json
+# Design source templates — keep verbatim for pixel fidelity
+templates
 # Generated / extracted from templates — preserve as-is for pixel fidelity
 src/pages/**/*.css
 src/styles/base.css

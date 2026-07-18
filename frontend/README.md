@@ -1,6 +1,6 @@
 # The AdBasket — Frontend
 
-React port of the marketing/marketplace site in `../templates`. Built with React 19,
+React port of the marketing/marketplace site in `./templates`. Built with React 19,
 Vite, React Router 7 and Tailwind CSS 4.
 
 ## Getting started

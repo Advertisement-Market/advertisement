@@ -11,7 +11,8 @@ This is a monorepo containing:
 - **Frontend** — a React 19 single-page application (built and actively developed).
 - **Backend** — a Spring Boot REST API, consumed by the frontend via Axios (**planned — not yet
   scaffolded**).
-- **Templates** — the original hand-built HTML/CSS design source that the frontend is ported from.
+- **Templates** (`frontend/templates/`) — the original hand-built HTML/CSS design source that the
+  frontend is ported from.
 
 > **Current phase:** frontend only. Every page is driven by **dummy data** in `frontend/src/data`;
 > there is no backend or API integration wired up yet.
@@ -23,12 +24,12 @@ TheAdBasket_v1/
 ├── frontend/          # React 19 + Vite SPA
 │   ├── public/
 │   ├── src/
+│   ├── templates/     # Original static HTML/CSS (design source-of-truth)
 │   ├── index.html
 │   ├── vite.config.js
 │   ├── package.json
 │   └── README.md      # frontend-specific docs
 ├── backend/           # REST API (planned)
-├── templates/         # Original static HTML/CSS (design source-of-truth)
 ├── .gitignore
 └── README.md
 ```
