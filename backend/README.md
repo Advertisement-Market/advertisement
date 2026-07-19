@@ -1,9 +1,12 @@
 # The AdBasket — Backend
 
-REST API for The AdBasket OOH advertising marketplace. This is the **runnable skeleton**:
-project structure, build + config, database migrations, and a sample module to prove the
-stack end-to-end. The real domain (users/roles, billboards, agencies, tenders, bids,
-campaigns, quotes) is built on top of this.
+REST API for The AdBasket OOH advertising marketplace. This implements **authentication
+(registration + login)** on a professional, layered, JWT-secured foundation. The rest of the
+domain (billboards, agencies, tenders, bids, campaigns, quotes) is built on top of this.
+
+**Auth model:** BCrypt-hashed passwords, stateless JWT **access tokens** (HS256, 15 min) +
+opaque **refresh tokens** (7 days, stored in the DB, single-use / rotated on refresh).
+Three account roles: `ADVERTISER`, `OWNER`, `AGENCY`.
 
 ## Tech stack
 
@@ -13,6 +16,7 @@ campaigns, quotes) is built on top of this.
 | Framework          | Spring Boot            | 4.1.0     |
 | Build              | Maven                  | 3.9.11    |
 | Security           | Spring Security        | 7.1.0     |
+| Auth tokens        | jjwt (JWT)             | 0.12.6    |
 | Persistence        | Spring Data JPA        | 4.1.0     |
 | Migrations         | Flyway                 | 12.4.0    |
 | Metrics / observ.  | Micrometer             | 1.17.0    |
@@ -44,17 +48,20 @@ backend/
 └── src/
     ├── main/
     │   ├── java/com/theadbasket/backend/
-    │   │   ├── TheAdBasketApplication.java   # entry point
-    │   │   ├── config/SecurityConfig.java    # baseline (permit-all, TODO: lock down)
-    │   │   ├── common/web/                   # ApiError + GlobalExceptionHandler
-    │   │   ├── web/PingController.java        # GET /api/ping
-    │   │   └── sample/                       # sample module (entity→repo→service→controller)
+    │   │   ├── TheAdBasketApplication.java
+    │   │   ├── config/       # SecurityConfig, JwtProperties, JpaConfig (auditing), CORS
+    │   │   ├── security/     # JwtService, JwtAuthenticationFilter, SecurityUser,
+    │   │   │                 #   CustomUserDetailsService, RestAuthenticationEntryPoint
+    │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/
+    │   │   ├── user/         # User (entity), Role (enum), UserRepository
+    │   │   ├── auth/         # AuthController/Service, RefreshToken(+repo/service), dto/
+    │   │   └── web/          # PingController (GET /api/ping)
     │   └── resources/
-    │       ├── application.yml                # common config
+    │       ├── application.yml                # common config + app.jwt.*
     │       ├── application-dev.yml            # H2 (default)
     │       ├── application-prod.yml           # PostgreSQL
-    │       └── db/migration/V1__init.sql      # Flyway baseline
-    └── test/                                  # context-load + Mockito unit + Testcontainers IT
+    │       └── db/migration/V1__init.sql      # Flyway: users + refresh_tokens
+    └── test/                                  # unit (Mockito) + MockMvc flow (H2) + Testcontainers IT
 ```
 
 ## Running
@@ -83,13 +90,27 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar
 
 ## Endpoints
 
-| Method | Path                   | Description                              |
-| ------ | ---------------------- | ---------------------------------------- |
-| GET    | `/api/ping`            | Liveness JSON (`{status, service, ...}`) |
-| GET    | `/api/samples`         | Flyway-seeded sample rows (JPA)          |
-| GET    | `/actuator/health`     | Health check                             |
-| GET    | `/actuator/prometheus` | Prometheus metrics                       |
-| —      | `/h2-console`          | H2 web console (dev profile only)        |
+| Method | Path                   | Auth | Description                                        |
+| ------ | ---------------------- | ---- | ------------------------------------------------- |
+| POST   | `/api/auth/register`   | —    | Create account → `201` with access+refresh tokens |
+| POST   | `/api/auth/login`      | —    | Authenticate → tokens + user                       |
+| POST   | `/api/auth/refresh`    | —    | Exchange refresh token for a new pair (rotates)    |
+| POST   | `/api/auth/logout`     | —    | Revoke a refresh token → `204`                     |
+| GET    | `/api/auth/me`         | ✅   | Current user (Bearer access token)                 |
+| GET    | `/api/ping`            | —    | Liveness JSON                                      |
+| GET    | `/actuator/health`     | —    | Health check                                       |
+| GET    | `/actuator/prometheus` | —    | Prometheus metrics                                 |
+| —      | `/h2-console`          | —    | H2 web console (dev profile only)                  |
+
+Example:
+
+```bash
+curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' \
+  -d '{"firstName":"Rahul","lastName":"Sharma","email":"rahul@example.com",
+       "phone":"+91 98765 43210","role":"ADVERTISER","password":"Passw0rd!"}'
+
+curl http://localhost:8080/api/auth/me -H "Authorization: Bearer <accessToken>"
+```
 
 ## Testing
 
@@ -98,9 +119,10 @@ mvn test              # unit + context tests (H2)
 mvn verify            # also runs the Testcontainers IT (needs Docker)
 ```
 
-- `SampleServiceTest` — Mockito unit test (no Spring context).
+- `AuthServiceTest` — Mockito unit test for registration (no Spring context).
+- `AuthFlowIntegrationTest` — full MockMvc flow (register → login → `/me`, 409/401/400 cases) on H2.
 - `TheAdBasketApplicationTests` — context boots under H2 + Flyway.
-- `SampleItemRepositoryIT` — runs against real PostgreSQL 18 via Testcontainers (**Docker required**).
+- `UserRepositoryIT` — runs against real PostgreSQL 18 via Testcontainers (**Docker required**).
 
 ## Maven wrapper (optional)
 
@@ -113,5 +135,8 @@ mvn wrapper:wrapper -Dmaven=3.9.11
 ## Notes
 
 - Flyway owns the schema; JPA `ddl-auto` is `validate` (never mutates the DB).
-- Security currently permits all requests — real authN/authZ comes with the users module.
-- The `sample` package is a placeholder to be replaced by the real domain.
+- Public paths: the auth endpoints (except `/me`), `/api/ping`, actuator health/metrics, H2 console.
+  Everything else requires a valid Bearer token; unauthenticated requests get a JSON `401`.
+- **Set `JWT_SECRET`** (>= 32 chars) in every non-dev environment — the default is dev-only.
+- CORS is open to `http://localhost:5173` (Vite) for the upcoming frontend integration.
+- Passwords are BCrypt-hashed and never returned; refresh tokens are rotated (single-use).

@@ -35,3 +35,10 @@ info:
   app:
     name: The AdBasket Backend
     description: REST API for the OOH advertising marketplace
+
+app:
+  jwt:
+    # HS256 signing secret (>= 32 chars). MUST be overridden in prod via JWT_SECRET.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-in-production-min-32-chars-please}
+    access-token-expiration: 15m
+    refresh-token-expiration: 7d

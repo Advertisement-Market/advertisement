@@ -31,6 +31,7 @@
          `testcontainers-bom` artifact — the actual junit-jupiter/postgresql modules
          top out at 1.21.4, so the modules are pinned to the latest real version. -->
     <testcontainers.version>1.21.4</testcontainers.version>
+    <jjwt.version>0.12.6</jjwt.version>
   </properties>
 
   <dependencies>
@@ -61,7 +62,11 @@
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
-    <!-- Database migrations -->
+    <!-- Database migrations (spring-boot-flyway provides the Boot 4 auto-configuration) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-flyway</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
@@ -83,10 +88,45 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- JWT (access tokens) -->
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- Testing: JUnit 5 + Mockito (via starter-test), Spring Security test, Testcontainers -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Boot 4 test slices live in dedicated modules (no longer bundled in starter-test). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-data-jpa-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-jdbc-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
