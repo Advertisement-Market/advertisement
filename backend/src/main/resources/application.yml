@@ -1,0 +1,37 @@
+# Common configuration. Profile-specific datasource settings live in
+# application-dev.yml (H2) and application-prod.yml (PostgreSQL).
+spring:
+  application:
+    name: theadbasket-backend
+  profiles:
+    default: dev
+  jpa:
+    # Flyway owns the schema; Hibernate only validates entities against it.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+info:
+  app:
+    name: The AdBasket Backend
+    description: REST API for the OOH advertising marketplace
