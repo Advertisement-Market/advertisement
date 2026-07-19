@@ -7,6 +7,7 @@ import { OwnerHome } from '@/pages/OwnerHome/OwnerHome';
 import { OwnerRegister } from '@/pages/OwnerRegister/OwnerRegister';
 import { AgencyHome } from '@/pages/AgencyHome/AgencyHome';
 import { AgencyRegister } from '@/pages/AgencyRegister/AgencyRegister';
+import { Browse } from '@/pages/Browse/Browse';
 import { ComingSoon } from '@/pages/_stubs/ComingSoon';
 
 /**
@@ -34,7 +35,7 @@ export function AppRoutes() {
       <Route path={ROUTES.ownerDashboard} element={<ComingSoon title="Owner Dashboard" />} />
       <Route path={ROUTES.agencyDashboard} element={<ComingSoon title="Agency Dashboard" />} />
 
-      <Route path={ROUTES.browse} element={<ComingSoon title="Browse Billboards" />} />
+      <Route path={ROUTES.browse} element={<Browse />} />
       <Route path={ROUTES.browseAgencies} element={<ComingSoon title="Find Agencies" />} />
 
       <Route path="*" element={<ComingSoon title="Page not found" />} />
