@@ -52,7 +52,7 @@ public class AuthService {
                 normalizePhone(request.phone()),
                 request.role());
         user = userRepository.save(user);
-        return issueTokens(user);
+        return issueTokensFor(user);
     }
 
     @Transactional
@@ -65,7 +65,7 @@ public class AuthService {
         }
         User user = userRepository.findByEmailIgnoreCase(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
-        return issueTokens(user);
+        return issueTokensFor(user);
     }
 
     @Transactional
@@ -74,7 +74,7 @@ public class AuthService {
         User user = current.getUser();
         // Rotate: the presented token is single-use.
         refreshTokenService.revoke(refreshToken);
-        return issueTokens(user);
+        return issueTokensFor(user);
     }
 
     @Transactional
@@ -82,7 +82,8 @@ public class AuthService {
         refreshTokenService.revoke(refreshToken);
     }
 
-    private AuthResponse issueTokens(User user) {
+    /** Issues a fresh access + refresh token pair for the given user (reused by registration). */
+    public AuthResponse issueTokensFor(User user) {
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.create(user);
         return AuthResponse.bearer(

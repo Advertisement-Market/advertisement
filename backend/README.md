@@ -55,6 +55,10 @@ backend/
     │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/
     │   │   ├── user/         # User (entity), Role (enum), UserRepository
     │   │   ├── auth/         # AuthController/Service, RefreshToken(+repo/service), dto/
+    │   │   ├── advertiser/   # AdvertiserProfile + CampaignBrief (+repos)
+    │   │   ├── owner/        # OwnerProfile + BillboardListing (+repos)
+    │   │   ├── agency/       # AgencyProfile + PortfolioItem (+repo)
+    │   │   ├── registration/ # RegistrationController/Service + role request DTOs
     │   │   └── web/          # PingController (GET /api/ping)
     │   └── resources/
     │       ├── application.yml                # common config + app.jwt.*
@@ -90,10 +94,13 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar
 
 ## Endpoints
 
-| Method | Path                   | Auth | Description                                        |
-| ------ | ---------------------- | ---- | ------------------------------------------------- |
-| POST   | `/api/auth/register`   | —    | Create account → `201` with access+refresh tokens |
-| POST   | `/api/auth/login`      | —    | Authenticate → tokens + user                       |
+| Method | Path                            | Auth | Description                                        |
+| ------ | ------------------------------- | ---- | ------------------------------------------------- |
+| POST   | `/api/auth/register`            | —    | Basic account (used by the quick auth modal)       |
+| POST   | `/api/auth/register/advertiser` | —    | Full advertiser wizard → account + profile + brief |
+| POST   | `/api/auth/register/owner`      | —    | Full owner wizard → account + profile + listing    |
+| POST   | `/api/auth/register/agency`     | —    | Full agency wizard → account + profile             |
+| POST   | `/api/auth/login`               | —    | Authenticate → tokens + user                       |
 | POST   | `/api/auth/refresh`    | —    | Exchange refresh token for a new pair (rotates)    |
 | POST   | `/api/auth/logout`     | —    | Revoke a refresh token → `204`                     |
 | GET    | `/api/auth/me`         | ✅   | Current user (Bearer access token)                 |

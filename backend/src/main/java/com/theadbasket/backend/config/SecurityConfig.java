@@ -30,7 +30,8 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
         // Auth endpoints that must be reachable without a token (NOT /api/auth/me).
-        "/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
+        "/api/auth/register", "/api/auth/register/**",
+        "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
         "/api/ping",
         "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
         "/h2-console/**"
