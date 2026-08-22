@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
+import { LogoMark } from '@/components/layout/Logo';
 import {
   NAV, TITLES, NOTIFICATIONS, ONBOARD_STEPS, TENDERS, BIDS, CAMPAIGNS, CLIENTS, CASESTUDIES,
   ANALYTICS_CLIENTS, CHART_MONTHS, CHART_REVENUE, CHART_BIDS, CHART_WON,
@@ -15,7 +16,7 @@ function Sidebar({ active, onNav }) {
   return (
     <aside className="sb">
       <div className="sb-logo">
-        <Link to={ROUTES.home}><span className="logo-the">The</span><span className="logo-ad">Ad</span><span className="logo-bsk">Basket</span></Link>
+        <Link to={ROUTES.home}><LogoMark size={24} style={{ marginRight: 8 }} /><span className="logo-the">The</span><span className="logo-ad">Ad</span><span className="logo-bsk">Basket</span></Link>
         <div className="sb-logo-role">Agency Portal</div>
       </div>
       <div className="sb-user">

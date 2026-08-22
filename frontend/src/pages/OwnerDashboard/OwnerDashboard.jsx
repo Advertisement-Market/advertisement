@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
+import { LogoMark } from '@/components/layout/Logo';
 import {
   NAV, TITLES, NOTIFICATIONS, ONBOARD_STEPS, LISTINGS, LISTING_NAMES, QUOTES, TENDERS, BOOKINGS,
   CHART_MONTHS_12, CHART_REVENUE_12, CHART_VIEWS_12, REVENUE_BY_LISTING, VIEWS_BY_LISTING,
@@ -18,8 +19,8 @@ function Sidebar({ active, onNav, userName }) {
     <aside className="sb">
       <div className="sb-logo">
         <div className="sb-logo-mark">
-          <div className="sb-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="13" rx="2" /><path d="M12 16v5M8 21h8" /></svg></div>
-          <div className="sb-logo-text">Ad<span>Market</span></div>
+          <LogoMark size={34} />
+          <div className="sb-logo-text">The<span>AdBasket</span></div>
         </div>
         <div className="sb-logo-role">Billboard Owner Portal</div>
       </div>

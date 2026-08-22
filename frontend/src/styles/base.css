@@ -47,6 +47,18 @@ textarea {
   font-family: var(--font-body);
 }
 
+/* ── Text caret: only show the blinking insertion caret in real editable
+   fields. Prevents a stray/blinking caret on non-editable text (also
+   suppresses the browser Caret Browsing caret over page content). ── */
+:root {
+  caret-color: transparent;
+}
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']) {
+  caret-color: auto;
+}
+
 #root {
   isolation: isolate;
 }
