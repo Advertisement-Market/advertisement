@@ -1,6 +1,9 @@
 import { ROUTES } from '@/lib/routes';
 import { RegisterProvider, RegisterShell, useRegister, SuccessScreen } from '@/features/register';
 import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
+import { useAuth } from '@/context/AuthContext';
+import { mapAdvertiser } from '@/features/auth/registrationMappers';
+import { apiErrorMessage } from '@/lib/apiClient';
 import './AdvertiserRegister.css';
 
 const STEPS = [
@@ -137,9 +140,17 @@ function WizardBody() {
 }
 
 export function AdvertiserRegister() {
+  const { registerAdvertiser } = useAuth();
+  const onSubmit = async ({ data, selections }) => {
+    try {
+      await registerAdvertiser(mapAdvertiser(data, selections));
+    } catch (err) {
+      throw new Error(apiErrorMessage(err), { cause: err });
+    }
+  };
   return (
     <div className="advertiser-register-page">
-      <RegisterProvider totalSteps={7} validate={validate} validateSubmit={validateSubmit}>
+      <RegisterProvider totalSteps={7} validate={validate} validateSubmit={validateSubmit} onSubmit={onSubmit}>
         <RegisterShell
           tagline="Advertiser Registration"
           steps={STEPS}

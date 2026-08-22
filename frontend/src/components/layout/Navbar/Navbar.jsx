@@ -1,9 +1,12 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
+import { ROUTES, DASHBOARD_BY_ROLE } from '@/lib/routes';
 import { useScrolled } from '@/hooks/useScrolled';
 import { useToggle } from '@/hooks/useToggle';
 import { useAuthModal } from '@/context/AuthModalContext';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { Logo } from '@/components/layout/Logo';
 
 const HIDDEN_PILL = { opacity: 0, width: 0, transform: 'translateX(0px)' };
@@ -22,6 +25,16 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
   const scrolled = useScrolled(40);
   const [mobileOpen, mobile] = useToggle(false);
   const { openLogin, openRegister } = useAuthModal();
+  const { isAuthenticated, user, logout } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const dashTo = (user && DASHBOARD_BY_ROLE[user.role]) || ROUTES.browse;
+  const handleLogout = () => {
+    logout();
+    mobile.close();
+    showToast('You have been signed out.');
+    navigate(ROUTES.home);
+  };
 
   const switcherRef = useRef(null);
   const activeBtnRef = useRef(null);
@@ -88,12 +101,29 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
         </ul>
 
         <div className="nav-cta">
-          <button className="btn-nav-ghost" onClick={openLogin}>
-            Sign In
-          </button>
-          <button className="btn-nav-primary" onClick={openRegister}>
-            Join Free
-          </button>
+          {isAuthenticated ? (
+            <>
+              <Link
+                to={dashTo}
+                className="btn-nav-primary"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+              >
+                Dashboard
+              </Link>
+              <button className="btn-nav-ghost" onClick={handleLogout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn-nav-ghost" onClick={openLogin}>
+                Sign In
+              </button>
+              <button className="btn-nav-primary" onClick={openRegister}>
+                Join Free
+              </button>
+            </>
+          )}
           <button
             className={cn('nav-hamburger', mobileOpen && 'open')}
             onClick={mobile.toggle}
@@ -120,26 +150,44 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
           ),
         )}
         <div className="mobile-nav-cta">
-          <button
-            className="btn-ghost-dark"
-            style={{ padding: '10px 18px' }}
-            onClick={() => {
-              openLogin();
-              mobile.close();
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            className="btn-amber"
-            style={{ padding: '10px 18px' }}
-            onClick={() => {
-              openRegister();
-              mobile.close();
-            }}
-          >
-            Join Free
-          </button>
+          {isAuthenticated ? (
+            <>
+              <Link
+                to={dashTo}
+                className="btn-amber"
+                style={{ padding: '10px 18px', textDecoration: 'none' }}
+                onClick={mobile.close}
+              >
+                Dashboard
+              </Link>
+              <button className="btn-ghost-dark" style={{ padding: '10px 18px' }} onClick={handleLogout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="btn-ghost-dark"
+                style={{ padding: '10px 18px' }}
+                onClick={() => {
+                  openLogin();
+                  mobile.close();
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                className="btn-amber"
+                style={{ padding: '10px 18px' }}
+                onClick={() => {
+                  openRegister();
+                  mobile.close();
+                }}
+              >
+                Join Free
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

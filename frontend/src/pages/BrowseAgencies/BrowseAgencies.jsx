@@ -1,8 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-import { ROUTES } from '@/lib/routes';
+import { ROUTES, DASHBOARD_BY_ROLE } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
+import { useAuthModal } from '@/context/AuthModalContext';
+import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/features/auth/AuthModal';
+import { LogoMark } from '@/components/layout/Logo';
 import {
   AGENCIES,
   AGENCY_TYPES,
@@ -59,10 +63,20 @@ function DItem({ selected, onClick, children }) {
 const monogramOf = (name) => name.split(' ').slice(0, 2).map((w) => w[0]).join('');
 
 /* ── Nav ── */
-function BrowseNav({ onSignIn }) {
+function BrowseNav() {
   const switcherRef = useRef(null);
   const activeRef = useRef(null);
   const [pill, setPill] = useState({ width: 0, x: 0 });
+  const { openLogin, openRegister } = useAuthModal();
+  const { isAuthenticated, user, logout } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const dashTo = (user && DASHBOARD_BY_ROLE[user.role]) || ROUTES.browseAgencies;
+  const handleLogout = () => {
+    logout();
+    showToast('You have been signed out.');
+    navigate(ROUTES.home);
+  };
   useLayoutEffect(() => {
     if (!switcherRef.current || !activeRef.current) return;
     const sr = switcherRef.current.getBoundingClientRect();
@@ -73,6 +87,7 @@ function BrowseNav({ onSignIn }) {
     <nav className="site-nav">
       <div className="nav-left">
         <Link to={ROUTES.home} className="nav-logo">
+          <LogoMark size={26} style={{ marginRight: 9 }} />
           <span className="logo-the">The</span><span className="logo-ad">Ad</span><span className="logo-bsk">Basket</span>
         </Link>
         <Link to={ROUTES.home} className="nav-back">
@@ -86,8 +101,17 @@ function BrowseNav({ onSignIn }) {
         </div>
       </div>
       <div className="nav-cta">
-        <button className="btn-nav-ghost" onClick={onSignIn}>Sign In</button>
-        <button className="btn-nav-primary" onClick={onSignIn}>Get Started Free</button>
+        {isAuthenticated ? (
+          <>
+            <Link to={dashTo} className="btn-nav-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Dashboard</Link>
+            <button className="btn-nav-ghost" onClick={handleLogout}>Log out</button>
+          </>
+        ) : (
+          <>
+            <button className="btn-nav-ghost" onClick={openLogin}>Sign In</button>
+            <button className="btn-nav-primary" onClick={openRegister}>Get Started Free</button>
+          </>
+        )}
       </div>
     </nav>
   );
@@ -227,73 +251,6 @@ function DetailPanel({ a, onClose, onSubmit }) {
   );
 }
 
-/* ── Auth modal (teal variant) ── */
-function AuthModal({ onClose }) {
-  const { showToast } = useToast();
-  const [view, setView] = useState('login');
-  const submit = (e) => {
-    e.preventDefault();
-    if (view === 'register') { setView('success'); return; }
-    showToast('Welcome back — redirecting…');
-    setTimeout(onClose, 1200);
-  };
-  return (
-    <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <button className="modal-close" onClick={onClose}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
-        {view === 'success' ? (
-          <div style={{ textAlign: 'center', padding: '28px 0' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-            </div>
-            <h3 style={{ marginBottom: 8 }}>You&apos;re in!</h3>
-            <p className="sub" style={{ marginBottom: 28 }}>Check your email to verify your account. Start exploring agencies.</p>
-            <button className="auth-submit" onClick={onClose} style={{ maxWidth: 220, margin: '0 auto' }}>Start Browsing</button>
-          </div>
-        ) : (
-          <>
-            <h3>{view === 'login' ? 'Welcome back' : 'Create your account'}</h3>
-            <p className="sub">{view === 'login' ? 'Sign in to your AdBasket account.' : 'Free to join. Find your OOH agency partner.'}</p>
-            <div className="tab-bar">
-              <button className={cn('tab-btn', view === 'login' && 'active')} onClick={() => setView('login')}>Sign In</button>
-              <button className={cn('tab-btn', view === 'register' && 'active')} onClick={() => setView('register')}>Create Account</button>
-            </div>
-            <form onSubmit={submit}>
-              {view === 'register' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div className="form-group"><label>First Name</label><input type="text" className="form-control" placeholder="Rahul" required /></div>
-                  <div className="form-group"><label>Last Name</label><input type="text" className="form-control" placeholder="Sharma" required /></div>
-                </div>
-              )}
-              <div className="form-group"><label>Email Address</label><input type="email" className="form-control" placeholder="you@company.com" required /></div>
-              <div className="form-group">
-                <label>Password</label>
-                <input type="password" className="form-control" placeholder={view === 'login' ? 'Your password' : 'Min 8 characters'} required minLength={view === 'register' ? 8 : undefined} />
-              </div>
-              {view === 'login' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-mid)', cursor: 'pointer' }}>
-                    <input type="checkbox" style={{ accentColor: 'var(--teal)' }} /> Remember me
-                  </label>
-                  <a href="#" style={{ fontSize: 13, color: 'var(--teal)' }} onClick={(e) => e.preventDefault()}>Forgot password?</a>
-                </div>
-              )}
-              <button type="submit" className="auth-submit">{view === 'login' ? 'Sign In' : 'Create Free Account'}</button>
-            </form>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-soft)', marginTop: 14 }}>
-              {view === 'login' ? 'No account? ' : 'Already registered? '}
-              <a href="#" onClick={(e) => { e.preventDefault(); setView(view === 'login' ? 'register' : 'login'); }} style={{ color: 'var(--teal)', fontWeight: 500 }}>
-                {view === 'login' ? 'Register free' : 'Sign in'}
-              </a>
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ════════════════════════════════════════════════════════════════════ */
 export function BrowseAgencies() {
@@ -311,7 +268,6 @@ export function BrowseAgencies() {
   const [view, setView] = useState('grid');
   const [openDD, setOpenDD] = useState(null);
   const [detailId, setDetailId] = useState(null);
-  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     const onClick = (e) => { if (!e.target.closest('.custom-dropdown')) setOpenDD(null); };
@@ -372,7 +328,7 @@ export function BrowseAgencies() {
 
   return (
     <div className="browse-agencies-page">
-      <BrowseNav onSignIn={() => setAuthOpen(true)} />
+      <BrowseNav />
 
       {/* Command bar */}
       <div className="browse-bar">
@@ -599,7 +555,7 @@ export function BrowseAgencies() {
           onSubmit={() => { showToast('Inquiry sent — the agency will respond within 48 hours.'); setDetailId(null); }}
         />
       )}
-      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+      <AuthModal submitVariant="primary" />
     </div>
   );
 }

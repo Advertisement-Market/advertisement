@@ -817,6 +817,14 @@
 
   .tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-xs); }
 
+  /* Shared AuthModal form bits */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-submit:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+  .form-footer { text-align: center; font-size: 13px; color: var(--ink-soft); font-weight: 300; margin-top: 14px; }
+  .form-footer a { color: var(--teal); text-decoration: none; font-weight: 500; }
+  .form-footer a:hover { text-decoration: underline; }
+
   .auth-submit {
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
     font-size: 14px; font-weight: 600; padding: 13px; border-radius: 11px;

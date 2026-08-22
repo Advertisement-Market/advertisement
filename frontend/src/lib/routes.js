@@ -26,6 +26,13 @@ export const ROUTES = {
   browseAgencies: '/browse/agencies',
 };
 
+/** Maps an authenticated user's role to their dashboard route. */
+export const DASHBOARD_BY_ROLE = {
+  ADVERTISER: ROUTES.advertiserDashboard,
+  OWNER: ROUTES.ownerDashboard,
+  AGENCY: ROUTES.agencyDashboard,
+};
+
 /**
  * Build a URL with a query string from a params object (skips empty values).
  * Mirrors the original handleBillboardSearch/handleAgencySearch helpers.

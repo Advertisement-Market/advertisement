@@ -1,10 +1,12 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-import { ROUTES } from '@/lib/routes';
+import { ROUTES, DASHBOARD_BY_ROLE } from '@/lib/routes';
 import { useScrolled } from '@/hooks/useScrolled';
 import { useToggle } from '@/hooks/useToggle';
 import { useAuthModal } from '@/context/AuthModalContext';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { Logo } from '@/components/layout/Logo';
 import { NAV_ROLES } from '@/data/navigation';
 
@@ -65,7 +67,17 @@ export function HomeNavbar({
   const scrolled = useScrolled(40);
   const [mobileOpen, mobile] = useToggle(false);
   const { openLogin, openRegister } = useAuthModal();
+  const { isAuthenticated, user, logout } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
   const signIn = onSignIn ?? openLogin;
+  const myDash = (user && DASHBOARD_BY_ROLE[user.role]) || dashboardTo;
+  const handleLogout = () => {
+    logout();
+    mobile.close();
+    showToast('You have been signed out.');
+    navigate(ROUTES.home);
+  };
 
   const switcherRef = useRef(null);
   const activeBtnRef = useRef(null);
@@ -127,25 +139,35 @@ export function HomeNavbar({
         </ul>
 
         <div className="nav-cta">
-          <Link
-            to={dashboardTo}
-            className={cn(accentBtn, 'btn-sm')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-          >
-            {GridIcon}
-            My Dashboard
-          </Link>
-          <button className="btn-ghost" onClick={signIn}>
-            Sign In
-          </button>
-          {ctaTo ? (
-            <Link to={ctaTo} className={accentBtn}>
-              {ctaLabel}
-            </Link>
+          {isAuthenticated ? (
+            <>
+              <Link
+                to={myDash}
+                className={cn(accentBtn, 'btn-sm')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              >
+                {GridIcon}
+                My Dashboard
+              </Link>
+              <button className="btn-ghost" onClick={handleLogout}>
+                Log out
+              </button>
+            </>
           ) : (
-            <button className={accentBtn} onClick={openRegister}>
-              {ctaLabel}
-            </button>
+            <>
+              <button className="btn-ghost" onClick={signIn}>
+                Sign In
+              </button>
+              {ctaTo ? (
+                <Link to={ctaTo} className={accentBtn}>
+                  {ctaLabel}
+                </Link>
+              ) : (
+                <button className={accentBtn} onClick={openRegister}>
+                  {ctaLabel}
+                </button>
+              )}
+            </>
           )}
           <button
             className={cn('nav-hamburger', mobileOpen && 'open')}
@@ -173,29 +195,42 @@ export function HomeNavbar({
           ),
         )}
         <div className="mobile-nav-cta">
-          <button
-            className="btn-ghost"
-            onClick={() => {
-              signIn();
-              mobile.close();
-            }}
-          >
-            Sign In
-          </button>
-          {ctaTo ? (
-            <Link to={ctaTo} className={accentBtn} onClick={mobile.close}>
-              {ctaLabel}
-            </Link>
+          {isAuthenticated ? (
+            <>
+              <Link to={myDash} className={accentBtn} onClick={mobile.close}>
+                My Dashboard
+              </Link>
+              <button className="btn-ghost" onClick={handleLogout}>
+                Log out
+              </button>
+            </>
           ) : (
-            <button
-              className={accentBtn}
-              onClick={() => {
-                openRegister();
-                mobile.close();
-              }}
-            >
-              {ctaLabel}
-            </button>
+            <>
+              <button
+                className="btn-ghost"
+                onClick={() => {
+                  signIn();
+                  mobile.close();
+                }}
+              >
+                Sign In
+              </button>
+              {ctaTo ? (
+                <Link to={ctaTo} className={accentBtn} onClick={mobile.close}>
+                  {ctaLabel}
+                </Link>
+              ) : (
+                <button
+                  className={accentBtn}
+                  onClick={() => {
+                    openRegister();
+                    mobile.close();
+                  }}
+                >
+                  {ctaLabel}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { BrowserRouter } from 'react-router-dom';
 import { ToastProvider } from '@/context/ToastProvider';
 import { AuthModalProvider } from '@/context/AuthModalProvider';
+import { AuthProvider } from '@/context/AuthProvider';
 import { AppRoutes } from '@/router/AppRoutes';
 
 /**
@@ -10,11 +11,13 @@ import { AppRoutes } from '@/router/AppRoutes';
 export default function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <AuthModalProvider>
-          <AppRoutes />
-        </AuthModalProvider>
-      </ToastProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <AuthModalProvider>
+            <AppRoutes />
+          </AuthModalProvider>
+        </ToastProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -18,6 +18,7 @@ export function RegisterProvider({
   totalSteps = 7,
   validate,
   validateSubmit,
+  onSubmit,
   initialData,
   children,
 }) {
@@ -26,6 +27,7 @@ export function RegisterProvider({
   const [currentStep, setCurrentStep] = useState(1);
   const [maxStepReached, setMaxStepReached] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [revealErrors, setRevealErrors] = useState(false);
 
   const [toast, setToast] = useState({ message: '', type: '', show: false });
@@ -105,15 +107,28 @@ export function RegisterProvider({
     scrollTop();
   }, []);
 
-  const submit = useCallback(() => {
+  const submit = useCallback(async () => {
     const ok = validateSubmit ? validateSubmit({ data, selections, showToast }) : true;
     if (!ok) {
       setRevealErrors(true);
       return;
     }
-    setSubmitted(true);
-    scrollTop();
-  }, [validateSubmit, data, selections, showToast]);
+    if (!onSubmit) {
+      setSubmitted(true);
+      scrollTop();
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit({ data, selections });
+      setSubmitted(true);
+      scrollTop();
+    } catch (err) {
+      showToast(err?.message || 'Registration failed. Please try again.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [validateSubmit, onSubmit, data, selections, showToast]);
 
   const value = useMemo(
     () => ({
@@ -123,6 +138,7 @@ export function RegisterProvider({
       maxStepReached,
       totalSteps,
       submitted,
+      submitting,
       toast,
       revealErrors,
       field,
@@ -143,6 +159,7 @@ export function RegisterProvider({
       maxStepReached,
       totalSteps,
       submitted,
+      submitting,
       toast,
       revealErrors,
       field,

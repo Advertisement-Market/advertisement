@@ -1,6 +1,9 @@
 import { ROUTES } from '@/lib/routes';
 import { RegisterProvider, RegisterShell, useRegister, SuccessScreen } from '@/features/register';
 import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
+import { useAuth } from '@/context/AuthContext';
+import { mapAgency } from '@/features/auth/registrationMappers';
+import { apiErrorMessage } from '@/lib/apiClient';
 import './AgencyRegister.css';
 
 const STEPS = [
@@ -146,6 +149,14 @@ function WizardBody() {
 }
 
 export function AgencyRegister() {
+  const { registerAgency } = useAuth();
+  const onSubmit = async ({ data, selections }) => {
+    try {
+      await registerAgency(mapAgency(data, selections));
+    } catch (err) {
+      throw new Error(apiErrorMessage(err), { cause: err });
+    }
+  };
   return (
     <div className="agency-register-page">
       <RegisterProvider
@@ -153,6 +164,7 @@ export function AgencyRegister() {
         validate={validate}
         validateSubmit={validateSubmit}
         initialData={{ f_tenderBudget: '₹0 – ₹1 Lakh' }}
+        onSubmit={onSubmit}
       >
         <RegisterShell
           tagline="Agency Registration"
