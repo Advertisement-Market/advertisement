@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 import { LogoMark } from '@/components/layout/Logo';
 import {
   NAV, TITLES, NOTIFICATIONS, ONBOARD_STEPS, QUOTES, MEDIA_PLAN_INIT, SAVED,
@@ -12,9 +13,13 @@ import './AdvertiserDashboard.css';
 
 const L = (n) => (n / 100000).toFixed(1);
 const html = (s) => ({ __html: s });
+const displayName = (user) => [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Advertiser';
+const initialsOf = (user) =>
+  ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || 'A';
 
 /* ── Sidebar ── */
 function Sidebar({ active, onNav }) {
+  const { user } = useAuth();
   return (
     <aside className="sb">
       <div className="sb-logo">
@@ -22,9 +27,9 @@ function Sidebar({ active, onNav }) {
         <div className="sb-logo-role">Advertiser Portal</div>
       </div>
       <div className="sb-user">
-        <div className="sb-avatar">RS</div>
+        <div className="sb-avatar">{initialsOf(user)}</div>
         <div>
-          <div className="sb-user-name">Rahul Sharma</div>
+          <div className="sb-user-name">{displayName(user)}</div>
           <div className="sb-user-plan">Growth Plan · Free Trial</div>
         </div>
       </div>
@@ -127,6 +132,7 @@ const CAMPAIGNS = [
 /* ── Pages ── */
 function Overview({ onNav, mediaPlan }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [onboard, setOnboard] = useState(true);
   const [steps, setSteps] = useState(ONBOARD_STEPS);
   const done = steps.filter((s) => s.done).length;
@@ -145,7 +151,7 @@ function Overview({ onNav, mediaPlan }) {
       {onboard && (
         <div className="onboard-card">
           <div className="onboard-header">
-            <div><h3>Welcome to The AdBasket, Rahul!</h3><p>Complete these steps to get your first campaign live.</p></div>
+            <div><h3>Welcome to The AdBasket, {user?.firstName || 'there'}!</h3><p>Complete these steps to get your first campaign live.</p></div>
             <button className="onboard-dismiss" onClick={() => { setOnboard(false); showToast('You can find setup tips in Settings anytime.'); }}>Dismiss</button>
           </div>
           <div className="onboard-progress-bar"><div className="onboard-progress-fill" style={{ width: `${(done / 5) * 100}%` }} /></div>
@@ -439,6 +445,7 @@ function Analytics() {
 
 function Settings() {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [prefs, setPrefs] = useState(NOTIF_PREFS.map(() => true));
   return (
     <div className="page active">
@@ -446,7 +453,7 @@ function Settings() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div className="section-card" style={{ padding: 28 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--ink-rich)', letterSpacing: '-0.3px', marginBottom: 20 }}>Profile Details</h3>
-          <div className="form-row"><div className="form-group"><label>First Name</label><input type="text" className="form-control" defaultValue="Rahul" /></div><div className="form-group"><label>Last Name</label><input type="text" className="form-control" defaultValue="Sharma" /></div></div>
+          <div className="form-row"><div className="form-group"><label>First Name</label><input type="text" className="form-control" defaultValue={user?.firstName || ''} /></div><div className="form-group"><label>Last Name</label><input type="text" className="form-control" defaultValue={user?.lastName || ''} /></div></div>
           <div className="form-group"><label>Business Email</label><input type="email" className="form-control" defaultValue="rahul@company.com" /></div>
           <div className="form-group"><label>Phone</label><input type="tel" className="form-control" defaultValue="+91 98765 43210" /></div>
           <div className="form-group"><label>Company Name</label><input type="text" className="form-control" defaultValue="Sharma Enterprises" /></div>
