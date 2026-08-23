@@ -1,6 +1,7 @@
 package com.theadbasket.backend.security;
 
 import com.theadbasket.backend.config.JwtProperties;
+import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -39,6 +40,17 @@ public class JwtService {
 
     public String extractUsername(String token) {
         return parse(token).getSubject();
+    }
+
+    /** Builds the request principal straight from the token claims — no database lookup. */
+    public AuthenticatedUser toPrincipal(String token) {
+        Claims claims = parse(token);
+        Number uid = claims.get("uid", Number.class);
+        String role = claims.get("role", String.class);
+        return new AuthenticatedUser(
+                uid == null ? null : uid.longValue(),
+                claims.getSubject(),
+                role == null ? null : Role.valueOf(role));
     }
 
     public boolean isValid(String token) {

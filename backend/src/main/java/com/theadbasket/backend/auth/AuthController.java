@@ -6,7 +6,7 @@ import com.theadbasket.backend.auth.dto.LoginRequest;
 import com.theadbasket.backend.auth.dto.RefreshRequest;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
 import com.theadbasket.backend.auth.dto.UserResponse;
-import com.theadbasket.backend.security.SecurityUser;
+import com.theadbasket.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,7 +56,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public UserResponse me(@AuthenticationPrincipal SecurityUser principal) {
-        return UserResponse.from(principal.getDomainUser());
+    public UserResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return authService.currentUser(principal.id());
     }
 }

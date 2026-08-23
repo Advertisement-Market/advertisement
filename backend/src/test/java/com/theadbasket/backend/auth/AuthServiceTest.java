@@ -11,14 +11,15 @@ import static org.mockito.Mockito.when;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
+import com.theadbasket.backend.config.AuthPolicyProperties;
 import com.theadbasket.backend.security.JwtService;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
 import java.time.Instant;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -38,9 +39,17 @@ class AuthServiceTest {
     private JwtService jwtService;
     @Mock
     private RefreshTokenService refreshTokenService;
+    @Mock
+    private GoogleTokenVerifier googleTokenVerifier;
 
-    @InjectMocks
     private AuthService authService;
+
+    @BeforeEach
+    void setUp() {
+        authService = new AuthService(userRepository, passwordEncoder, authenticationManager,
+                jwtService, refreshTokenService, googleTokenVerifier,
+                new AuthPolicyProperties(8, 72, Role.MEMBER));
+    }
 
     @Test
     void register_hashesPassword_persistsUser_andReturnsTokens() {

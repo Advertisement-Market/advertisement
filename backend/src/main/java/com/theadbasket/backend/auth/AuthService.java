@@ -8,11 +8,14 @@ import com.theadbasket.backend.auth.dto.UserResponse;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
+import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
 import com.theadbasket.backend.security.JwtService;
 import com.theadbasket.backend.user.AuthProvider;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -23,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 /** Registration, login (local + Google), and token refresh/rotation. */
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -65,6 +70,7 @@ public class AuthService {
                 request.role() != null ? request.role() : policy.defaultRole());
         user.setAuthProvider(AuthProvider.LOCAL);
         user = userRepository.save(user);
+        log.info("Registered account id={} role={} (local)", user.getId(), user.getRole());
         return issueTokensFor(user);
     }
 
@@ -74,11 +80,21 @@ public class AuthService {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         } catch (AuthenticationException ex) {
+            log.warn("Failed login attempt for email={}", request.email());
             throw new InvalidCredentialsException();
         }
         User user = userRepository.findByEmailIgnoreCase(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
+        log.info("Login success for user id={} role={}", user.getId(), user.getRole());
         return issueTokensFor(user);
+    }
+
+    /** Current user's profile, looked up by id from the JWT principal (used by GET /api/auth/me). */
+    @Transactional(readOnly = true)
+    public UserResponse currentUser(Long userId) {
+        return userRepository.findById(userId)
+                .map(UserResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
     }
 
     /** Verifies a Google ID token, then signs in (linking) or creates a basic account. */
@@ -106,6 +122,7 @@ public class AuthService {
             }
             user = userRepository.save(user);
         }
+        log.info("Google sign-in for user id={} role={}", user.getId(), user.getRole());
         return issueTokensFor(user);
     }
 

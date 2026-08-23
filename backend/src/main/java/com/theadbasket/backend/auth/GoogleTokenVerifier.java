@@ -4,6 +4,8 @@ import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.config.GoogleProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -13,6 +15,8 @@ import org.springframework.web.client.RestClient;
  */
 @Component
 public class GoogleTokenVerifier {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleTokenVerifier.class);
 
     private final GoogleProperties properties;
     private final RestClient restClient;
@@ -38,13 +42,16 @@ public class GoogleTokenVerifier {
                     .retrieve()
                     .body(GoogleTokenInfo.class);
         } catch (RuntimeException ex) {
+            log.warn("Google token verification call failed: {}", ex.getMessage());
             throw new InvalidGoogleTokenException("Google could not verify this sign-in. Please try again.");
         }
 
         if (info == null || info.sub() == null || info.email() == null) {
+            log.warn("Google token verification returned an incomplete profile");
             throw new InvalidGoogleTokenException("Google returned an incomplete profile.");
         }
         if (!properties.clientId().equals(info.aud())) {
+            log.warn("Google token audience mismatch (aud={})", info.aud());
             throw new InvalidGoogleTokenException("This Google sign-in was not issued for The AdBasket.");
         }
         return info;

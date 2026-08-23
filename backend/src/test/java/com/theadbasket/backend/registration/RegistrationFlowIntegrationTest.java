@@ -35,10 +35,10 @@ class RegistrationFlowIntegrationTest {
 
     private static final String ADVERTISER = """
             {
-              "loginEmail":"adv@example.com","password":"Passw0rd!",
+              "accountEmail":"adv@example.com","password":"Passw0rd!",
               "companyName":"Nimbus Foods","businessType":"FMCG","website":"https://nimbus.in",
               "gstNumber":"","panNumber":"","industries":["FMCG","Retail & Fashion"],
-              "contactName":"Rohan Kapoor","contactDesignation":"Marketing Head",
+              "firstName":"Rohan","lastName":"Kapoor","contactDesignation":"Marketing Head",
               "contactEmail":"rohan@nimbus.in","contactPhone":"+91 98765 43210",
               "officeAddress":"12 MG Road, Mumbai","pincode":"400001",
               "project":{"title":"Summer Launch","description":"Nationwide summer campaign",
@@ -51,7 +51,7 @@ class RegistrationFlowIntegrationTest {
 
     private static final String OWNER = """
             {
-              "firstName":"Vikram","lastName":"Kumar","email":"owner@example.com","phone":"+91 97654 32109",
+              "firstName":"Vikram","lastName":"Kumar","accountEmail":"owner@example.com","phone":"+91 97654 32109",
               "password":"Passw0rd!","companyName":"Kumar Billboards","companyPhone":"","companyRegNumber":"",
               "gstNumber":"","businessAddressLine1":"5 CG Road","businessAddressLine2":"","businessPincode":"380001",
               "tradeLicenseNo":"","ownershipType":"Owned","regulatoryApprovals":"",
@@ -64,7 +64,7 @@ class RegistrationFlowIntegrationTest {
 
     private static final String AGENCY = """
             {
-              "loginEmail":"agency@example.com","password":"Passw0rd!","agencyName":"Pixel & Print",
+              "accountEmail":"agency@example.com","password":"Passw0rd!","agencyName":"Pixel & Print",
               "agencyType":"Full-Service Ad Agency","yearEstablished":2014,"yearsExperience":"10+ years",
               "tagline":"Bold ideas","about":"Full-service OOH agency","website":"https://pp.in","landline":"",
               "linkedinUrl":"","headquartersPincode":"400059","officeAddress":"Andheri East, Mumbai",
@@ -114,8 +114,8 @@ class RegistrationFlowIntegrationTest {
     @Test
     void advertiserRegistration_missingRequiredFields_returns400() throws Exception {
         String bad = """
-                {"loginEmail":"x@example.com","password":"Passw0rd!","companyName":"","businessType":"",
-                 "industries":[],"contactName":"","contactDesignation":"","contactEmail":"nope",
+                {"accountEmail":"x@example.com","password":"Passw0rd!","companyName":"","businessType":"",
+                 "industries":[],"firstName":"","contactDesignation":"","contactEmail":"nope",
                  "contactPhone":"123","officeAddress":"","pincode":"12","acceptedTerms":false}""";
         mockMvc.perform(post("/api/auth/register/advertiser")
                         .contentType(MediaType.APPLICATION_JSON).content(bad))

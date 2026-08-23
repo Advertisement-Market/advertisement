@@ -153,3 +153,12 @@ CREATE TABLE agency_portfolio_items (
 
 CREATE INDEX idx_campaign_briefs_user   ON campaign_briefs (user_id);
 CREATE INDEX idx_billboard_listings_user ON billboard_listings (user_id);
+
+-- Foreign-key indexes on child / element-collection tables (speed up cascade deletes and lookups).
+CREATE INDEX idx_advertiser_industries_profile ON advertiser_industries (profile_id);
+CREATE INDEX idx_campaign_brief_prefs_brief    ON campaign_brief_agency_prefs (brief_id);
+CREATE INDEX idx_agency_services_profile       ON agency_services (profile_id);
+CREATE INDEX idx_agency_industries_profile     ON agency_industries (profile_id);
+CREATE INDEX idx_agency_expertise_profile      ON agency_expertise_tags (profile_id);
+CREATE INDEX idx_agency_languages_profile      ON agency_languages (profile_id);
+CREATE INDEX idx_agency_portfolio_profile      ON agency_portfolio_items (profile_id);

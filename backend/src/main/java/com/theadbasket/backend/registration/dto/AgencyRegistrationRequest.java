@@ -18,7 +18,7 @@ public record AgencyRegistrationRequest(
         // already-signed-in account completes this wizard. Rules/length enforced in the service.
         @Email(message = "Enter a valid email address.")
         @Size(max = 180)
-        String loginEmail,
+        String accountEmail,
 
         @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,

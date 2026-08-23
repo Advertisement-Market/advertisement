@@ -5,29 +5,30 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Authenticates requests carrying a valid {@code Authorization: Bearer <jwt>} header. */
+/**
+ * Authenticates requests carrying a valid {@code Authorization: Bearer <jwt>} header. The principal
+ * is built from the token's own claims (id, email, role) — no per-request database lookup.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -42,16 +43,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(BEARER_PREFIX.length());
-        if (jwtService.isValid(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
-            String email = jwtService.extractUsername(token);
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (UsernameNotFoundException ignored) {
-                // Token references a user that no longer exists — proceed unauthenticated.
+                if (jwtService.isValid(token)) {
+                    AuthenticatedUser principal = jwtService.toPrincipal(token);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            principal, null, principal.authorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("Authenticated request from user id={} role={}", principal.id(), principal.role());
+                } else {
+                    log.warn("Rejected an invalid or expired JWT on {} {}", request.getMethod(), request.getRequestURI());
+                }
+            } catch (RuntimeException ex) {
+                // Never swallow silently — log and continue as unauthenticated.
+                log.warn("Failed to process JWT on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
             }
         }
 

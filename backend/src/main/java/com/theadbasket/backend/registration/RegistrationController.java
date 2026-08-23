@@ -4,8 +4,7 @@ import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.registration.dto.AdvertiserRegistrationRequest;
 import com.theadbasket.backend.registration.dto.AgencyRegistrationRequest;
 import com.theadbasket.backend.registration.dto.OwnerRegistrationRequest;
-import com.theadbasket.backend.security.SecurityUser;
-import com.theadbasket.backend.user.User;
+import com.theadbasket.backend.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,41 +17,48 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Role-specific registration endpoints backing the onboarding wizards. When a bearer token is
  * present the role is attached to that signed-in account; otherwise a new account is created.
- * Either way the response contains fresh tokens + the (now onboarded) user.
+ * Either way the response contains fresh tokens + the (now onboarded) user. Each role is handled
+ * by its own focused service.
  */
 @RestController
 @RequestMapping("/api/auth/register")
 public class RegistrationController {
 
-    private final RegistrationService registrationService;
+    private final AdvertiserRegistrationService advertiserRegistrationService;
+    private final OwnerRegistrationService ownerRegistrationService;
+    private final AgencyRegistrationService agencyRegistrationService;
 
-    public RegistrationController(RegistrationService registrationService) {
-        this.registrationService = registrationService;
+    public RegistrationController(AdvertiserRegistrationService advertiserRegistrationService,
+                                  OwnerRegistrationService ownerRegistrationService,
+                                  AgencyRegistrationService agencyRegistrationService) {
+        this.advertiserRegistrationService = advertiserRegistrationService;
+        this.ownerRegistrationService = ownerRegistrationService;
+        this.agencyRegistrationService = agencyRegistrationService;
     }
 
     @PostMapping("/advertiser")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse registerAdvertiser(@Valid @RequestBody AdvertiserRegistrationRequest request,
-                                           @AuthenticationPrincipal SecurityUser principal) {
-        return registrationService.registerAdvertiser(request, currentUser(principal));
+                                           @AuthenticationPrincipal AuthenticatedUser principal) {
+        return advertiserRegistrationService.register(request, currentUserId(principal));
     }
 
     @PostMapping("/owner")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse registerOwner(@Valid @RequestBody OwnerRegistrationRequest request,
-                                      @AuthenticationPrincipal SecurityUser principal) {
-        return registrationService.registerOwner(request, currentUser(principal));
+                                      @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ownerRegistrationService.register(request, currentUserId(principal));
     }
 
     @PostMapping("/agency")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse registerAgency(@Valid @RequestBody AgencyRegistrationRequest request,
-                                       @AuthenticationPrincipal SecurityUser principal) {
-        return registrationService.registerAgency(request, currentUser(principal));
+                                       @AuthenticationPrincipal AuthenticatedUser principal) {
+        return agencyRegistrationService.register(request, currentUserId(principal));
     }
 
-    /** The signed-in domain user, or {@code null} for an anonymous (new-account) registration. */
-    private static User currentUser(SecurityUser principal) {
-        return principal != null ? principal.getDomainUser() : null;
+    /** The signed-in user's id, or {@code null} for an anonymous (new-account) registration. */
+    private static Long currentUserId(AuthenticatedUser principal) {
+        return principal != null ? principal.id() : null;
     }
 }

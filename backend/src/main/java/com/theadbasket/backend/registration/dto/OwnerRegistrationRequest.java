@@ -23,7 +23,7 @@ public record OwnerRegistrationRequest(
         @NotBlank(message = "Email is required.")
         @Email(message = "Enter a valid email address.")
         @Size(max = 180)
-        String email,
+        String accountEmail,
 
         @NotBlank(message = "Phone number is required.")
         @Pattern(regexp = ValidationPatterns.PHONE, message = "Enter a valid phone number.")

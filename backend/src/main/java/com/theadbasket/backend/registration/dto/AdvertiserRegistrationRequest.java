@@ -19,7 +19,7 @@ public record AdvertiserRegistrationRequest(
         // the contextual rules and the configurable password length.
         @Email(message = "Enter a valid email address.")
         @Size(max = 180)
-        String loginEmail,
+        String accountEmail,
 
         @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
@@ -46,9 +46,12 @@ public record AdvertiserRegistrationRequest(
         List<@NotBlank String> industries,
 
         // ── Primary contact ──
-        @NotBlank(message = "Contact name is required.")
-        @Size(max = 160)
-        String contactName,
+        @NotBlank(message = "First name is required.")
+        @Size(max = 80)
+        String firstName,
+
+        @Size(max = 80)
+        String lastName,
 
         @NotBlank(message = "Designation is required.")
         @Size(max = 120)
