@@ -75,17 +75,23 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, selections, showToast }) {
+function validate(step, { data, selections, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
     return false;
   };
   if (step === 1) {
-    if (!d('f_loginEmail').includes('@')) return fail('Please enter a valid login email.');
-    if ((data.f_password ?? '').length < 8) return fail('Password must be at least 8 characters.');
-    if ((data.f_password ?? '') !== (data.f_confirmPassword ?? ''))
-      return fail('Passwords do not match.');
+    const pw = data.f_password ?? '';
+    const confirm = data.f_confirmPassword ?? '';
+    if (!user) {
+      if (!d('f_loginEmail').includes('@')) return fail('Please enter a valid login email.');
+      if (pw.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw !== confirm) return fail('Passwords do not match.');
+    } else if (!user.hasPassword && pw) {
+      if (pw.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw !== confirm) return fail('Passwords do not match.');
+    }
   }
   if (step === 2) {
     if (!d('f_agencyName')) return fail('Please enter your agency name.');
@@ -149,7 +155,15 @@ function WizardBody() {
 }
 
 export function AgencyRegister() {
-  const { registerAgency } = useAuth();
+  const { registerAgency, user } = useAuth();
+  const prefill = user
+    ? {
+        f_loginEmail: user.email,
+        f_email: user.email,
+        f_firstName: user.firstName || '',
+        f_lastName: user.lastName || '',
+      }
+    : {};
   const onSubmit = async ({ data, selections }) => {
     try {
       await registerAgency(mapAgency(data, selections));
@@ -161,9 +175,9 @@ export function AgencyRegister() {
     <div className="agency-register-page">
       <RegisterProvider
         totalSteps={7}
-        validate={validate}
+        validate={(step, ctx) => validate(step, { ...ctx, user })}
         validateSubmit={validateSubmit}
-        initialData={{ f_tenderBudget: '₹0 – ₹1 Lakh' }}
+        initialData={{ f_tenderBudget: '₹0 – ₹1 Lakh', ...prefill }}
         onSubmit={onSubmit}
       >
         <RegisterShell

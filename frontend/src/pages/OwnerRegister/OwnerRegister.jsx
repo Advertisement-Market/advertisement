@@ -59,7 +59,7 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, showToast }) {
+function validate(step, { data, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
@@ -67,12 +67,18 @@ function validate(step, { data, showToast }) {
   };
   if (step === 1) {
     if (!d('f_firstName') || !d('f_lastName')) return fail('Please enter your full name.');
-    if (!d('f_email').includes('@')) return fail('Please enter a valid email address.');
     if (d('f_phone').replace(/\D/g, '').length !== 10)
       return fail('Please enter a valid 10-digit mobile number.');
-    if ((data.f_password ?? '').length < 8) return fail('Password must be at least 8 characters.');
-    if ((data.f_password ?? '') !== (data.f_confirmPassword ?? ''))
-      return fail('Passwords do not match.');
+    const pw = data.f_password ?? '';
+    const confirm = data.f_confirmPassword ?? '';
+    if (!user) {
+      if (!d('f_email').includes('@')) return fail('Please enter a valid email address.');
+      if (pw.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw !== confirm) return fail('Passwords do not match.');
+    } else if (!user.hasPassword && pw) {
+      if (pw.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw !== confirm) return fail('Passwords do not match.');
+    }
   }
   if (step === 2) {
     if (!d('f_companyName')) return fail('Please enter your company name.');
@@ -125,7 +131,15 @@ function WizardBody() {
 }
 
 export function OwnerRegister() {
-  const { registerOwner } = useAuth();
+  const { registerOwner, user } = useAuth();
+  const prefill = user
+    ? {
+        f_email: user.email,
+        f_firstName: user.firstName || '',
+        f_lastName: user.lastName || '',
+        f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
+      }
+    : {};
   const onSubmit = async ({ data }) => {
     try {
       await registerOwner(mapOwner(data));
@@ -135,7 +149,13 @@ export function OwnerRegister() {
   };
   return (
     <div className="owner-register-page">
-      <RegisterProvider totalSteps={7} validate={validate} validateSubmit={validateSubmit} onSubmit={onSubmit}>
+      <RegisterProvider
+        totalSteps={7}
+        validate={(step, ctx) => validate(step, { ...ctx, user })}
+        validateSubmit={validateSubmit}
+        initialData={prefill}
+        onSubmit={onSubmit}
+      >
         <RegisterShell
           tagline="Billboard Owner Registration"
           steps={STEPS}

@@ -29,6 +29,7 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
   const { showToast } = useToast();
   const navigate = useNavigate();
   const dashTo = (user && DASHBOARD_BY_ROLE[user.role]) || ROUTES.browse;
+  const onboarded = !!(user && DASHBOARD_BY_ROLE[user.role]); // has a marketplace role + dashboard
   const handleLogout = () => {
     logout();
     mobile.close();
@@ -103,13 +104,16 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
         <div className="nav-cta">
           {isAuthenticated ? (
             <>
-              <Link
-                to={dashTo}
-                className="btn-nav-primary"
-                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-              >
-                Dashboard
-              </Link>
+              <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Hi, {user.firstName}</span>
+              {onboarded && (
+                <Link
+                  to={dashTo}
+                  className="btn-nav-primary"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  Dashboard
+                </Link>
+              )}
               <button className="btn-nav-ghost" onClick={handleLogout}>
                 Log out
               </button>
@@ -152,14 +156,16 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
         <div className="mobile-nav-cta">
           {isAuthenticated ? (
             <>
-              <Link
-                to={dashTo}
-                className="btn-amber"
-                style={{ padding: '10px 18px', textDecoration: 'none' }}
-                onClick={mobile.close}
-              >
-                Dashboard
-              </Link>
+              {onboarded && (
+                <Link
+                  to={dashTo}
+                  className="btn-amber"
+                  style={{ padding: '10px 18px', textDecoration: 'none' }}
+                  onClick={mobile.close}
+                >
+                  Dashboard
+                </Link>
+              )}
               <button className="btn-ghost-dark" style={{ padding: '10px 18px' }} onClick={handleLogout}>
                 Log out
               </button>

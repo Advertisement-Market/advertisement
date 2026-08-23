@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import * as v from '@/lib/validators';
+import { useAuth } from '@/context/AuthContext';
 import {
   useRegister,
   useFieldError,
@@ -27,6 +28,7 @@ import {
   InfoBanner,
   WarningBanner,
   NotifRow,
+  SignedInBanner,
 } from '@/features/register';
 
 const TOTAL = 7;
@@ -196,6 +198,9 @@ const attachIcon = (paths) => (
 
 /* ── STEP 1 ── */
 export function Step1() {
+  const { isAuthenticated, user } = useAuth();
+  const needsPassword = isAuthenticated && !user?.hasPassword; // Google account without a password
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -203,31 +208,59 @@ export function Step1() {
         total={TOTAL}
         heading="Login"
         headingEm="Setup"
-        sub="Set up your email and password."
+        sub={isAuthenticated ? 'Your account is ready — continue below.' : 'Set up your email and password.'}
       />
+      {isAuthenticated && <SignedInBanner user={user} />}
       <FormSection title="Credentials">
-        <Field
-          name="f_loginEmail"
-          type="email"
-          label="Login Email"
-          required
-          placeholder="you@yourcompany.com"
-          hint="Use your business email address — this will be your AdBasket login."
-        />
-        <PasswordField
-          name="f_password"
-          label="Password"
-          required
-          placeholder="Min. 8 characters with uppercase, number, symbol"
-          showReqs
-        />
-        <ConfirmPasswordField
-          name="f_confirmPassword"
-          against="f_password"
-          label="Confirm Password"
-          required
-          placeholder="Re-enter your password"
-        />
+        {!isAuthenticated && (
+          <>
+            <Field
+              name="f_loginEmail"
+              type="email"
+              label="Login Email"
+              required
+              placeholder="you@yourcompany.com"
+              hint="Use your business email address — this will be your AdBasket login."
+            />
+            <PasswordField
+              name="f_password"
+              label="Password"
+              required
+              placeholder="Min. 8 characters with uppercase, number, symbol"
+              showReqs
+            />
+            <ConfirmPasswordField
+              name="f_confirmPassword"
+              against="f_password"
+              label="Confirm Password"
+              required
+              placeholder="Re-enter your password"
+            />
+          </>
+        )}
+        {needsPassword && (
+          <>
+            <div className="form-hint" style={{ marginBottom: 12 }}>
+              Optionally set a password so you can also sign in with your email. You can skip this and
+              keep using Google.
+            </div>
+            <PasswordField
+              name="f_password"
+              label="Create Password (optional)"
+              placeholder="Min. 8 characters with uppercase, number, symbol"
+              showReqs
+            />
+            <ConfirmPasswordField
+              name="f_confirmPassword"
+              against="f_password"
+              label="Confirm Password"
+              placeholder="Re-enter your password"
+            />
+          </>
+        )}
+        {isAuthenticated && user?.hasPassword && (
+          <div className="form-hint">Your login and password are already set — nothing to do here.</div>
+        )}
       </FormSection>
       <NotifRow>
         Receive email notifications for new quotations and vendor responses{' '}

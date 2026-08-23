@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-import { ROUTES, DASHBOARD_BY_ROLE } from '@/lib/routes';
+import { ROUTES } from '@/lib/routes';
 import { useAuthModal } from '@/context/AuthModalContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { apiErrorMessage } from '@/lib/apiClient';
 import { Button } from '@/components/ui/Button';
-
-const ROLE_MAP = {
-  'Business / Brand (Advertiser)': 'ADVERTISER',
-  'Billboard Owner': 'OWNER',
-  'Ad Agency / Service Provider': 'AGENCY',
-};
+import { GoogleButton } from '@/features/auth/GoogleButton';
 
 // Common country dialling codes (label kept ASCII — flag emoji don't render on Windows).
 const DIAL_CODES = [
@@ -72,6 +66,17 @@ function PasswordInput({ name, placeholder, minLength, autoComplete }) {
   );
 }
 
+function OrDivider({ label = 'or continue with email' }) {
+  const line = { flex: 1, height: 1, background: 'var(--border-cream, rgba(0,0,0,0.12))' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
+      <span style={line} />
+      <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 400, whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={line} />
+    </div>
+  );
+}
+
 function TabBar({ active, onSwitch }) {
   return (
     <div className="tab-bar">
@@ -85,12 +90,14 @@ function TabBar({ active, onSwitch }) {
   );
 }
 
-function LoginView({ onSwitch, onSubmit, submitClass, submitting }) {
+function LoginView({ onSwitch, onSubmit, onGoogle, submitClass, submitting }) {
   return (
     <>
       <h3>Welcome back</h3>
       <p className="sub">Sign in to your AdBasket account.</p>
       <TabBar active="login" onSwitch={onSwitch} />
+      <GoogleButton onCredential={onGoogle} text="signin_with" />
+      <OrDivider />
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(new FormData(e.currentTarget)); }}>
         <div className="form-group">
           <label>Email Address</label>
@@ -120,12 +127,14 @@ function LoginView({ onSwitch, onSubmit, submitClass, submitting }) {
   );
 }
 
-function RegisterView({ onSwitch, onSubmit, submitClass, submitting }) {
+function RegisterView({ onSwitch, onSubmit, onGoogle, submitClass, submitting }) {
   return (
     <>
       <h3>Create your account</h3>
       <p className="sub">Free to join. Browse 12,000+ billboard spaces.</p>
       <TabBar active="register" onSwitch={onSwitch} />
+      <GoogleButton onCredential={onGoogle} text="signup_with" />
+      <OrDivider label="or sign up with email" />
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(new FormData(e.currentTarget)); }}>
         <div className="form-row">
           <div className="form-group">
@@ -138,7 +147,7 @@ function RegisterView({ onSwitch, onSubmit, submitClass, submitting }) {
           </div>
         </div>
         <div className="form-group">
-          <label>Business Email</label>
+          <label>Email</label>
           <input type="email" name="email" className="form-control" placeholder="you@company.com" autoComplete="email" required />
         </div>
         <div className="form-group">
@@ -155,15 +164,6 @@ function RegisterView({ onSwitch, onSubmit, submitClass, submitting }) {
               title="Enter a valid phone number" required style={{ flex: 1 }}
             />
           </div>
-        </div>
-        <div className="form-group">
-          <label>I am a</label>
-          <select name="role" className="form-control" defaultValue="" required>
-            <option value="">Select your role</option>
-            <option>Business / Brand (Advertiser)</option>
-            <option>Billboard Owner</option>
-            <option>Ad Agency / Service Provider</option>
-          </select>
         </div>
         <div className="form-group">
           <label>Password</label>
@@ -199,7 +199,8 @@ function SuccessView({ onBrowse, submitVariant }) {
       </div>
       <h3 style={{ marginBottom: 8 }}>You&apos;re in!</h3>
       <p className="sub" style={{ marginBottom: 28 }}>
-        Your account is created. You can start browsing right now.
+        Your account is created — you&apos;re signed in. Browse now, or register as an advertiser,
+        billboard owner, or agency whenever you&apos;re ready.
       </p>
       <Button variant={submitVariant} to={ROUTES.browse} onClick={onBrowse} style={{ fontSize: 15, padding: '13px 28px', display: 'inline-flex' }}>
         Browse Billboards
@@ -233,15 +234,14 @@ function GateView({ onSignIn, onRegister }) {
 }
 
 /**
- * Global auth modal. Wired to the backend: login and quick-register hit the API,
- * store tokens, and route to the role dashboard. Views: login / register / success / gate.
- * Closes only via the ✕ button or Escape — never on an accidental backdrop click.
+ * Global auth modal. A successful sign-in / sign-up (email or Google) just marks the user as logged
+ * in and closes — it does NOT push to a dashboard. Users onboard into a marketplace role later via
+ * the register wizards. Closes only via the ✕ button or Escape.
  */
 export function AuthModal({ submitVariant = 'amber' }) {
   const { view, close, setView } = useAuthModal();
   const { showToast } = useToast();
-  const { login, registerBasic } = useAuth();
-  const navigate = useNavigate();
+  const { login, loginWithGoogle, registerBasic } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const open = view !== null;
   const submitClass = submitVariant === 'primary' ? 'btn-primary' : 'btn-amber';
@@ -258,10 +258,22 @@ export function AuthModal({ submitVariant = 'amber' }) {
   const handleLogin = async (formData) => {
     setSubmitting(true);
     try {
-      const res = await login(formData.get('email'), formData.get('password'));
-      showToast('Welcome back — redirecting to your dashboard…');
+      await login(formData.get('email'), formData.get('password'));
+      showToast("You're signed in.");
       close();
-      navigate(DASHBOARD_BY_ROLE[res.user.role] ?? ROUTES.browse);
+    } catch (err) {
+      showToast(apiErrorMessage(err), 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async (idToken) => {
+    setSubmitting(true);
+    try {
+      await loginWithGoogle(idToken);
+      showToast("You're signed in with Google.");
+      close();
     } catch (err) {
       showToast(apiErrorMessage(err), 'error');
     } finally {
@@ -279,7 +291,6 @@ export function AuthModal({ submitVariant = 'amber' }) {
         lastName: formData.get('lastName'),
         email: formData.get('email'),
         phone: digits ? `${code} ${digits}` : '',
-        role: ROLE_MAP[formData.get('role')] ?? formData.get('role'),
         password: formData.get('password'),
       });
       setView('success');
@@ -296,10 +307,10 @@ export function AuthModal({ submitVariant = 'amber' }) {
         <button className="modal-close" onClick={close} aria-label="Close">&times;</button>
         <div>
           {view === 'login' && (
-            <LoginView onSwitch={setView} onSubmit={handleLogin} submitClass={submitClass} submitting={submitting} />
+            <LoginView onSwitch={setView} onSubmit={handleLogin} onGoogle={handleGoogle} submitClass={submitClass} submitting={submitting} />
           )}
           {view === 'register' && (
-            <RegisterView onSwitch={setView} onSubmit={handleRegister} submitClass={submitClass} submitting={submitting} />
+            <RegisterView onSwitch={setView} onSubmit={handleRegister} onGoogle={handleGoogle} submitClass={submitClass} submitting={submitting} />
           )}
           {view === 'success' && <SuccessView onBrowse={close} submitVariant={submitVariant} />}
           {view === 'gate' && <GateView onSignIn={() => setView('login')} onRegister={close} />}

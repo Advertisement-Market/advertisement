@@ -34,18 +34,19 @@ import './AdvertiserHome.css';
 const NAV = {
   activeRole: 'advertiser',
   dashboardTo: ROUTES.advertiserDashboard,
-  ctaLabel: 'Get Started Free',
+  ctaLabel: 'Register as Advertiser',
+  ctaTo: ROUTES.advertiserRegister,
   links: [
     { label: 'Browse Spaces', to: ROUTES.browse },
     { label: 'Find Agencies', to: ROUTES.browseAgencies },
     { label: 'ROI Calculator', href: '#roi' },
-    { label: 'Post Campaign', href: '#campaign' },
+    { label: 'Post Campaign', to: ROUTES.advertiserRegister },
   ],
   mobileLinks: [
     { label: 'Browse Spaces', to: ROUTES.browse },
     { label: 'Find Agencies', to: ROUTES.browseAgencies },
     { label: 'ROI Calculator', href: '#roi' },
-    { label: 'Post Campaign', href: '#campaign' },
+    { label: 'Post Campaign', to: ROUTES.advertiserRegister },
   ],
 };
 
@@ -241,9 +242,9 @@ function Hero() {
           <Button variant="ghost" size="large" to={ROUTES.browseAgencies} className="btn-large">
             Find an Agency
           </Button>
-          <a href="#campaign" className="btn-ghost btn-large">
+          <Link to={ROUTES.advertiserRegister} className="btn-ghost btn-large">
             Post a Campaign
-          </a>
+          </Link>
         </div>
         <div className="hero-note">Free to browse. Identity stays private until you engage.</div>
 
@@ -1567,7 +1568,6 @@ function Faq() {
 
 /* ── CTA ── */
 function CtaDark() {
-  const { openRegister } = useAuthModal();
   return (
     <section className="cta-dark">
       <span className="section-label">Get Started</span>
@@ -1581,9 +1581,9 @@ function CtaDark() {
         — completely free.
       </p>
       <div className="cta-actions">
-        <button className="btn-primary btn-large" onClick={openRegister}>
-          Create Free Account
-        </button>
+        <Link to={ROUTES.advertiserRegister} className="btn-primary btn-large">
+          Register as Advertiser
+        </Link>
         <Link to={ROUTES.browse} className="btn-ghost-light btn-large">
           Browse Billboards →
         </Link>

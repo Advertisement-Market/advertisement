@@ -72,6 +72,7 @@ export function HomeNavbar({
   const navigate = useNavigate();
   const signIn = onSignIn ?? openLogin;
   const myDash = (user && DASHBOARD_BY_ROLE[user.role]) || dashboardTo;
+  const onboarded = !!(user && DASHBOARD_BY_ROLE[user.role]); // has a marketplace role + dashboard
   const handleLogout = () => {
     logout();
     mobile.close();
@@ -141,14 +142,17 @@ export function HomeNavbar({
         <div className="nav-cta">
           {isAuthenticated ? (
             <>
-              <Link
-                to={myDash}
-                className={cn(accentBtn, 'btn-sm')}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-              >
-                {GridIcon}
-                My Dashboard
-              </Link>
+              <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Hi, {user.firstName}</span>
+              {onboarded && (
+                <Link
+                  to={myDash}
+                  className={cn(accentBtn, 'btn-sm')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                >
+                  {GridIcon}
+                  My Dashboard
+                </Link>
+              )}
               <button className="btn-ghost" onClick={handleLogout}>
                 Log out
               </button>
@@ -197,9 +201,11 @@ export function HomeNavbar({
         <div className="mobile-nav-cta">
           {isAuthenticated ? (
             <>
-              <Link to={myDash} className={accentBtn} onClick={mobile.close}>
-                My Dashboard
-              </Link>
+              {onboarded && (
+                <Link to={myDash} className={accentBtn} onClick={mobile.close}>
+                  My Dashboard
+                </Link>
+              )}
               <button className="btn-ghost" onClick={handleLogout}>
                 Log out
               </button>

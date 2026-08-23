@@ -19,6 +19,7 @@ export {
 } from './selectors';
 export { LogoUpload, VerificationCard, UploadButton, AttachZone } from './uploads';
 export { OtpVerify } from './otp';
+export { SignedInBanner } from './credentials';
 export {
   ReviewBlock,
   ReviewRow,

@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import * as vr from '@/lib/validators';
+import { useAuth } from '@/context/AuthContext';
 import {
   useRegister,
   useFieldError,
@@ -19,6 +20,7 @@ import {
   InfoBanner,
   WarningBanner,
   NotifRow,
+  SignedInBanner,
 } from '@/features/register';
 import { CategoryAccordion, KeyClients, Portfolio } from './widgets';
 
@@ -248,6 +250,9 @@ const PhoneIcon = (
 
 /* ── STEP 1: LOGIN SETUP ── */
 export function Step1() {
+  const { isAuthenticated, user } = useAuth();
+  const needsPassword = isAuthenticated && !user?.hasPassword; // Google account without a password
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -255,31 +260,63 @@ export function Step1() {
         total={TOTAL}
         heading="Login"
         headingEm="Setup"
-        sub="Create your login credentials first — this secures your account from the start."
+        sub={
+          isAuthenticated
+            ? 'Your account is ready — continue below.'
+            : 'Create your login credentials first — this secures your account from the start.'
+        }
       />
+      {isAuthenticated && <SignedInBanner user={user} />}
       <FormSection title="Credentials">
-        <Field
-          name="f_loginEmail"
-          type="email"
-          label="Login Email"
-          required
-          placeholder="priya@pixelprint.in"
-          hint="Use your agency's official business email address."
-        />
-        <PasswordField
-          name="f_password"
-          label="Password"
-          required
-          placeholder="Min. 8 characters with uppercase, number, symbol"
-          showReqs
-        />
-        <ConfirmPasswordField
-          name="f_confirmPassword"
-          against="f_password"
-          label="Confirm Password"
-          required
-          placeholder="Re-enter your password"
-        />
+        {!isAuthenticated && (
+          <>
+            <Field
+              name="f_loginEmail"
+              type="email"
+              label="Login Email"
+              required
+              placeholder="priya@pixelprint.in"
+              hint="Use your agency's official business email address."
+            />
+            <PasswordField
+              name="f_password"
+              label="Password"
+              required
+              placeholder="Min. 8 characters with uppercase, number, symbol"
+              showReqs
+            />
+            <ConfirmPasswordField
+              name="f_confirmPassword"
+              against="f_password"
+              label="Confirm Password"
+              required
+              placeholder="Re-enter your password"
+            />
+          </>
+        )}
+        {needsPassword && (
+          <>
+            <div className="form-hint" style={{ marginBottom: 12 }}>
+              Optionally set a password so you can also sign in with your email. You can skip this and
+              keep using Google.
+            </div>
+            <PasswordField
+              name="f_password"
+              label="Create Password (optional)"
+              placeholder="Min. 8 characters with uppercase, number, symbol"
+              showReqs
+            />
+            <ConfirmPasswordField
+              name="f_confirmPassword"
+              against="f_password"
+              label="Confirm Password"
+              placeholder="Re-enter your password"
+            />
+          </>
+        )}
+        {isAuthenticated && user?.hasPassword && (
+          <div className="form-hint">Your login and password are already set — nothing to do here.</div>
+        )}
       </FormSection>
       <NotifRow>
         Receive email notifications for new matching tenders and direct inquiries{' '}

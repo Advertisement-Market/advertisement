@@ -59,7 +59,7 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, selections, showToast }) {
+function validate(step, { data, selections, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
@@ -67,11 +67,19 @@ function validate(step, { data, selections, showToast }) {
   };
 
   if (step === 1) {
-    const email = d('f_loginEmail');
     const pw = data.f_password ?? '';
-    if (!email || !email.includes('@')) return fail('Please enter a valid login email.');
-    if (pw.length < 8) return fail('Password must be at least 8 characters.');
-    if (pw !== (data.f_confirmPassword ?? '')) return fail('Passwords do not match.');
+    const confirm = data.f_confirmPassword ?? '';
+    if (!user) {
+      // Anonymous: creating the account here — email + password required.
+      const email = d('f_loginEmail');
+      if (!email || !email.includes('@')) return fail('Please enter a valid login email.');
+      if (pw.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw !== confirm) return fail('Passwords do not match.');
+    } else if (!user.hasPassword && pw) {
+      // Google account setting an optional password — validate only if one was typed.
+      if (pw.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw !== confirm) return fail('Passwords do not match.');
+    }
   }
   if (step === 2) {
     if (!d('f_companyName')) return fail('Please enter your company name.');
@@ -140,7 +148,10 @@ function WizardBody() {
 }
 
 export function AdvertiserRegister() {
-  const { registerAdvertiser } = useAuth();
+  const { registerAdvertiser, user } = useAuth();
+  const prefill = user
+    ? { f_loginEmail: user.email, f_email: user.email, f_firstName: user.firstName || '' }
+    : {};
   const onSubmit = async ({ data, selections }) => {
     try {
       await registerAdvertiser(mapAdvertiser(data, selections));
@@ -150,7 +161,13 @@ export function AdvertiserRegister() {
   };
   return (
     <div className="advertiser-register-page">
-      <RegisterProvider totalSteps={7} validate={validate} validateSubmit={validateSubmit} onSubmit={onSubmit}>
+      <RegisterProvider
+        totalSteps={7}
+        validate={(step, ctx) => validate(step, { ...ctx, user })}
+        validateSubmit={validateSubmit}
+        initialData={prefill}
+        onSubmit={onSubmit}
+      >
         <RegisterShell
           tagline="Advertiser Registration"
           steps={STEPS}

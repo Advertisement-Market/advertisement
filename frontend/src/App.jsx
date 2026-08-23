@@ -2,6 +2,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ToastProvider } from '@/context/ToastProvider';
 import { AuthModalProvider } from '@/context/AuthModalProvider';
 import { AuthProvider } from '@/context/AuthProvider';
+import { GoogleOneTap } from '@/features/auth/GoogleOneTap';
 import { AppRoutes } from '@/router/AppRoutes';
 
 /**
@@ -14,6 +15,7 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <AuthModalProvider>
+            <GoogleOneTap />
             <AppRoutes />
           </AuthModalProvider>
         </ToastProvider>

@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
+import { useAuth } from '@/context/AuthContext';
 import {
   useRegister,
   useFieldError,
@@ -10,6 +11,9 @@ import {
   StepHeader,
   RegNav,
   TermsRow,
+  PasswordField,
+  ConfirmPasswordField,
+  SignedInBanner,
 } from '@/features/register';
 import {
   OtpBoxes,
@@ -217,6 +221,8 @@ function usePincode(name) {
 /* ── STEP 1 ── */
 export function Step1() {
   const { field } = useRegister();
+  const { isAuthenticated, user } = useAuth();
+  const needsPassword = isAuthenticated && !user?.hasPassword; // Google account without a password
   const phone = field('f_phone').replace(/\D/g, '');
   const phoneErr = useFieldError('f_phone', [v.required(), v.phone()]);
   return (
@@ -226,8 +232,13 @@ export function Step1() {
         total={TOTAL}
         heading="Personal"
         headingEm="Information"
-        sub="Your login details are secure & kept private."
+        sub={
+          isAuthenticated
+            ? 'Your account is ready — just a few details to complete your owner profile.'
+            : 'Your login details are secure & kept private.'
+        }
       />
+      {isAuthenticated && <SignedInBanner user={user} />}
       <FormSection title="Your Name">
         <FormRow>
           <Field name="f_firstName" label="First Name" required placeholder="Rajesh" />
@@ -236,18 +247,20 @@ export function Step1() {
       </FormSection>
 
       <FormSection title="Contact Details">
-        <div className="form-group">
-          <Field
-            name="f_email"
-            type="email"
-            label="Email Address"
-            required
-            placeholder="rajesh@sharmaoutdoor.com"
-            hint="This will be your login ID"
-            groupStyle={{ marginBottom: 8 }}
-          />
-          <OtpBoxes channel="email" dest={() => field('f_email').trim() || 'your email'} />
-        </div>
+        {!isAuthenticated && (
+          <div className="form-group">
+            <Field
+              name="f_email"
+              type="email"
+              label="Email Address"
+              required
+              placeholder="rajesh@sharmaoutdoor.com"
+              hint="This will be your login ID"
+              groupStyle={{ marginBottom: 8 }}
+            />
+            <OtpBoxes channel="email" dest={() => field('f_email').trim() || 'your email'} />
+          </div>
+        )}
         <div className="form-group">
           <label>
             Mobile Number <span className="req">*</span>
@@ -270,13 +283,35 @@ export function Step1() {
         </div>
       </FormSection>
 
-      <FormSection title="Set a Password">
-        <PasswordRulesField
-          name="f_password"
-          placeholder="Min 8 chars, uppercase, number, symbol"
-        />
-        <ConfirmPwField name="f_confirmPassword" placeholder="Re-enter password" />
-      </FormSection>
+      {!isAuthenticated && (
+        <FormSection title="Set a Password">
+          <PasswordRulesField
+            name="f_password"
+            placeholder="Min 8 chars, uppercase, number, symbol"
+          />
+          <ConfirmPwField name="f_confirmPassword" placeholder="Re-enter password" />
+        </FormSection>
+      )}
+      {needsPassword && (
+        <FormSection title="Set a Password (optional)">
+          <div className="form-hint" style={{ marginBottom: 12 }}>
+            Optionally set a password so you can also sign in with your email. You can skip this and
+            keep using Google.
+          </div>
+          <PasswordField
+            name="f_password"
+            label="Create Password (optional)"
+            placeholder="Min. 8 characters"
+            showReqs
+          />
+          <ConfirmPasswordField
+            name="f_confirmPassword"
+            against="f_password"
+            label="Confirm Password"
+            placeholder="Re-enter password"
+          />
+        </FormSection>
+      )}
 
       <RegNav
         showBack={false}

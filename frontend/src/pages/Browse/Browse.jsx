@@ -87,6 +87,7 @@ function BrowseNav() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const dashTo = (user && DASHBOARD_BY_ROLE[user.role]) || ROUTES.browse;
+  const onboarded = !!(user && DASHBOARD_BY_ROLE[user.role]);
   const handleLogout = () => {
     logout();
     showToast('You have been signed out.');
@@ -130,13 +131,16 @@ function BrowseNav() {
       <div className="nav-cta">
         {isAuthenticated ? (
           <>
-            <Link
-              to={dashTo}
-              className="btn-nav-primary"
-              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-            >
-              Dashboard
-            </Link>
+            <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Hi, {user.firstName}</span>
+            {onboarded && (
+              <Link
+                to={dashTo}
+                className="btn-nav-primary"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+              >
+                Dashboard
+              </Link>
+            )}
             <button className="btn-nav-ghost" onClick={handleLogout}>
               Log out
             </button>
