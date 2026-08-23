@@ -60,6 +60,7 @@ function Sidebar({ active, onNav }) {
 /* ── Topbar with notifications ── */
 function Topbar({ title }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState(NOTIFICATIONS);
   const ref = useRef(null);
@@ -91,7 +92,7 @@ function Topbar({ title }) {
             ))}
           </div>
         </div>
-        <div className="sb-avatar" style={{ cursor: 'pointer' }}>RS</div>
+        <div className="sb-avatar" style={{ cursor: 'pointer' }}>{initialsOf(user)}</div>
       </div>
     </div>
   );

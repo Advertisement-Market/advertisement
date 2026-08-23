@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 import { LogoMark } from '@/components/layout/Logo';
 import {
   NAV, TITLES, NOTIFICATIONS, ONBOARD_STEPS, TENDERS, BIDS, CAMPAIGNS, CLIENTS, CASESTUDIES,
@@ -11,8 +12,12 @@ import {
 import './AgencyDashboard.css';
 
 const html = (s) => ({ __html: s });
+const displayName = (user) => [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Agency';
+const initialsOf = (user) =>
+  ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || 'A';
 
 function Sidebar({ active, onNav }) {
+  const { user } = useAuth();
   return (
     <aside className="sb">
       <div className="sb-logo">
@@ -20,8 +25,8 @@ function Sidebar({ active, onNav }) {
         <div className="sb-logo-role">Agency Portal</div>
       </div>
       <div className="sb-user">
-        <div className="sb-avatar">PP</div>
-        <div><div className="sb-user-name">Pixel &amp; Print Co.</div><div className="sb-user-plan">Verified Agency · Pro Plan</div></div>
+        <div className="sb-avatar">{initialsOf(user)}</div>
+        <div><div className="sb-user-name">{displayName(user)}</div><div className="sb-user-plan">Verified Agency · Pro Plan</div></div>
       </div>
       <nav className="sb-nav">
         {NAV.map((g) => (
@@ -47,6 +52,7 @@ function Sidebar({ active, onNav }) {
 
 function Topbar({ title }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState(NOTIFICATIONS);
   const ref = useRef(null);
@@ -75,7 +81,7 @@ function Topbar({ title }) {
             ))}
           </div>
         </div>
-        <div className="sb-avatar" style={{ cursor: 'pointer' }}>PP</div>
+        <div className="sb-avatar" style={{ cursor: 'pointer' }}>{initialsOf(user)}</div>
       </div>
     </div>
   );
@@ -134,6 +140,7 @@ function TenderItem({ t, onToast }) {
 /* ── Overview ── */
 function Overview({ onNav }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [onboard, setOnboard] = useState(true);
   const [steps, setSteps] = useState(ONBOARD_STEPS);
   const done = steps.filter((s) => s.done).length;
@@ -148,7 +155,7 @@ function Overview({ onNav }) {
       {onboard && (
         <div className="onboard-card">
           <div className="onboard-header">
-            <div><h3>Welcome to The AdBasket, Pixel &amp; Print!</h3><p>Complete your agency profile to unlock more tenders and direct briefs.</p></div>
+            <div><h3>Welcome to The AdBasket, {user?.firstName || 'there'}!</h3><p>Complete your agency profile to unlock more tenders and direct briefs.</p></div>
             <button className="onboard-dismiss" onClick={() => { setOnboard(false); showToast('You can update your profile anytime in Agency Profile.'); }}>Dismiss</button>
           </div>
           <div className="onboard-progress-bar"><div className="onboard-progress-fill" style={{ width: `${(done / 5) * 100}%` }} /></div>
@@ -449,6 +456,7 @@ function Profile({ onToast }) {
 }
 
 function Settings({ onToast }) {
+  const { user } = useAuth();
   const prefs = [['New tender posted', 'Email + App'], ['Bid shortlisted', 'Email + App'], ['Direct brief received', 'Email + App'], ['Tender won / lost', 'Email'], ['Weekly performance report', 'Email']];
   const [on, setOn] = useState(prefs.map(() => true));
   return (
@@ -457,7 +465,7 @@ function Settings({ onToast }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div className="section-card" style={{ padding: 28 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--ink-rich)', letterSpacing: '-0.3px', marginBottom: 20 }}>Contact Details</h3>
-          <div className="form-row"><div className="form-group"><label>First Name</label><input type="text" className="form-control" defaultValue="Priya" /></div><div className="form-group"><label>Last Name</label><input type="text" className="form-control" defaultValue="Mehta" /></div></div>
+          <div className="form-row"><div className="form-group"><label>First Name</label><input type="text" className="form-control" defaultValue={user?.firstName || ''} /></div><div className="form-group"><label>Last Name</label><input type="text" className="form-control" defaultValue={user?.lastName || ''} /></div></div>
           <div className="form-group"><label>Business Email</label><input type="email" className="form-control" defaultValue="priya@pixelandprint.in" /></div>
           <div className="form-group"><label>Phone</label><input type="tel" className="form-control" defaultValue="+91 98200 11234" /></div>
           <div className="form-group"><label>GST Number</label><input type="text" className="form-control" defaultValue="27AABCP5678R1Z4" readOnly style={{ background: '#F3F4F6', color: 'var(--ink-muted)' }} /></div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 import { LogoMark } from '@/components/layout/Logo';
 import {
   NAV, TITLES, NOTIFICATIONS, ONBOARD_STEPS, LISTINGS, LISTING_NAMES, QUOTES, TENDERS, BOOKINGS,
@@ -12,9 +13,13 @@ import {
 import './OwnerDashboard.css';
 
 const html = (s) => ({ __html: s });
+const displayName = (user) => [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Owner';
+const initialsOf = (user) =>
+  ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || 'A';
 
 /* ── Sidebar ── */
 function Sidebar({ active, onNav, userName }) {
+  const { user } = useAuth();
   return (
     <aside className="sb">
       <div className="sb-logo">
@@ -25,7 +30,7 @@ function Sidebar({ active, onNav, userName }) {
         <div className="sb-logo-role">Billboard Owner Portal</div>
       </div>
       <div className="sb-user">
-        <div className="sb-avatar">VK</div>
+        <div className="sb-avatar">{initialsOf(user)}</div>
         <div><div className="sb-user-name">{userName}</div><div className="sb-user-plan">Growth Plan · ₹2,999/mo</div></div>
       </div>
       <nav className="sb-nav">
@@ -51,6 +56,7 @@ function Sidebar({ active, onNav, userName }) {
 }
 
 function Topbar({ title, onAddListing, onNav }) {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState(NOTIFICATIONS);
@@ -83,7 +89,7 @@ function Topbar({ title, onAddListing, onNav }) {
             ))}
           </div>
         </div>
-        <div className="sb-avatar" style={{ cursor: 'pointer' }} onClick={() => onNav('settings')}>VK</div>
+        <div className="sb-avatar" style={{ cursor: 'pointer' }} onClick={() => onNav('settings')}>{initialsOf(user)}</div>
       </div>
     </div>
   );
@@ -239,6 +245,7 @@ function PageHeader({ title, sub, children }) {
 
 /* ── Overview ── */
 function Overview({ onNav, calData }) {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [onboard, setOnboard] = useState(true);
   const [steps, setSteps] = useState(ONBOARD_STEPS);
@@ -255,7 +262,7 @@ function Overview({ onNav, calData }) {
       {onboard && (
         <div className="onboard-card">
           <div className="onboard-header">
-            <div><h3>Welcome back, Vikram. Let&apos;s get you earning.</h3><p>Complete these steps to start receiving inbound leads.</p></div>
+            <div><h3>Welcome back, {user?.firstName || 'there'}. Let&apos;s get you earning.</h3><p>Complete these steps to start receiving inbound leads.</p></div>
             <button className="onboard-dismiss" onClick={() => setOnboard(false)}>Dismiss</button>
           </div>
           <div className="onboard-progress-bar"><div className="onboard-progress-fill" style={{ width: `${(done / steps.length) * 100}%` }} /></div>
@@ -638,8 +645,9 @@ function AnalyticsPage() {
 
 function SettingsPage({ onSaveName }) {
   const { showToast } = useToast();
-  const [first, setFirst] = useState('Vikram');
-  const [last, setLast] = useState('Kumar');
+  const { user } = useAuth();
+  const [first, setFirst] = useState(user?.firstName || '');
+  const [last, setLast] = useState(user?.lastName || '');
   const prefs = ['New quote requests', 'Tender board matches', 'Payment confirmations', 'Weekly digest'];
   return (
     <div className="page active">
@@ -699,9 +707,10 @@ function Modal({ title, onClose, children, footer }) {
 /* ════════════════════════════════════════════════════════════════════ */
 export function OwnerDashboard() {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [page, setPage] = useState('overview');
   const [calData, setCalData] = useState(initCalData);
-  const [userName, setUserName] = useState('Vikram Kumar');
+  const [userName, setUserName] = useState(() => displayName(user));
   const [modal, setModal] = useState(null); // {type, brand, listing, tender, name}
   const today = new Date().toISOString().slice(0, 10);
 
