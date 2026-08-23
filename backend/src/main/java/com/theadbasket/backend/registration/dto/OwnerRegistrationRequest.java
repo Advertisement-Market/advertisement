@@ -29,8 +29,9 @@ public record OwnerRegistrationRequest(
         @Pattern(regexp = ValidationPatterns.PHONE, message = "Enter a valid phone number.")
         String phone,
 
-        @NotBlank(message = "Password is required.")
-        @Size(min = 8, max = 72, message = "Password must be 8–72 characters.")
+        // Password — required only for a brand-new (anonymous) account; ignored when an
+        // already-signed-in account completes this wizard. Rules/length enforced in the service.
+        @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
 
         // ── Business ──

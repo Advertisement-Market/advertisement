@@ -14,13 +14,14 @@ import java.util.List;
 /** Full advertiser registration: account + company + contact + first campaign brief. */
 public record AdvertiserRegistrationRequest(
 
-        @NotBlank(message = "Login email is required.")
+        // Login credentials — required only when registering as a brand-new (anonymous) account;
+        // ignored when an already-signed-in account completes this wizard. The service enforces
+        // the contextual rules and the configurable password length.
         @Email(message = "Enter a valid email address.")
         @Size(max = 180)
         String loginEmail,
 
-        @NotBlank(message = "Password is required.")
-        @Size(min = 8, max = 72, message = "Password must be 8–72 characters.")
+        @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
 
         // ── Company ──

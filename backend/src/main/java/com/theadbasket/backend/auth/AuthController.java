@@ -1,6 +1,7 @@
 package com.theadbasket.backend.auth;
 
 import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.auth.dto.GoogleLoginRequest;
 import com.theadbasket.backend.auth.dto.LoginRequest;
 import com.theadbasket.backend.auth.dto.RefreshRequest;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
@@ -36,6 +37,11 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/google")
+    public AuthResponse google(@Valid @RequestBody GoogleLoginRequest request) {
+        return authService.loginWithGoogle(request.idToken());
     }
 
     @PostMapping("/refresh")

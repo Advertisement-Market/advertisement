@@ -31,7 +31,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
         // Auth endpoints that must be reachable without a token (NOT /api/auth/me).
         "/api/auth/register", "/api/auth/register/**",
-        "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
+        "/api/auth/login", "/api/auth/google", "/api/auth/refresh", "/api/auth/logout",
         "/api/ping",
         "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
         "/h2-console/**"
@@ -57,10 +57,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(PUBLIC_PATHS).permitAll()
@@ -72,10 +73,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
         CorsConfiguration config = new CorsConfiguration();
-        // The Vite dev server; extend for real origins when the frontend is deployed.
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        // Allowed browser origins come from app.cors.allowed-origins (CORS_ALLOWED_ORIGINS).
+        config.setAllowedOrigins(corsProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

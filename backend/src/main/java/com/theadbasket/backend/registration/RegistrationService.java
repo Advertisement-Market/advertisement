@@ -9,6 +9,7 @@ import com.theadbasket.backend.agency.AgencyProfileRepository;
 import com.theadbasket.backend.agency.PortfolioItem;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
@@ -20,6 +21,7 @@ import com.theadbasket.backend.registration.dto.BillboardListingRequest;
 import com.theadbasket.backend.registration.dto.CampaignBriefRequest;
 import com.theadbasket.backend.registration.dto.OwnerRegistrationRequest;
 import com.theadbasket.backend.registration.dto.PortfolioItemRequest;
+import com.theadbasket.backend.user.AuthProvider;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
@@ -30,8 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Creates a full account (User + role profile + first onboarding object) from the role-specific
- * registration wizards, then issues auth tokens — all in one transaction.
+ * Completes a role registration from the onboarding wizards. When the caller is already signed in
+ * the role + profile are attached to that existing account (promoting it from MEMBER); otherwise a
+ * brand-new account is created. Either way a role profile + first onboarding object are saved and
+ * fresh auth tokens are issued — all in one transaction.
  */
 @Service
 public class RegistrationService {
@@ -64,8 +68,8 @@ public class RegistrationService {
     }
 
     @Transactional
-    public AuthResponse registerAdvertiser(AdvertiserRegistrationRequest request) {
-        User user = createUser(request.contactName().trim(), null, request.loginEmail(),
+    public AuthResponse registerAdvertiser(AdvertiserRegistrationRequest request, User currentUser) {
+        User user = attachOrCreate(currentUser, request.contactName().trim(), null, request.loginEmail(),
                 request.password(), request.contactPhone(), Role.ADVERTISER);
 
         AdvertiserProfile profile = new AdvertiserProfile();
@@ -87,9 +91,9 @@ public class RegistrationService {
     }
 
     @Transactional
-    public AuthResponse registerOwner(OwnerRegistrationRequest request) {
-        User user = createUser(request.firstName().trim(), request.lastName().trim(), request.email(),
-                request.password(), request.phone(), Role.OWNER);
+    public AuthResponse registerOwner(OwnerRegistrationRequest request, User currentUser) {
+        User user = attachOrCreate(currentUser, request.firstName().trim(), request.lastName().trim(),
+                request.email(), request.password(), request.phone(), Role.OWNER);
 
         OwnerProfile profile = new OwnerProfile();
         profile.setUser(user);
@@ -110,9 +114,9 @@ public class RegistrationService {
     }
 
     @Transactional
-    public AuthResponse registerAgency(AgencyRegistrationRequest request) {
-        User user = createUser(request.firstName().trim(), request.lastName().trim(), request.loginEmail(),
-                request.password(), request.contactPhone(), Role.AGENCY);
+    public AuthResponse registerAgency(AgencyRegistrationRequest request, User currentUser) {
+        User user = attachOrCreate(currentUser, request.firstName().trim(), request.lastName().trim(),
+                request.loginEmail(), request.password(), request.contactPhone(), Role.AGENCY);
 
         AgencyProfile profile = new AgencyProfile();
         profile.setUser(user);
@@ -149,14 +153,47 @@ public class RegistrationService {
 
     // ── helpers ──
 
-    private User createUser(String firstName, String lastName, String rawEmail,
-                            String rawPassword, String phone, Role role) {
+    /**
+     * Attaches the target role to the signed-in account, or creates a new account when anonymous.
+     *
+     * <ul>
+     *   <li><b>Signed in:</b> promotes a {@code MEMBER} to {@code role}. If the account has no
+     *       password yet (Google) and one was supplied, it is validated and set; otherwise the
+     *       password fields are ignored. An already-onboarded account is rejected (single role).</li>
+     *   <li><b>Anonymous:</b> requires email + password (length-checked) and creates a LOCAL account.</li>
+     * </ul>
+     */
+    private User attachOrCreate(User current, String firstName, String lastName, String rawEmail,
+                                String rawPassword, String phone, Role role) {
+        if (current != null) {
+            User user = userRepository.findById(current.getId())
+                    .orElseThrow(() -> new BadRequestException("Your session is no longer valid. Please sign in again."));
+            if (user.getRole() != null && user.getRole().isOnboarded()) {
+                throw new BadRequestException(
+                        "This account is already registered as " + user.getRole().name().toLowerCase() + ".");
+            }
+            user.setRole(role);
+            if (!user.hasPassword() && rawPassword != null && !rawPassword.isBlank()) {
+                authService.validateNewPassword(rawPassword);
+                user.setPasswordHash(passwordEncoder.encode(rawPassword));
+            }
+            return userRepository.save(user);
+        }
+
+        if (rawEmail == null || rawEmail.isBlank()) {
+            throw new BadRequestException("Login email is required to create an account.");
+        }
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new BadRequestException("Password is required to create an account.");
+        }
+        authService.validateNewPassword(rawPassword);
         String email = rawEmail.trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyExistsException(email);
         }
         User user = new User(firstName, blankToNull(lastName), email,
                 passwordEncoder.encode(rawPassword), blankToNull(phone), role);
+        user.setAuthProvider(AuthProvider.LOCAL);
         return userRepository.save(user);
     }
 

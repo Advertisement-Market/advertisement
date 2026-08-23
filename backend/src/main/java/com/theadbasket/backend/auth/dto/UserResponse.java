@@ -1,5 +1,6 @@
 package com.theadbasket.backend.auth.dto;
 
+import com.theadbasket.backend.user.AuthProvider;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 
@@ -11,6 +12,9 @@ public record UserResponse(
         String email,
         String phone,
         Role role,
+        boolean onboarded,
+        boolean hasPassword,
+        AuthProvider authProvider,
         boolean emailVerified
 ) {
 
@@ -22,6 +26,9 @@ public record UserResponse(
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole(),
+                user.getRole() != null && user.getRole().isOnboarded(),
+                user.hasPassword(),
+                user.getAuthProvider(),
                 user.isEmailVerified()
         );
     }

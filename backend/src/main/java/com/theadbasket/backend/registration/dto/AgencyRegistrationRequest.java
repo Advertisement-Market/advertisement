@@ -14,13 +14,13 @@ import java.util.List;
 /** Full agency registration: account + agency profile + contact + services + business. */
 public record AgencyRegistrationRequest(
 
-        @NotBlank(message = "Login email is required.")
+        // Login credentials — required only for a brand-new (anonymous) account; ignored when an
+        // already-signed-in account completes this wizard. Rules/length enforced in the service.
         @Email(message = "Enter a valid email address.")
         @Size(max = 180)
         String loginEmail,
 
-        @NotBlank(message = "Password is required.")
-        @Size(min = 8, max = 72, message = "Password must be 8–72 characters.")
+        @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
 
         // ── Agency ──

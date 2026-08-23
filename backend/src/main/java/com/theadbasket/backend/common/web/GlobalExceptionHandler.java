@@ -1,7 +1,9 @@
 package com.theadbasket.backend.common.web;
 
+import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
+import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.common.exception.TokenRefreshException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,10 +28,15 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({ InvalidCredentialsException.class, BadCredentialsException.class,
-            TokenRefreshException.class, AuthenticationException.class })
+            InvalidGoogleTokenException.class, TokenRefreshException.class, AuthenticationException.class })
     public ResponseEntity<ApiError> handleUnauthorized(Exception ex, HttpServletRequest request) {
         String message = (ex instanceof BadCredentialsException) ? "Invalid email or password." : ex.getMessage();
         return build(HttpStatus.UNAUTHORIZED, message, request);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiError> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
