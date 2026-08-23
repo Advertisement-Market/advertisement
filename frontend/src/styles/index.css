@@ -1,0 +1,8 @@
+/* ==========================================================================
+   Global stylesheet entry point
+   Order matters: tokens first, then base element styles.
+   Page-specific stylesheets are imported by their own page components.
+   ========================================================================== */
+
+@import './tokens.css';
+@import './base.css';

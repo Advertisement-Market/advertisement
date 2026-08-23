@@ -1,0 +1,56 @@
+/* ==========================================================================
+   Design tokens — shared across the app (from templates/shared.css)
+   Page-specific palettes are scoped inside each page's own CSS
+   (e.g. .landing-page in pages/Landing/Landing.css).
+   ========================================================================== */
+
+:root {
+  /* Palette */
+  --indigo: #4f46e5;
+  --indigo-dark: #3730a3;
+  --indigo-mid: #4338ca;
+  --indigo-light: #eef2ff;
+  --indigo-glow: rgba(79, 70, 229, 0.18);
+  --periwinkle: #818cf8;
+
+  --teal: #0891b2;
+  --teal-dark: #0e7490;
+  --teal-light: #ecfeff;
+
+  --gold: #d97706;
+  --gold-dark: #b45309;
+  --gold-light: #fffbeb;
+
+  --green: #059669;
+  --rose: #e53935;
+
+  /* Ink */
+  --ink: #0d1117;
+  --ink-rich: #0d1117;
+  --ink-muted: #4b5563;
+  --ink-faint: #9ca3af;
+
+  /* Surfaces */
+  --cream: #f9fafb;
+  --cream-warm: #f3f4f6;
+  --cream-deep: #e5e7eb;
+  --white: #ffffff;
+
+  /* Borders */
+  --border: #e5e7eb;
+  --border-medium: #d1d5db;
+
+  /* Typography */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', 'Courier New', monospace;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(13, 17, 23, 0.07), 0 4px 12px rgba(13, 17, 23, 0.04);
+  --shadow-hover: 0 8px 32px rgba(13, 17, 23, 0.12), 0 2px 8px rgba(13, 17, 23, 0.06);
+  --shadow-nav: 0 1px 0 rgba(13, 17, 23, 0.08), 0 4px 16px rgba(13, 17, 23, 0.05);
+
+  /* Easing */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}

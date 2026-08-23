@@ -1,0 +1,9 @@
+dist
+node_modules
+package-lock.json
+.vite
+coverage
+# Design source templates — keep verbatim for pixel fidelity
+templates
+# Generated / extracted from templates — preserve as-is for pixel fidelity
+src/styles/base.css
