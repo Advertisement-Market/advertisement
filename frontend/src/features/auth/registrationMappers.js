@@ -37,7 +37,7 @@ function collectPortfolio(d) {
 
 export function mapAdvertiser(d, s) {
   return {
-    loginEmail: d.f_loginEmail,
+    accountEmail: d.f_loginEmail,
     password: d.f_password,
     companyName: d.f_companyName,
     businessType: d.f_businessType,
@@ -45,7 +45,8 @@ export function mapAdvertiser(d, s) {
     gstNumber: trimOrNull(d.f_gst),
     panNumber: trimOrNull(d.f_pan),
     industries: s.industries ?? [],
-    contactName: d.f_firstName,
+    firstName: d.f_firstName,
+    lastName: trimOrNull(d.f_lastName),
     contactDesignation: d.f_desig,
     contactEmail: d.f_email,
     contactPhone: d.f_phone,
@@ -74,7 +75,7 @@ export function mapOwner(d) {
   return {
     firstName: d.f_firstName,
     lastName: d.f_lastName,
-    email: d.f_email,
+    accountEmail: d.f_email,
     phone: d.f_phone,
     password: d.f_password,
     companyName: d.f_companyName,
@@ -110,7 +111,7 @@ export function mapOwner(d) {
 
 export function mapAgency(d, s) {
   return {
-    loginEmail: d.f_loginEmail,
+    accountEmail: d.f_loginEmail,
     password: d.f_password,
     agencyName: d.f_agencyName,
     agencyType: d.f_agencyType,
