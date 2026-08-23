@@ -16,6 +16,11 @@ dist
 dist-ssr
 *.local
 
+# Caches / coverage
+.vite/
+.eslintcache
+coverage/
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json

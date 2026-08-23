@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
-  { ignores: ['dist', 'node_modules'] },
+  { ignores: ['dist', 'node_modules', 'templates', '.vite'] },
   {
     // Build/config files run in Node, not the browser.
     files: ['*.config.js', 'vite.config.js', 'eslint.config.js'],

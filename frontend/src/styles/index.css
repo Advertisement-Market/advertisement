@@ -1,9 +1,8 @@
 /* ==========================================================================
    Global stylesheet entry point
-   Order matters: Tailwind first, then tokens, then base element styles.
+   Order matters: tokens first, then base element styles.
    Page-specific stylesheets are imported by their own page components.
    ========================================================================== */
 
-@import 'tailwindcss';
 @import './tokens.css';
 @import './base.css';
