@@ -208,7 +208,11 @@ export function Step1() {
         total={TOTAL}
         heading="Login"
         headingEm="Setup"
-        sub={isAuthenticated ? 'Your account is ready — continue below.' : 'Set up your email and password.'}
+        sub={
+          isAuthenticated
+            ? 'Your account is ready — continue below.'
+            : 'Set up your email and password.'
+        }
       />
       {isAuthenticated && <SignedInBanner user={user} />}
       <FormSection title="Credentials">
@@ -241,8 +245,8 @@ export function Step1() {
         {needsPassword && (
           <>
             <div className="form-hint" style={{ marginBottom: 12 }}>
-              Optionally set a password so you can also sign in with your email. You can skip this and
-              keep using Google.
+              Optionally set a password so you can also sign in with your email. You can skip this
+              and keep using Google.
             </div>
             <PasswordField
               name="f_password"
@@ -259,7 +263,9 @@ export function Step1() {
           </>
         )}
         {isAuthenticated && user?.hasPassword && (
-          <div className="form-hint">Your login and password are already set — nothing to do here.</div>
+          <div className="form-hint">
+            Your login and password are already set — nothing to do here.
+          </div>
         )}
       </FormSection>
       <NotifRow>

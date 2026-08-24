@@ -17,12 +17,30 @@ export function AuthProvider({ children }) {
     return response;
   }, []);
 
-  const login = useCallback((email, password) => authApi.login(email, password).then(applySession), [applySession]);
-  const loginWithGoogle = useCallback((idToken) => authApi.google(idToken).then(applySession), [applySession]);
-  const registerBasic = useCallback((payload) => authApi.register(payload).then(applySession), [applySession]);
-  const registerAdvertiser = useCallback((dto) => authApi.registerAdvertiser(dto).then(applySession), [applySession]);
-  const registerOwner = useCallback((dto) => authApi.registerOwner(dto).then(applySession), [applySession]);
-  const registerAgency = useCallback((dto) => authApi.registerAgency(dto).then(applySession), [applySession]);
+  const login = useCallback(
+    (email, password) => authApi.login(email, password).then(applySession),
+    [applySession],
+  );
+  const loginWithGoogle = useCallback(
+    (idToken) => authApi.google(idToken).then(applySession),
+    [applySession],
+  );
+  const registerBasic = useCallback(
+    (payload) => authApi.register(payload).then(applySession),
+    [applySession],
+  );
+  const registerAdvertiser = useCallback(
+    (dto) => authApi.registerAdvertiser(dto).then(applySession),
+    [applySession],
+  );
+  const registerOwner = useCallback(
+    (dto) => authApi.registerOwner(dto).then(applySession),
+    [applySession],
+  );
+  const registerAgency = useCallback(
+    (dto) => authApi.registerAgency(dto).then(applySession),
+    [applySession],
+  );
 
   const logout = useCallback(() => {
     const refreshToken = authStorage.getRefreshToken();
@@ -43,7 +61,16 @@ export function AuthProvider({ children }) {
       registerAgency,
       logout,
     }),
-    [user, login, loginWithGoogle, registerBasic, registerAdvertiser, registerOwner, registerAgency, logout],
+    [
+      user,
+      login,
+      loginWithGoogle,
+      registerBasic,
+      registerAdvertiser,
+      registerOwner,
+      registerAgency,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
