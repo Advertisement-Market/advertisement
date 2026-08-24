@@ -162,7 +162,7 @@ To enforce that no PR can be merged without successful CI runs:
 5. Check **Require status checks to pass before merging**.
 6. Check **Require branches to be up to date before merging**.
 7. In the search box under "Status checks that are required", search and select:
-   - `CI / All Checks Passed` (or `Frontend (Lint, Test, Build)` and `Backend (Maven Test & Build)`).
+   - `Build and Test CI / CI / All Checks Passed` (or whichever exact check context appears under the PR "Checks" tab).
 8. Click **Save changes**.
 
 Once enabled, GitHub will block the "Merge Pull Request" button until all CI pipeline checks pass cleanly.
