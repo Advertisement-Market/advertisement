@@ -64,11 +64,8 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and run backend tests
-        run: mvn clean test
-
-      - name: Package application
-        run: mvn package -DskipTests=false
+      - name: Build, test, and package application
+        run: mvn clean verify
 
   ci-status-check:
     name: CI / All Checks Passed
