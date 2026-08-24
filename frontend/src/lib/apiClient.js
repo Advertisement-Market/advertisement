@@ -32,8 +32,7 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         refreshInFlight =
-          refreshInFlight ||
-          axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken });
+          refreshInFlight || axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken });
         const { data } = await refreshInFlight;
         refreshInFlight = null;
         authStorage.setSession(data);

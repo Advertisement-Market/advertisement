@@ -142,12 +142,19 @@ export function HomeNavbar({
         <div className="nav-cta">
           {isAuthenticated ? (
             <>
-              <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Hi, {user.firstName}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>
+                Hi, {user.firstName}
+              </span>
               {onboarded && (
                 <Link
                   to={myDash}
                   className={cn(accentBtn, 'btn-sm')}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    textDecoration: 'none',
+                  }}
                 >
                   {GridIcon}
                   My Dashboard

@@ -135,9 +135,37 @@ The Vite dev server proxies `/api` requests to the backend at `http://localhost:
 | ------------------- | ------------------------------------ |
 | `npm run dev`       | Start the Vite dev server            |
 | `npm run build`     | Production build (`dist/`)           |
+| `npm run test`      | Run Vitest unit tests                |
 | `npm run preview`   | Preview the production build         |
 | `npm run lint`      | Run ESLint                           |
 | `npm run format`    | Format with Prettier                 |
+| `npm run format:check` | Check code formatting with Prettier |
+
+## CI/CD & PR Merge Prerequisites
+
+This repository uses **GitHub Actions** for continuous integration (`.github/workflows/ci.yml`).
+
+### CI Workflows
+On every **Pull Request (PR)** and push to `main`, `master`, or `develop`, the workflow automatically executes:
+- **Frontend Job (`frontend-ci`)**: Runs `npm ci`, ESLint (`npm run lint`), Prettier check (`npm run format:check`), Vitest unit tests (`npm run test`), and Vite build (`npm run build`).
+- **Backend Job (`backend-ci`)**: Runs `mvn clean test` and `mvn package`.
+- **Status Check Gate (`ci-status-check`)**: Unified gate named `CI / All Checks Passed` that succeeds only when both frontend and backend jobs pass.
+
+### Setting Pipeline Success as a PR Merge Prerequisite in GitHub
+
+To enforce that no PR can be merged without successful CI runs:
+
+1. Go to your repository on **GitHub** → **Settings** → **Branches**.
+2. Click **Add branch protection rule** (or edit rule for `main` / `master` / `develop`).
+3. Set **Branch name pattern** to `main` (or `master`/`develop`).
+4. Check **Require a pull request before merging**.
+5. Check **Require status checks to pass before merging**.
+6. Check **Require branches to be up to date before merging**.
+7. In the search box under "Status checks that are required", search and select:
+   - `CI / All Checks Passed` (or `Frontend (Lint, Test, Build)` and `Backend (Maven Test & Build)`).
+8. Click **Save changes**.
+
+Once enabled, GitHub will block the "Merge Pull Request" button until all CI pipeline checks pass cleanly.
 
 See [frontend/README.md](frontend/README.md) for the frontend source-tree breakdown and API wiring.
 
