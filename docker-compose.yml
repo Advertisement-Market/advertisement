@@ -38,7 +38,7 @@ services:
       advertisement-db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 3
@@ -56,7 +56,7 @@ services:
     depends_on:
       - advertisement-backend
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 3
