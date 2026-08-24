@@ -1,0 +1,10 @@
+target
+.mvn
+.git
+.dockerignore
+Dockerfile
+*.iml
+.idea
+.classpath
+.project
+.settings
