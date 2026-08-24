@@ -19,6 +19,9 @@ FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 
+# Install curl for container health checks
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Copy packaged Spring Boot JAR from builder stage
 COPY --from=builder /app/target/*.jar /app/app.jar
 
