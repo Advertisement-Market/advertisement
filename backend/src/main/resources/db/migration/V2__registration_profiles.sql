@@ -8,14 +8,14 @@ CREATE TABLE advertiser_profiles (
     company_name        VARCHAR(150) NOT NULL,
     business_type       VARCHAR(80)  NOT NULL,
     website             VARCHAR(255),
-    gst_number          VARCHAR(15),
+    gst_number          VARCHAR(15) UNIQUE,
     pan_number          VARCHAR(10),
     contact_designation VARCHAR(120) NOT NULL,
-    contact_email       VARCHAR(180) NOT NULL,
+    email               VARCHAR(180) NOT NULL,
     office_address      VARCHAR(500) NOT NULL,
     pincode             VARCHAR(6)   NOT NULL,
-    created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_ts          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_ts          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_advertiser_profiles_user UNIQUE (user_id),
     CONSTRAINT fk_advertiser_profiles_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
@@ -41,7 +41,7 @@ CREATE TABLE campaign_briefs (
     budget_max_unit     VARCHAR(20),
     flexible_budget     BOOLEAN       NOT NULL DEFAULT FALSE,
     quotations_required VARCHAR(20),
-    created_at          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_ts          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_campaign_briefs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -65,8 +65,8 @@ CREATE TABLE owner_profiles (
     trade_license_no       VARCHAR(80),
     ownership_type         VARCHAR(60),
     regulatory_approvals   VARCHAR(120),
-    created_at             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_ts             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_ts             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_owner_profiles_user UNIQUE (user_id),
     CONSTRAINT fk_owner_profiles_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
@@ -89,7 +89,7 @@ CREATE TABLE billboard_listings (
     start_price      NUMERIC(14,2) NOT NULL,
     min_booking      VARCHAR(50)   NOT NULL,
     discount_note    VARCHAR(500),
-    created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_ts       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_billboard_listings_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -104,7 +104,7 @@ CREATE TABLE agency_profiles (
     tagline               VARCHAR(200),
     about                 VARCHAR(2000),
     website               VARCHAR(255),
-    landline              VARCHAR(30),
+    contact_no            VARCHAR(30),
     linkedin_url          VARCHAR(255),
     headquarters_pincode  VARCHAR(6)    NOT NULL,
     office_address        VARCHAR(500)  NOT NULL,
@@ -118,8 +118,8 @@ CREATE TABLE agency_profiles (
     gst_number            VARCHAR(15),
     pan_number            VARCHAR(10),
     key_clients           VARCHAR(500),
-    created_at            TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at            TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_ts            TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_ts            TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_agency_profiles_user UNIQUE (user_id),
     CONSTRAINT fk_agency_profiles_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
