@@ -1,6 +1,13 @@
 package com.theadbasket.backend.owner;
 
+import java.time.Instant;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.theadbasket.backend.user.User;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -11,12 +18,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/** Billboard owner business profile — one per {@link User} with role OWNER. */
+/**
+ * Billboard owner business profile — one per {@link User} with role OWNER.
+ */
 @Entity
 @Table(name = "owner_profiles")
 @EntityListeners(AuditingEntityListener.class)
@@ -61,36 +66,110 @@ public class OwnerProfile {
     private String regulatoryApprovals;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_ts", nullable = false)
     private Instant updatedAt;
 
-    public Long getId() { return id; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
-    public String getCompanyName() { return companyName; }
-    public void setCompanyName(String companyName) { this.companyName = companyName; }
-    public String getCompanyPhone() { return companyPhone; }
-    public void setCompanyPhone(String companyPhone) { this.companyPhone = companyPhone; }
-    public String getCompanyRegNumber() { return companyRegNumber; }
-    public void setCompanyRegNumber(String companyRegNumber) { this.companyRegNumber = companyRegNumber; }
-    public String getGstNumber() { return gstNumber; }
-    public void setGstNumber(String gstNumber) { this.gstNumber = gstNumber; }
-    public String getBusinessAddressLine1() { return businessAddressLine1; }
-    public void setBusinessAddressLine1(String businessAddressLine1) { this.businessAddressLine1 = businessAddressLine1; }
-    public String getBusinessAddressLine2() { return businessAddressLine2; }
-    public void setBusinessAddressLine2(String businessAddressLine2) { this.businessAddressLine2 = businessAddressLine2; }
-    public String getBusinessPincode() { return businessPincode; }
-    public void setBusinessPincode(String businessPincode) { this.businessPincode = businessPincode; }
-    public String getTradeLicenseNo() { return tradeLicenseNo; }
-    public void setTradeLicenseNo(String tradeLicenseNo) { this.tradeLicenseNo = tradeLicenseNo; }
-    public String getOwnershipType() { return ownershipType; }
-    public void setOwnershipType(String ownershipType) { this.ownershipType = ownershipType; }
-    public String getRegulatoryApprovals() { return regulatoryApprovals; }
-    public void setRegulatoryApprovals(String regulatoryApprovals) { this.regulatoryApprovals = regulatoryApprovals; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getCompanyPhone() {
+        return companyPhone;
+    }
+
+    public void setCompanyPhone(String companyPhone) {
+        this.companyPhone = companyPhone;
+    }
+
+    public String getCompanyRegNumber() {
+        return companyRegNumber;
+    }
+
+    public void setCompanyRegNumber(String companyRegNumber) {
+        this.companyRegNumber = companyRegNumber;
+    }
+
+    public String getGstNumber() {
+        return gstNumber;
+    }
+
+    public void setGstNumber(String gstNumber) {
+        this.gstNumber = gstNumber;
+    }
+
+    public String getBusinessAddressLine1() {
+        return businessAddressLine1;
+    }
+
+    public void setBusinessAddressLine1(String businessAddressLine1) {
+        this.businessAddressLine1 = businessAddressLine1;
+    }
+
+    public String getBusinessAddressLine2() {
+        return businessAddressLine2;
+    }
+
+    public void setBusinessAddressLine2(String businessAddressLine2) {
+        this.businessAddressLine2 = businessAddressLine2;
+    }
+
+    public String getBusinessPincode() {
+        return businessPincode;
+    }
+
+    public void setBusinessPincode(String businessPincode) {
+        this.businessPincode = businessPincode;
+    }
+
+    public String getTradeLicenseNo() {
+        return tradeLicenseNo;
+    }
+
+    public void setTradeLicenseNo(String tradeLicenseNo) {
+        this.tradeLicenseNo = tradeLicenseNo;
+    }
+
+    public String getOwnershipType() {
+        return ownershipType;
+    }
+
+    public void setOwnershipType(String ownershipType) {
+        this.ownershipType = ownershipType;
+    }
+
+    public String getRegulatoryApprovals() {
+        return regulatoryApprovals;
+    }
+
+    public void setRegulatoryApprovals(String regulatoryApprovals) {
+        this.regulatoryApprovals = regulatoryApprovals;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }

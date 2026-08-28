@@ -12,8 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
- * Shared account provisioning for the role-specific registration services: attaches a role to the
- * signed-in account (promoting a MEMBER) or creates a new account when the caller is anonymous.
+ * Shared account provisioning for the role-specific registration services:
+ * attaches a role to the signed-in account (promoting a MEMBER) or creates a
+ * new account when the caller is anonymous.
  */
 @Component
 public class AccountRegistrar {
@@ -23,8 +24,8 @@ public class AccountRegistrar {
     private final AuthService authService;
 
     public AccountRegistrar(UserRepository userRepository,
-                            PasswordEncoder passwordEncoder,
-                            AuthService authService) {
+            PasswordEncoder passwordEncoder,
+            AuthService authService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authService = authService;
@@ -32,13 +33,15 @@ public class AccountRegistrar {
 
     /**
      * <ul>
-     *   <li><b>Signed in:</b> promotes a {@code MEMBER} to {@code role}; sets an optional password
-     *       when the account has none (Google). An already-onboarded account is rejected.</li>
-     *   <li><b>Anonymous:</b> requires email + password (length-checked) and creates a LOCAL account.</li>
+     * <li><b>Signed in:</b> promotes a {@code MEMBER} to {@code role}; sets an
+     * optional password when the account has none (Google). An
+     * already-onboarded account is rejected.</li>
+     * <li><b>Anonymous:</b> requires email + password (length-checked) and
+     * creates a LOCAL account.</li>
      * </ul>
      */
     public User attachOrCreate(Long currentUserId, String firstName, String lastName, String rawEmail,
-                               String rawPassword, String phone, Role role) {
+            String rawPassword, String phone, Role role) {
         if (currentUserId != null) {
             User user = userRepository.findById(currentUserId)
                     .orElseThrow(() -> new BadRequestException("Your session is no longer valid. Please sign in again."));
@@ -49,7 +52,7 @@ public class AccountRegistrar {
             user.setRole(role);
             if (!user.hasPassword() && rawPassword != null && !rawPassword.isBlank()) {
                 authService.validateNewPassword(rawPassword);
-                user.setPasswordHash(passwordEncoder.encode(rawPassword));
+                user.setPassword(passwordEncoder.encode(rawPassword));
             }
             return userRepository.save(user);
         }
