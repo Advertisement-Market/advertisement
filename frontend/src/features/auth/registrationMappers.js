@@ -24,9 +24,9 @@ const splitTags = (v) =>
   v == null
     ? []
     : String(v)
-        .split(/[,\n]/)
-        .map((t) => t.trim())
-        .filter(Boolean);
+      .split(/[,\n]/)
+      .map((t) => t.trim())
+      .filter(Boolean);
 
 function collectPortfolio(d) {
   const prefix = 'f_pf_title_';
@@ -125,7 +125,7 @@ export function mapAgency(d, s) {
     tagline: trimOrNull(d.f_tagline),
     about: trimOrNull(d.f_about),
     website: trimOrNull(d.f_website),
-    landline: trimOrNull(d.f_landline),
+    contactNo: trimOrNull(d.f_contactNo),
     linkedinUrl: trimOrNull(d.f_linkedin),
     headquartersPincode: d.f_pincode,
     officeAddress: d.f_officeAddress,

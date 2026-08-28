@@ -19,7 +19,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Agency onboarding: account (attach/create) + agency profile with services, industries & portfolio. */
+/**
+ * Agency onboarding: account (attach/create) + agency profile with services,
+ * industries & portfolio.
+ */
 @Service
 public class AgencyRegistrationService {
 
@@ -30,8 +33,8 @@ public class AgencyRegistrationService {
     private final AgencyProfileRepository agencyProfileRepository;
 
     public AgencyRegistrationService(AccountRegistrar accountRegistrar,
-                                     AuthService authService,
-                                     AgencyProfileRepository agencyProfileRepository) {
+            AuthService authService,
+            AgencyProfileRepository agencyProfileRepository) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.agencyProfileRepository = agencyProfileRepository;
@@ -52,7 +55,7 @@ public class AgencyRegistrationService {
         profile.setTagline(blankToNull(request.tagline()));
         profile.setAbout(blankToNull(request.about()));
         profile.setWebsite(blankToNull(request.website()));
-        profile.setLandline(blankToNull(request.landline()));
+        profile.setContactNo(blankToNull(request.contactNo()));
         profile.setLinkedinUrl(blankToNull(request.linkedinUrl()));
         profile.setHeadquartersPincode(request.headquartersPincode());
         profile.setOfficeAddress(request.officeAddress());
