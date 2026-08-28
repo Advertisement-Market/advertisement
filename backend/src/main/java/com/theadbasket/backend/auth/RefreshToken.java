@@ -1,6 +1,12 @@
 package com.theadbasket.backend.auth;
 
+import java.time.Instant;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.theadbasket.backend.user.User;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -11,11 +17,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/** An opaque, revocable refresh token bound to a {@link User}. */
+/**
+ * An opaque, revocable refresh token bound to a {@link User}.
+ */
 @Entity
 @Table(name = "refresh_tokens")
 @EntityListeners(AuditingEntityListener.class)
@@ -32,14 +37,14 @@ public class RefreshToken {
     @Column(nullable = false, unique = true, length = 255)
     private String token;
 
-    @Column(name = "expires_at", nullable = false)
+    @Column(name = "expiry_ts", nullable = false)
     private Instant expiresAt;
 
-    @Column(nullable = false)
+    @Column(name = "is_revoked", nullable = false)
     private boolean revoked = false;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
 
     protected RefreshToken() {
