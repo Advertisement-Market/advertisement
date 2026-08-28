@@ -1,6 +1,15 @@
 package com.theadbasket.backend.agency;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.theadbasket.backend.user.User;
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -13,14 +22,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/** Ad agency / service-provider profile — one per {@link User} with role AGENCY. */
+/**
+ * Ad agency / service-provider profile — one per {@link User} with role AGENCY.
+ */
 @Entity
 @Table(name = "agency_profiles")
 @EntityListeners(AuditingEntityListener.class)
@@ -56,7 +61,7 @@ public class AgencyProfile {
     private String website;
 
     @Column(length = 30)
-    private String landline;
+    private String contactNo;
 
     @Column(name = "linkedin_url", length = 255)
     private String linkedinUrl;
@@ -122,68 +127,238 @@ public class AgencyProfile {
     private List<PortfolioItem> portfolio = new ArrayList<>();
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_ts", nullable = false)
     private Instant updatedAt;
 
-    public Long getId() { return id; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
-    public String getAgencyName() { return agencyName; }
-    public void setAgencyName(String agencyName) { this.agencyName = agencyName; }
-    public String getAgencyType() { return agencyType; }
-    public void setAgencyType(String agencyType) { this.agencyType = agencyType; }
-    public Integer getYearEstablished() { return yearEstablished; }
-    public void setYearEstablished(Integer yearEstablished) { this.yearEstablished = yearEstablished; }
-    public String getYearsExperience() { return yearsExperience; }
-    public void setYearsExperience(String yearsExperience) { this.yearsExperience = yearsExperience; }
-    public String getTagline() { return tagline; }
-    public void setTagline(String tagline) { this.tagline = tagline; }
-    public String getAbout() { return about; }
-    public void setAbout(String about) { this.about = about; }
-    public String getWebsite() { return website; }
-    public void setWebsite(String website) { this.website = website; }
-    public String getLandline() { return landline; }
-    public void setLandline(String landline) { this.landline = landline; }
-    public String getLinkedinUrl() { return linkedinUrl; }
-    public void setLinkedinUrl(String linkedinUrl) { this.linkedinUrl = linkedinUrl; }
-    public String getHeadquartersPincode() { return headquartersPincode; }
-    public void setHeadquartersPincode(String headquartersPincode) { this.headquartersPincode = headquartersPincode; }
-    public String getOfficeAddress() { return officeAddress; }
-    public void setOfficeAddress(String officeAddress) { this.officeAddress = officeAddress; }
-    public String getContactDesignation() { return contactDesignation; }
-    public void setContactDesignation(String contactDesignation) { this.contactDesignation = contactDesignation; }
-    public String getCampaignsCompleted() { return campaignsCompleted; }
-    public void setCampaignsCompleted(String campaignsCompleted) { this.campaignsCompleted = campaignsCompleted; }
-    public String getPricingModel() { return pricingModel; }
-    public void setPricingModel(String pricingModel) { this.pricingModel = pricingModel; }
-    public String getMinTenderBudget() { return minTenderBudget; }
-    public void setMinTenderBudget(String minTenderBudget) { this.minTenderBudget = minTenderBudget; }
-    public String getGeoCoverage() { return geoCoverage; }
-    public void setGeoCoverage(String geoCoverage) { this.geoCoverage = geoCoverage; }
-    public String getCoverageCities() { return coverageCities; }
-    public void setCoverageCities(String coverageCities) { this.coverageCities = coverageCities; }
-    public String getRegNumber() { return regNumber; }
-    public void setRegNumber(String regNumber) { this.regNumber = regNumber; }
-    public String getGstNumber() { return gstNumber; }
-    public void setGstNumber(String gstNumber) { this.gstNumber = gstNumber; }
-    public String getPanNumber() { return panNumber; }
-    public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
-    public String getKeyClients() { return keyClients; }
-    public void setKeyClients(String keyClients) { this.keyClients = keyClients; }
-    public List<String> getServices() { return services; }
-    public void setServices(List<String> services) { this.services = services; }
-    public List<String> getIndustries() { return industries; }
-    public void setIndustries(List<String> industries) { this.industries = industries; }
-    public List<String> getExpertiseTags() { return expertiseTags; }
-    public void setExpertiseTags(List<String> expertiseTags) { this.expertiseTags = expertiseTags; }
-    public List<String> getLanguages() { return languages; }
-    public void setLanguages(List<String> languages) { this.languages = languages; }
-    public List<PortfolioItem> getPortfolio() { return portfolio; }
-    public void setPortfolio(List<PortfolioItem> portfolio) { this.portfolio = portfolio; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getAgencyName() {
+        return agencyName;
+    }
+
+    public void setAgencyName(String agencyName) {
+        this.agencyName = agencyName;
+    }
+
+    public String getAgencyType() {
+        return agencyType;
+    }
+
+    public void setAgencyType(String agencyType) {
+        this.agencyType = agencyType;
+    }
+
+    public Integer getYearEstablished() {
+        return yearEstablished;
+    }
+
+    public void setYearEstablished(Integer yearEstablished) {
+        this.yearEstablished = yearEstablished;
+    }
+
+    public String getYearsExperience() {
+        return yearsExperience;
+    }
+
+    public void setYearsExperience(String yearsExperience) {
+        this.yearsExperience = yearsExperience;
+    }
+
+    public String getTagline() {
+        return tagline;
+    }
+
+    public void setTagline(String tagline) {
+        this.tagline = tagline;
+    }
+
+    public String getAbout() {
+        return about;
+    }
+
+    public void setAbout(String about) {
+        this.about = about;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
+    }
+
+    public String getContactNo() {
+        return contactNo;
+    }
+
+    public void setContactNo(String contactNo) {
+        this.contactNo = contactNo;
+    }
+
+    public String getLinkedinUrl() {
+        return linkedinUrl;
+    }
+
+    public void setLinkedinUrl(String linkedinUrl) {
+        this.linkedinUrl = linkedinUrl;
+    }
+
+    public String getHeadquartersPincode() {
+        return headquartersPincode;
+    }
+
+    public void setHeadquartersPincode(String headquartersPincode) {
+        this.headquartersPincode = headquartersPincode;
+    }
+
+    public String getOfficeAddress() {
+        return officeAddress;
+    }
+
+    public void setOfficeAddress(String officeAddress) {
+        this.officeAddress = officeAddress;
+    }
+
+    public String getContactDesignation() {
+        return contactDesignation;
+    }
+
+    public void setContactDesignation(String contactDesignation) {
+        this.contactDesignation = contactDesignation;
+    }
+
+    public String getCampaignsCompleted() {
+        return campaignsCompleted;
+    }
+
+    public void setCampaignsCompleted(String campaignsCompleted) {
+        this.campaignsCompleted = campaignsCompleted;
+    }
+
+    public String getPricingModel() {
+        return pricingModel;
+    }
+
+    public void setPricingModel(String pricingModel) {
+        this.pricingModel = pricingModel;
+    }
+
+    public String getMinTenderBudget() {
+        return minTenderBudget;
+    }
+
+    public void setMinTenderBudget(String minTenderBudget) {
+        this.minTenderBudget = minTenderBudget;
+    }
+
+    public String getGeoCoverage() {
+        return geoCoverage;
+    }
+
+    public void setGeoCoverage(String geoCoverage) {
+        this.geoCoverage = geoCoverage;
+    }
+
+    public String getCoverageCities() {
+        return coverageCities;
+    }
+
+    public void setCoverageCities(String coverageCities) {
+        this.coverageCities = coverageCities;
+    }
+
+    public String getRegNumber() {
+        return regNumber;
+    }
+
+    public void setRegNumber(String regNumber) {
+        this.regNumber = regNumber;
+    }
+
+    public String getGstNumber() {
+        return gstNumber;
+    }
+
+    public void setGstNumber(String gstNumber) {
+        this.gstNumber = gstNumber;
+    }
+
+    public String getPanNumber() {
+        return panNumber;
+    }
+
+    public void setPanNumber(String panNumber) {
+        this.panNumber = panNumber;
+    }
+
+    public String getKeyClients() {
+        return keyClients;
+    }
+
+    public void setKeyClients(String keyClients) {
+        this.keyClients = keyClients;
+    }
+
+    public List<String> getServices() {
+        return services;
+    }
+
+    public void setServices(List<String> services) {
+        this.services = services;
+    }
+
+    public List<String> getIndustries() {
+        return industries;
+    }
+
+    public void setIndustries(List<String> industries) {
+        this.industries = industries;
+    }
+
+    public List<String> getExpertiseTags() {
+        return expertiseTags;
+    }
+
+    public void setExpertiseTags(List<String> expertiseTags) {
+        this.expertiseTags = expertiseTags;
+    }
+
+    public List<String> getLanguages() {
+        return languages;
+    }
+
+    public void setLanguages(List<String> languages) {
+        this.languages = languages;
+    }
+
+    public List<PortfolioItem> getPortfolio() {
+        return portfolio;
+    }
+
+    public void setPortfolio(List<PortfolioItem> portfolio) {
+        this.portfolio = portfolio;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }
