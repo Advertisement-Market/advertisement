@@ -8,8 +8,10 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.user.User;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -61,11 +63,9 @@ public class AdvertiserProfile {
     @Column(name = "email", nullable = false, length = 180)
     private String contactEmail;
 
-    @Column(name = "office_address", nullable = false, length = 500)
-    private String officeAddress;
-
-    @Column(nullable = false, length = 6)
-    private String pincode;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id", nullable = false)
+    private Address address;
 
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "advertiser_industries", joinColumns = @JoinColumn(name = "profile_id"))
@@ -148,20 +148,12 @@ public class AdvertiserProfile {
         this.contactEmail = contactEmail;
     }
 
-    public String getOfficeAddress() {
-        return officeAddress;
+    public Address getAddress() {
+        return address;
     }
 
-    public void setOfficeAddress(String officeAddress) {
-        this.officeAddress = officeAddress;
-    }
-
-    public String getPincode() {
-        return pincode;
-    }
-
-    public void setPincode(String pincode) {
-        this.pincode = pincode;
+    public void setAddress(Address address) {
+        this.address = address;
     }
 
     public List<String> getIndustries() {

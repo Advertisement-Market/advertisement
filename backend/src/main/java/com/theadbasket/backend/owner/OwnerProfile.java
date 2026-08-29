@@ -6,8 +6,10 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.user.User;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -47,14 +49,9 @@ public class OwnerProfile {
     @Column(name = "gst_number", length = 15)
     private String gstNumber;
 
-    @Column(name = "business_address_line1", nullable = false, length = 300)
-    private String businessAddressLine1;
-
-    @Column(name = "business_address_line2", length = 300)
-    private String businessAddressLine2;
-
-    @Column(name = "business_pincode", nullable = false, length = 6)
-    private String businessPincode;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id", nullable = false)
+    private Address address;
 
     @Column(name = "trade_license_no", length = 80)
     private String tradeLicenseNo;
@@ -117,28 +114,12 @@ public class OwnerProfile {
         this.gstNumber = gstNumber;
     }
 
-    public String getBusinessAddressLine1() {
-        return businessAddressLine1;
+    public Address getAddress() {
+        return address;
     }
 
-    public void setBusinessAddressLine1(String businessAddressLine1) {
-        this.businessAddressLine1 = businessAddressLine1;
-    }
-
-    public String getBusinessAddressLine2() {
-        return businessAddressLine2;
-    }
-
-    public void setBusinessAddressLine2(String businessAddressLine2) {
-        this.businessAddressLine2 = businessAddressLine2;
-    }
-
-    public String getBusinessPincode() {
-        return businessPincode;
-    }
-
-    public void setBusinessPincode(String businessPincode) {
-        this.businessPincode = businessPincode;
+    public void setAddress(Address address) {
+        this.address = address;
     }
 
     public String getTradeLicenseNo() {

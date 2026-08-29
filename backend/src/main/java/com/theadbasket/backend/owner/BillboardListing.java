@@ -6,8 +6,10 @@ import java.time.Instant;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.user.User;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -17,6 +19,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 /**
@@ -39,14 +42,9 @@ public class BillboardListing {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(nullable = false, length = 6)
-    private String pincode;
-
-    @Column(nullable = false, length = 500)
-    private String address;
-
-    @Column(length = 200)
-    private String landmark;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id", nullable = false)
+    private Address address;
 
     @Column(nullable = false, length = 60)
     private String type;
@@ -105,28 +103,12 @@ public class BillboardListing {
         this.name = name;
     }
 
-    public String getPincode() {
-        return pincode;
-    }
-
-    public void setPincode(String pincode) {
-        this.pincode = pincode;
-    }
-
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(Address address) {
         this.address = address;
-    }
-
-    public String getLandmark() {
-        return landmark;
-    }
-
-    public void setLandmark(String landmark) {
-        this.landmark = landmark;
     }
 
     public String getType() {
