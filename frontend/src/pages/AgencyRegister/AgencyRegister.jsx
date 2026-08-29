@@ -97,8 +97,10 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_agencyName')) return fail('Please enter your agency name.');
     if (!d('f_agencyType')) return fail('Please select an agency type.');
     if (!d('f_yearEst')) return fail('Please enter the year established.');
+    if (!d('f_addressLine1')) return fail('Please enter your address.');
+    if (!d('f_city')) return fail('Please enter your city.');
+    if (!d('f_state')) return fail('Please enter your state.');
     if (!d('f_pincode')) return fail('Please enter your headquarters pincode.');
-    if (!d('f_officeAddress')) return fail('Please enter your office address.');
   }
   if (step === 3) {
     if (!d('f_firstName') || !d('f_lastName')) return fail('Please enter the contact person name.');
@@ -158,11 +160,11 @@ export function AgencyRegister() {
   const { registerAgency, user } = useAuth();
   const prefill = user
     ? {
-        f_loginEmail: user.email,
-        f_email: user.email,
-        f_firstName: user.firstName || '',
-        f_lastName: user.lastName || '',
-      }
+      f_loginEmail: user.email,
+      f_email: user.email,
+      f_firstName: user.firstName || '',
+      f_lastName: user.lastName || '',
+    }
     : {};
   const onSubmit = async ({ data, selections }) => {
     try {
