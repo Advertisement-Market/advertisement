@@ -371,10 +371,13 @@ export function Step3() {
   const phone = field('f_phone');
   const pincode = field('f_pincode');
   const phoneOk = phone.replace(/\D/g, '').length === 10;
-  const city = pincode.length === 6 ? PINCODE_MAP[pincode] || 'India' : '';
+  const suggestion = pincode.length === 6 ? PINCODE_MAP[pincode] || '' : '';
   const emailErr = useFieldError('f_email', [v.required(), v.email()]);
   const phoneErr = useFieldError('f_phone', [v.required(), v.phone()]);
   const pincodeErr = useFieldError('f_pincode', [v.required(), v.pincode()]);
+  const line1Err = useFieldError('f_addressLine1', [v.required()]);
+  const cityErr = useFieldError('f_city', [v.required()]);
+  const stateErr = useFieldError('f_state', [v.required()]);
 
   const useLoginEmail = () => {
     const login = field('f_loginEmail').trim();
@@ -384,6 +387,16 @@ export function Step3() {
     }
     setField('f_email', login);
     showToast('Login email copied to contact email.', 'success');
+  };
+
+  const handlePincodeBlur = (e) => {
+    pincodeErr.onBlur(e);
+    const match = PINCODE_MAP[pincode];
+    if (match) {
+      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
+      if (!field('f_city').trim() && autoCity) setField('f_city', autoCity);
+      if (!field('f_state').trim() && autoState) setField('f_state', autoState);
+    }
   };
 
   return (
@@ -497,40 +510,90 @@ export function Step3() {
       </FormSection>
 
       <FormSection last title="Office Location">
+        <div className="form-group">
+          <label>
+            Address Line 1 <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', line1Err.invalidClass)}
+            placeholder="12th Floor, Lotus Corporate Park"
+            value={field('f_addressLine1')}
+            onChange={(e) => setField('f_addressLine1', e.target.value)}
+            onBlur={line1Err.onBlur}
+          />
+          <FieldError show={line1Err.show} error={line1Err.error} />
+        </div>
+        <Field
+          name="f_addressLine2"
+          label={
+            <>
+              Address Line 2 <span className="opt">(optional)</span>
+            </>
+          }
+          placeholder="Goregaon East"
+        />
+        <Field
+          name="f_landmark"
+          label={
+            <>
+              Landmark <span className="opt">(optional)</span>
+            </>
+          }
+          placeholder="e.g., Near Filmcity Road"
+        />
         <FormRow>
           <div className="form-group">
             <label>
-              PIN Code <span className="req">*</span>
+              City <span className="req">*</span>
             </label>
             <input
               type="text"
-              className={cn('form-control', pincodeErr.invalidClass)}
-              maxLength={6}
-              placeholder="400001"
-              value={pincode}
-              onChange={(e) => setField('f_pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onBlur={pincodeErr.onBlur}
+              className={cn('form-control', cityErr.invalidClass)}
+              placeholder="Mumbai"
+              value={field('f_city')}
+              onChange={(e) => setField('f_city', e.target.value)}
+              onBlur={cityErr.onBlur}
             />
-            <div className={cn('pincode-autofill', city && 'show')}>{city}</div>
-            <FieldError show={pincodeErr.show} error={pincodeErr.error} />
+            <FieldError show={cityErr.show} error={cityErr.error} />
           </div>
-          <div className="form-group" />
+          <div className="form-group">
+            <label>
+              State <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', stateErr.invalidClass)}
+              placeholder="Maharashtra"
+              value={field('f_state')}
+              onChange={(e) => setField('f_state', e.target.value)}
+              onBlur={stateErr.onBlur}
+            />
+            <FieldError show={stateErr.show} error={stateErr.error} />
+          </div>
         </FormRow>
-        <Field
-          name="f_officeAddress"
-          type="textarea"
-          rows={2}
-          label="Office Address"
-          required
-          placeholder="e.g., 12th Floor, Lotus Corporate Park, Goregaon East, Mumbai – 400063"
-        />
+        <div className="form-group">
+          <label>
+            PIN Code <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', pincodeErr.invalidClass)}
+            maxLength={6}
+            placeholder="400001"
+            value={pincode}
+            onChange={(e) => setField('f_pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onBlur={handlePincodeBlur}
+          />
+          <div className={cn('pincode-autofill', suggestion && 'show')}>{suggestion}</div>
+          <FieldError show={pincodeErr.show} error={pincodeErr.error} />
+        </div>
       </FormSection>
 
       <RegNav nextLabel="Continue to Project Details" />
     </div>
   );
 }
-
 /* ── STEP 4 ── */
 export function Step4() {
   return (
@@ -723,9 +786,9 @@ export function Step6() {
     gstHint = gstRegex.test(gst)
       ? { text: 'Valid GSTIN format.', cls: 'success' }
       : {
-          text: "This doesn't look like a valid GSTIN format — please double-check.",
-          cls: 'warning',
-        };
+        text: "This doesn't look like a valid GSTIN format — please double-check.",
+        cls: 'warning',
+      };
 
   return (
     <div className="step-panel active">
@@ -984,7 +1047,9 @@ export function Step7() {
           />
           <ReviewRow
             label="Address"
-            value={[v('f_officeAddress'), v('f_pincode')].filter(Boolean).join(' — ')}
+            value={[v('f_addressLine1'), v('f_addressLine2'), v('f_landmark'), v('f_city'), v('f_state'), v('f_pincode')]
+              .filter(Boolean)
+              .join(', ')}
             editStep={3}
           />
         </ReviewBlock>
