@@ -8,8 +8,10 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.user.User;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -66,11 +68,9 @@ public class AgencyProfile {
     @Column(name = "linkedin_url", length = 255)
     private String linkedinUrl;
 
-    @Column(name = "headquarters_pincode", nullable = false, length = 6)
-    private String headquartersPincode;
-
-    @Column(name = "office_address", nullable = false, length = 500)
-    private String officeAddress;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id", nullable = false)
+    private Address address;
 
     @Column(name = "contact_designation", nullable = false, length = 120)
     private String contactDesignation;
@@ -218,20 +218,12 @@ public class AgencyProfile {
         this.linkedinUrl = linkedinUrl;
     }
 
-    public String getHeadquartersPincode() {
-        return headquartersPincode;
+    public Address getAddress() {
+        return address;
     }
 
-    public void setHeadquartersPincode(String headquartersPincode) {
-        this.headquartersPincode = headquartersPincode;
-    }
-
-    public String getOfficeAddress() {
-        return officeAddress;
-    }
-
-    public void setOfficeAddress(String officeAddress) {
-        this.officeAddress = officeAddress;
+    public void setAddress(Address address) {
+        this.address = address;
     }
 
     public String getContactDesignation() {
