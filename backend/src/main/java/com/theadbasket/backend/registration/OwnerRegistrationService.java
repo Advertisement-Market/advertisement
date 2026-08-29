@@ -1,23 +1,27 @@
 package com.theadbasket.backend.registration;
 
-import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
-
-import com.theadbasket.backend.auth.AuthService;
-import com.theadbasket.backend.auth.dto.AuthResponse;
-import com.theadbasket.backend.owner.BillboardListing;
-import com.theadbasket.backend.owner.BillboardListingRepository;
-import com.theadbasket.backend.owner.OwnerProfile;
-import com.theadbasket.backend.owner.OwnerProfileRepository;
-import com.theadbasket.backend.registration.dto.BillboardListingRequest;
-import com.theadbasket.backend.registration.dto.OwnerRegistrationRequest;
-import com.theadbasket.backend.user.Role;
-import com.theadbasket.backend.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Owner onboarding: account (attach/create) + owner profile + first billboard listing. */
+import com.theadbasket.backend.auth.AuthService;
+import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.owner.BillboardListing;
+import com.theadbasket.backend.owner.BillboardListingRepository;
+import com.theadbasket.backend.owner.OwnerProfile;
+import com.theadbasket.backend.owner.OwnerProfileRepository;
+import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
+import com.theadbasket.backend.registration.dto.BillboardListingRequest;
+import com.theadbasket.backend.registration.dto.OwnerRegistrationRequest;
+import com.theadbasket.backend.user.Role;
+import com.theadbasket.backend.user.User;
+
+/**
+ * Owner onboarding: account (attach/create) + owner profile + first billboard
+ * listing.
+ */
 @Service
 public class OwnerRegistrationService {
 
@@ -29,9 +33,9 @@ public class OwnerRegistrationService {
     private final BillboardListingRepository billboardListingRepository;
 
     public OwnerRegistrationService(AccountRegistrar accountRegistrar,
-                                    AuthService authService,
-                                    OwnerProfileRepository ownerProfileRepository,
-                                    BillboardListingRepository billboardListingRepository) {
+            AuthService authService,
+            OwnerProfileRepository ownerProfileRepository,
+            BillboardListingRepository billboardListingRepository) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.ownerProfileRepository = ownerProfileRepository;
@@ -43,6 +47,13 @@ public class OwnerRegistrationService {
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName().trim(), request.accountEmail(), request.password(), request.phone(),
                 Role.OWNER);
+        Address address = new Address();
+        address.setLine1(request.addressLine1().trim());
+        address.setLine2(blankToNull(request.addressLine2()));
+        address.setLandmark(blankToNull(request.landmark()));
+        address.setCity(request.city().trim());
+        address.setState(request.state().trim());
+        address.setPincode(request.pincode().trim());
 
         OwnerProfile profile = new OwnerProfile();
         profile.setUser(user);
@@ -50,9 +61,7 @@ public class OwnerRegistrationService {
         profile.setCompanyPhone(blankToNull(request.companyPhone()));
         profile.setCompanyRegNumber(blankToNull(request.companyRegNumber()));
         profile.setGstNumber(blankToNull(request.gstNumber()));
-        profile.setBusinessAddressLine1(request.businessAddressLine1());
-        profile.setBusinessAddressLine2(blankToNull(request.businessAddressLine2()));
-        profile.setBusinessPincode(request.businessPincode());
+        profile.setAddress(address);
         profile.setTradeLicenseNo(blankToNull(request.tradeLicenseNo()));
         profile.setOwnershipType(blankToNull(request.ownershipType()));
         profile.setRegulatoryApprovals(blankToNull(request.regulatoryApprovals()));
@@ -64,12 +73,18 @@ public class OwnerRegistrationService {
     }
 
     private BillboardListing toListing(BillboardListingRequest req, User user) {
+        Address address = new Address();
+        address.setLine1(req.addressLine1().trim());
+        address.setLine2(blankToNull(req.addressLine2()));
+        address.setLandmark(blankToNull(req.landmark()));
+        address.setCity(req.city().trim());
+        address.setState(req.state().trim());
+        address.setPincode(req.pincode().trim());
+
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
         listing.setName(req.name().trim());
-        listing.setPincode(req.pincode());
-        listing.setAddress(req.address());
-        listing.setLandmark(blankToNull(req.landmark()));
+        listing.setAddress(address);
         listing.setType(req.type());
         listing.setWidthFt(req.widthFt());
         listing.setHeightFt(req.heightFt());

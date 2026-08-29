@@ -22,15 +22,18 @@ public record AgencyRegistrationRequest(
         // already-signed-in account completes this wizard. Rules/length enforced in the service.
         @Email(message = "Enter a valid email address.")
         @Size(max = 180)
+
         String accountEmail,
         @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
         // ── Agency ──
         @NotBlank(message = "Agency name is required.")
         @Size(max = 150)
+
         String agencyName,
         @NotBlank(message = "Agency type is required.")
         @Size(max = 80)
+
         String agencyType,
         @NotNull(message = "Year established is required.")
         Integer yearEstablished,
@@ -47,12 +50,23 @@ public record AgencyRegistrationRequest(
         String contactNo,
         @Size(max = 255)
         String linkedinUrl,
-        @NotBlank(message = "Headquarters PIN code is required.")
+        // ── Headquarters address ──
+        @NotBlank(message = "Address line 1 is required.")
+        @Size(max = 300)
+        String addressLine1,
+        @Size(max = 300)
+        String addressLine2,
+        @Size(max = 200)
+        String landmark,
+        @NotBlank(message = "City is required.")
+        @Size(max = 100)
+        String city,
+        @NotBlank(message = "State is required.")
+        @Size(max = 100)
+        String state,
+        @NotBlank(message = "PIN code is required.")
         @Pattern(regexp = ValidationPatterns.PINCODE, message = "Enter a valid 6-digit PIN code.")
-        String headquartersPincode,
-        @NotBlank(message = "Office address is required.")
-        @Size(max = 500)
-        String officeAddress,
+        String pincode,
         // ── Primary contact ──
         @NotBlank(message = "First name is required.")
         @Size(max = 80)
