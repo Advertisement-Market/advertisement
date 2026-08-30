@@ -67,6 +67,7 @@ export function mapAdvertiser(d, s) {
       targetAudience: d.f_targetAudience,
       targetLocation: d.f_targetLocation,
       startDate: d.f_startDate,
+      endDate: d.f_endDate,
       duration: d.f_duration,
       budgetMinValue: toNumber(d.f_budgetMinValue),
       budgetMinUnit: trimOrNull(d.f_budgetMinUnit),

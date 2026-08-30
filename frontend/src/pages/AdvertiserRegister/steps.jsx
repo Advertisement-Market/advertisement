@@ -641,6 +641,7 @@ export function Step4() {
       <FormSection last title="Timeline">
         <FormRow>
           <Field name="f_startDate" type="date" label="Expected Start Date" required />
+          <Field name="f_endDate" type="date" label="Expected End Date" required />
           <Field
             name="f_duration"
             type="select"
