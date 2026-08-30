@@ -53,7 +53,7 @@ class RegistrationFlowIntegrationTest {
               "state":"Maharashtra","pincode":"400001",
               "project":{"title":"Summer Launch","description":"Nationwide summer campaign",
                 "targetAudience":"Youth 18-30","targetLocation":"Mumbai & Pune","startDate":"2026-08-01",
-                "duration":"3 months","budgetMinValue":500000,"budgetMinUnit":"Lakh","budgetMaxValue":1200000,
+                "endDate":"2026-08-01","duration":"3 months","budgetMinValue":500000,"budgetMinUnit":"Lakh","budgetMaxValue":1200000,
                 "budgetMaxUnit":"Lakh","flexibleBudget":true,"quotationsRequired":"3-5",
                 "agencyPreferences":["Verified only","OOH Specialist"]},
               "acceptedTerms":true

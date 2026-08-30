@@ -83,6 +83,7 @@ public class AdvertiserRegistrationService {
         brief.setTargetAudience(req.targetAudience());
         brief.setTargetLocation(req.targetLocation());
         brief.setStartDate(req.startDate());
+        brief.setEndDate(req.endDate());
         brief.setDuration(req.duration());
         brief.setBudgetMinValue(req.budgetMinValue());
         brief.setBudgetMinUnit(blankToNull(req.budgetMinUnit()));
