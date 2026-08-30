@@ -104,6 +104,7 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_targetAudience')) return fail('Please describe your target audience.');
     if (!d('f_targetLocation')) return fail('Please enter a target location.');
     if (!d('f_startDate')) return fail('Please select an expected start date.');
+    if (!d('f_endDate')) return fail('Please select an expected end date.');
     if (!d('f_duration')) return fail('Please select a project duration.');
   }
   if (step === 5) {
