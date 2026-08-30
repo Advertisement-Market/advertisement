@@ -56,6 +56,9 @@ public class CampaignBrief {
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
+
     @Column(nullable = false, length = 50)
     private String duration;
 
@@ -136,6 +139,14 @@ public class CampaignBrief {
 
     public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 
     public String getDuration() {

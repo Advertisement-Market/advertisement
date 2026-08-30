@@ -51,6 +51,7 @@ CREATE TABLE campaign_briefs (
     target_audience     VARCHAR(500)  NOT NULL,
     target_location     VARCHAR(300)  NOT NULL,
     start_date          DATE          NOT NULL,
+    end_date            DATE          NOT NULL,
     duration            VARCHAR(50)   NOT NULL,
     budget_min_value    NUMERIC(14,2),
     budget_min_unit     VARCHAR(20),
