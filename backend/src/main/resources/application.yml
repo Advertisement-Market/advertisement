@@ -17,19 +17,32 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  # External, hot-reloadable feature policy (which roles / auth providers are
+  # currently enabled). Lives outside the jar so it can be edited without a
+  # rebuild; see app.roles / app.auth-providers below.
+  config:
+    import: optional:file:./config/feature-policy.yml
 
 server:
   port: 8080
 
 management:
+  server:
+    # Actuator (including /refresh) is served on a separate port so it is never
+    # exposed on the same listener as the public API. This port must be firewalled
+    # to internal/ops access only in every real deployment.
+    port: 8081
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,refresh,env
   endpoint:
     health:
       probes:
         enabled: true
+    refresh:
+      # Access control is enforced by ActuatorSecurityConfig (HTTP Basic), not here.
+      access: unrestricted
 
 info:
   app:
@@ -56,3 +69,16 @@ app:
   cors:
     # Comma-separated browser origins allowed to call the API.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  actuator:
+    # Credentials for the actuator-only Basic Auth chain (ActuatorSecurityConfig).
+    # MUST be overridden in prod via env vars — never rely on these defaults outside dev.
+    username: ${ACTUATOR_ADMIN_USER:admin}
+    password: ${ACTUATOR_ADMIN_PASSWORD:dev-only-change-me}
+  # roles / auth-providers below are bound by RolePolicyProperties /
+  # AuthProviderPolicyProperties (@RefreshScope) — these are the compiled-in
+  # defaults used if config/feature-policy.yml is absent or a key is omitted.
+  # The external file (imported above) is the source of truth in real deployments.
+  roles:
+    enabled: [MEMBER, ADVERTISER, OWNER, AGENCY]
+  auth-providers:
+    enabled: [LOCAL, GOOGLE]
