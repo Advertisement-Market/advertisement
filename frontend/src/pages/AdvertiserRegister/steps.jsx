@@ -787,9 +787,9 @@ export function Step6() {
     gstHint = gstRegex.test(gst)
       ? { text: 'Valid GSTIN format.', cls: 'success' }
       : {
-        text: "This doesn't look like a valid GSTIN format — please double-check.",
-        cls: 'warning',
-      };
+          text: "This doesn't look like a valid GSTIN format — please double-check.",
+          cls: 'warning',
+        };
 
   return (
     <div className="step-panel active">
@@ -1048,7 +1048,14 @@ export function Step7() {
           />
           <ReviewRow
             label="Address"
-            value={[v('f_addressLine1'), v('f_addressLine2'), v('f_landmark'), v('f_city'), v('f_state'), v('f_pincode')]
+            value={[
+              v('f_addressLine1'),
+              v('f_addressLine2'),
+              v('f_landmark'),
+              v('f_city'),
+              v('f_state'),
+              v('f_pincode'),
+            ]
               .filter(Boolean)
               .join(', ')}
             editStep={3}

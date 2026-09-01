@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
@@ -1157,18 +1157,25 @@ export function AdvertiserDashboard() {
   const [mediaPlan, setMediaPlan] = useState(MEDIA_PLAN_INIT);
   const nextId = useRef(10);
 
-  const addToMP = (item) => {
-    if (mediaPlan.some((m) => m.name === item.name)) {
-      showToast('Already in your media plan!');
-      return;
-    }
-    setMediaPlan((prev) => [...prev, { ...item, id: nextId.current++ }]);
-    showToast('Added to Media Plan! Open the builder to review.');
-  };
-  const removeFromMP = (id) => {
-    setMediaPlan((prev) => prev.filter((i) => i.id !== id));
-    showToast('Removed from media plan.');
-  };
+  const addToMP = useCallback(
+    (item) => {
+      if (mediaPlan.some((m) => m.name === item.name)) {
+        showToast('Already in your media plan!');
+        return;
+      }
+      setMediaPlan((prev) => [...prev, { ...item, id: nextId.current++ }]);
+      showToast('Added to Media Plan! Open the builder to review.');
+    },
+    [mediaPlan, showToast],
+  );
+
+  const removeFromMP = useCallback(
+    (id) => {
+      setMediaPlan((prev) => prev.filter((i) => i.id !== id));
+      showToast('Removed from media plan.');
+    },
+    [showToast],
+  );
 
   const pages = useMemo(
     () => ({
@@ -1180,9 +1187,9 @@ export function AdvertiserDashboard() {
       tenders: <Tenders />,
       analytics: <Analytics />,
       settings: <Settings />,
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }),
-    [mediaPlan],
+    [mediaPlan, setPage, addToMP, removeFromMP],
   );
 
   return (

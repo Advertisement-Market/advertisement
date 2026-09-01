@@ -160,11 +160,11 @@ export function AgencyRegister() {
   const { registerAgency, user } = useAuth();
   const prefill = user
     ? {
-      f_loginEmail: user.email,
-      f_email: user.email,
-      f_firstName: user.firstName || '',
-      f_lastName: user.lastName || '',
-    }
+        f_loginEmail: user.email,
+        f_email: user.email,
+        f_firstName: user.firstName || '',
+        f_lastName: user.lastName || '',
+      }
     : {};
   const onSubmit = async ({ data, selections }) => {
     try {

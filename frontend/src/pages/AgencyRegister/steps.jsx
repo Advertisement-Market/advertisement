@@ -442,6 +442,7 @@ export function Step2() {
           label="Address Line 1"
           required
           placeholder="e.g., 4th Floor, Pinnacle Business Park"
+          error={line1Err}
         />
         <Field
           name="f_addressLine2"
@@ -1015,7 +1016,13 @@ export function Step7() {
         <ReviewRow label="Tagline" value={v('f_tagline')} editStep={2} />
         <ReviewRow
           label="Headquarters"
-          value={[v('f_addressLine1'), v('f_addressLine2'), v('f_landmark'), v('f_city'), v('f_state')]
+          value={[
+            v('f_addressLine1'),
+            v('f_addressLine2'),
+            v('f_landmark'),
+            v('f_city'),
+            v('f_state'),
+          ]
             .filter(Boolean)
             .join(', ')}
           editStep={2}
