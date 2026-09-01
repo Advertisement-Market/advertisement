@@ -138,11 +138,11 @@ export function OwnerRegister() {
   const { registerOwner, user } = useAuth();
   const prefill = user
     ? {
-      f_email: user.email,
-      f_firstName: user.firstName || '',
-      f_lastName: user.lastName || '',
-      f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
-    }
+        f_email: user.email,
+        f_firstName: user.firstName || '',
+        f_lastName: user.lastName || '',
+        f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
+      }
     : {};
   const onSubmit = async ({ data }) => {
     try {

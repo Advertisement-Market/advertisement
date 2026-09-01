@@ -24,9 +24,9 @@ const splitTags = (v) =>
   v == null
     ? []
     : String(v)
-      .split(/[,\n]/)
-      .map((t) => t.trim())
-      .filter(Boolean);
+        .split(/[,\n]/)
+        .map((t) => t.trim())
+        .filter(Boolean);
 
 function collectPortfolio(d) {
   const prefix = 'f_pf_title_';

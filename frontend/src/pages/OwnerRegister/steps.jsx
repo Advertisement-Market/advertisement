@@ -629,7 +629,6 @@ export function Step3() {
   );
 }
 
-
 function FootfallField() {
   const { field, setField } = useRegister();
   return (
@@ -1118,7 +1117,9 @@ export function Step7() {
           body={join([
             v('f_companyName'),
             v('f_gst'),
-            [v('f_bizAddr1'), v('f_bizCity'), v('f_bizState'), v('f_bizPin')].filter(Boolean).join(', '),
+            [v('f_bizAddr1'), v('f_bizCity'), v('f_bizState'), v('f_bizPin')]
+              .filter(Boolean)
+              .join(', '),
           ])}
         />
         <ReviewSection
