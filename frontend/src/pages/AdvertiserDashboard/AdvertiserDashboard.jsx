@@ -1187,7 +1187,6 @@ export function AdvertiserDashboard() {
       tenders: <Tenders />,
       analytics: <Analytics />,
       settings: <Settings />,
-
     }),
     [mediaPlan, setPage, addToMP, removeFromMP],
   );
