@@ -82,13 +82,17 @@ function validate(step, { data, showToast, user }) {
   }
   if (step === 2) {
     if (!d('f_companyName')) return fail('Please enter your company name.');
-    if (!d('f_bizPin')) return fail('Please enter your office pincode.');
     if (!d('f_bizAddr1')) return fail('Please enter your address.');
+    if (!d('f_bizCity')) return fail('Please enter your city.');
+    if (!d('f_bizState')) return fail('Please enter your state.');
+    if (!d('f_bizPin')) return fail('Please enter your office pincode.');
   }
   if (step === 3) {
     if (!d('f_bbName')) return fail('Please enter a billboard name.');
-    if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
     if (!d('f_bbAddr')) return fail('Please enter the billboard address.');
+    if (!d('f_bbCity')) return fail('Please enter the billboard city.');
+    if (!d('f_bbState')) return fail('Please enter the billboard state.');
+    if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
     if (!d('f_bbWidth') || !d('f_bbHeight')) return fail('Please enter the billboard dimensions.');
     if (!d('f_facing')) return fail('Please select a facing direction.');

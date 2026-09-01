@@ -1,25 +1,30 @@
 package com.theadbasket.backend.registration;
 
-import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
-import static com.theadbasket.backend.registration.AccountRegistrar.nullToEmpty;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.theadbasket.backend.agency.AgencyProfile;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
 import com.theadbasket.backend.agency.PortfolioItem;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.common.address.Address;
+import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
+import static com.theadbasket.backend.registration.AccountRegistrar.nullToEmpty;
 import com.theadbasket.backend.registration.dto.AgencyRegistrationRequest;
 import com.theadbasket.backend.registration.dto.PortfolioItemRequest;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
-import java.util.ArrayList;
-import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-/** Agency onboarding: account (attach/create) + agency profile with services, industries & portfolio. */
+/**
+ * Agency onboarding: account (attach/create) + agency profile with services,
+ * industries & portfolio.
+ */
 @Service
 public class AgencyRegistrationService {
 
@@ -30,8 +35,8 @@ public class AgencyRegistrationService {
     private final AgencyProfileRepository agencyProfileRepository;
 
     public AgencyRegistrationService(AccountRegistrar accountRegistrar,
-                                     AuthService authService,
-                                     AgencyProfileRepository agencyProfileRepository) {
+            AuthService authService,
+            AgencyProfileRepository agencyProfileRepository) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.agencyProfileRepository = agencyProfileRepository;
@@ -42,6 +47,13 @@ public class AgencyRegistrationService {
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName().trim(), request.accountEmail(), request.password(), request.contactPhone(),
                 Role.AGENCY);
+        Address address = new Address();
+        address.setLine1(request.addressLine1().trim());
+        address.setLine2(blankToNull(request.addressLine2()));
+        address.setLandmark(blankToNull(request.landmark()));
+        address.setCity(request.city().trim());
+        address.setState(request.state().trim());
+        address.setPincode(request.pincode().trim());
 
         AgencyProfile profile = new AgencyProfile();
         profile.setUser(user);
@@ -52,10 +64,9 @@ public class AgencyRegistrationService {
         profile.setTagline(blankToNull(request.tagline()));
         profile.setAbout(blankToNull(request.about()));
         profile.setWebsite(blankToNull(request.website()));
-        profile.setLandline(blankToNull(request.landline()));
+        profile.setContactNo(blankToNull(request.contactNo()));
         profile.setLinkedinUrl(blankToNull(request.linkedinUrl()));
-        profile.setHeadquartersPincode(request.headquartersPincode());
-        profile.setOfficeAddress(request.officeAddress());
+        profile.setAddress(address);
         profile.setContactDesignation(request.contactDesignation());
         profile.setCampaignsCompleted(request.campaignsCompleted());
         profile.setPricingModel(request.pricingModel());

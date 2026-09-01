@@ -93,8 +93,10 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_email')) return fail('Please enter an email address.');
     if (d('f_phone').replace(/\D/g, '').length !== 10)
       return fail('Please enter a valid 10-digit mobile number.');
+    if (!d('f_addressLine1')) return fail('Please enter your office address.');
+    if (!d('f_city')) return fail('Please enter your city.');
+    if (!d('f_state')) return fail('Please enter your state.');
     if (!d('f_pincode')) return fail('Please enter your PIN code.');
-    if (!d('f_officeAddress')) return fail('Please enter your office address.');
   }
   if (step === 4) {
     if (!d('f_projectTitle')) return fail('Please enter a project title.');
@@ -102,6 +104,7 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_targetAudience')) return fail('Please describe your target audience.');
     if (!d('f_targetLocation')) return fail('Please enter a target location.');
     if (!d('f_startDate')) return fail('Please select an expected start date.');
+    if (!d('f_endDate')) return fail('Please select an expected end date.');
     if (!d('f_duration')) return fail('Please select a project duration.');
   }
   if (step === 5) {

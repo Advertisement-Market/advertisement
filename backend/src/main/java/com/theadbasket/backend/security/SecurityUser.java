@@ -7,7 +7,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-/** Adapts a {@link User} to Spring Security's {@link UserDetails}. */
+/**
+ * Adapts a {@link User} to Spring Security's {@link UserDetails}.
+ */
 public class SecurityUser implements UserDetails {
 
     private final User user;
@@ -27,7 +29,7 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public String getPassword() {
-        return user.getPasswordHash();
+        return user.getPassword();
     }
 
     @Override
