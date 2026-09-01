@@ -1,5 +1,14 @@
 package com.theadbasket.backend.auth;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
 import com.theadbasket.backend.auth.dto.LoginRequest;
@@ -10,20 +19,15 @@ import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
+import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.security.JwtService;
 import com.theadbasket.backend.user.AuthProvider;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-/** Registration, login (local + Google), and token refresh/rotation. */
+/**
+ * Registration, login (local + Google), and token refresh/rotation.
+ */
 @Service
 public class AuthService {
 
@@ -36,14 +40,16 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final AuthPolicyProperties policy;
+    private final AuthProviderPolicyProperties authProviderPolicy;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       JwtService jwtService,
-                       RefreshTokenService refreshTokenService,
-                       GoogleTokenVerifier googleTokenVerifier,
-                       AuthPolicyProperties policy) {
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService,
+            GoogleTokenVerifier googleTokenVerifier,
+            AuthPolicyProperties policy,
+            AuthProviderPolicyProperties authProviderPolicy) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -51,9 +57,13 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
         this.googleTokenVerifier = googleTokenVerifier;
         this.policy = policy;
+        this.authProviderPolicy = authProviderPolicy;
     }
 
-    /** Basic (identity-only) sign-up. Role defaults to the configured default (MEMBER) when absent. */
+    /**
+     * Basic (identity-only) sign-up. Role defaults to the configured default
+     * (MEMBER) when absent.
+     */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         String email = request.email().trim().toLowerCase();
@@ -89,7 +99,10 @@ public class AuthService {
         return issueTokensFor(user);
     }
 
-    /** Current user's profile, looked up by id from the JWT principal (used by GET /api/auth/me). */
+    /**
+     * Current user's profile, looked up by id from the JWT principal (used by
+     * GET /api/auth/me).
+     */
     @Transactional(readOnly = true)
     public UserResponse currentUser(Long userId) {
         return userRepository.findById(userId)
@@ -97,9 +110,16 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
     }
 
-    /** Verifies a Google ID token, then signs in (linking) or creates a basic account. */
+    /**
+     * Verifies a Google ID token, then signs in (linking) or creates a basic
+     * account.
+     */
     @Transactional
     public AuthResponse loginWithGoogle(String idToken) {
+        if (!authProviderPolicy.isEnabled(AuthProvider.GOOGLE)) {
+            throw new BadRequestException("Google sign-in is currently unavailable. Please try again later.");
+        }
+
         GoogleTokenInfo info = googleTokenVerifier.verify(idToken);
         String email = info.email().trim().toLowerCase();
 
@@ -140,7 +160,10 @@ public class AuthService {
         refreshTokenService.revoke(refreshToken);
     }
 
-    /** Issues a fresh access + refresh token pair for the given user (reused by registration). */
+    /**
+     * Issues a fresh access + refresh token pair for the given user (reused by
+     * registration).
+     */
     public AuthResponse issueTokensFor(User user) {
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.create(user);
@@ -151,7 +174,10 @@ public class AuthService {
                 UserResponse.from(user));
     }
 
-    /** Validates a new/updated password against the configured policy (length bounds). */
+    /**
+     * Validates a new/updated password against the configured policy (length
+     * bounds).
+     */
     public void validateNewPassword(String raw) {
         int len = raw == null ? 0 : raw.length();
         if (len < policy.passwordMinLength() || len > policy.passwordMaxLength()) {
