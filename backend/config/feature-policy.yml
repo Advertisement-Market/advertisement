@@ -3,6 +3,6 @@
 # the safe default for local dev and CI; override per-environment as needed.
 app:
   roles:
-    enabled: [MEMBER, ADVERTISER, OWNER]
+    enabled: [MEMBER, ADVERTISER, OWNER, AGENCY]
   auth-providers:
     enabled: [LOCAL, GOOGLE]

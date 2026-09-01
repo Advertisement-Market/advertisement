@@ -14,6 +14,8 @@ import com.theadbasket.backend.agency.PortfolioItem;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.exception.BadRequestException;
+import com.theadbasket.backend.config.RolePolicyProperties;
 import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
 import static com.theadbasket.backend.registration.AccountRegistrar.nullToEmpty;
 import com.theadbasket.backend.registration.dto.AgencyRegistrationRequest;
@@ -33,17 +35,24 @@ public class AgencyRegistrationService {
     private final AccountRegistrar accountRegistrar;
     private final AuthService authService;
     private final AgencyProfileRepository agencyProfileRepository;
+    private final RolePolicyProperties rolePolicyProperties;
 
     public AgencyRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
-            AgencyProfileRepository agencyProfileRepository) {
+            AgencyProfileRepository agencyProfileRepository,
+            RolePolicyProperties rolePolicyProperties) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.agencyProfileRepository = agencyProfileRepository;
+        this.rolePolicyProperties = rolePolicyProperties;
     }
 
     @Transactional
     public AuthResponse register(AgencyRegistrationRequest request, Long currentUserId) {
+        if (!rolePolicyProperties.isEnabled(Role.AGENCY)) {
+            throw new BadRequestException("Agency registration is currently unavailable. Please try again later.");
+        }
+
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName().trim(), request.accountEmail(), request.password(), request.contactPhone(),
                 Role.AGENCY);
