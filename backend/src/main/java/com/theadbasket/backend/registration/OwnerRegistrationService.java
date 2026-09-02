@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.exception.BadRequestException;
+import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfile;
@@ -31,19 +33,26 @@ public class OwnerRegistrationService {
     private final AuthService authService;
     private final OwnerProfileRepository ownerProfileRepository;
     private final BillboardListingRepository billboardListingRepository;
+    private final RolePolicyProperties rolePolicyProperties;
 
     public OwnerRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
             OwnerProfileRepository ownerProfileRepository,
-            BillboardListingRepository billboardListingRepository) {
+            BillboardListingRepository billboardListingRepository,
+            RolePolicyProperties rolePolicyProperties) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.ownerProfileRepository = ownerProfileRepository;
         this.billboardListingRepository = billboardListingRepository;
+        this.rolePolicyProperties = rolePolicyProperties;
     }
 
     @Transactional
     public AuthResponse register(OwnerRegistrationRequest request, Long currentUserId) {
+        if (!rolePolicyProperties.isEnabled(Role.OWNER)) {
+            throw new BadRequestException("Owner registration is currently unavailable. Please try again later.");
+        }
+
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName().trim(), request.accountEmail(), request.password(), request.phone(),
                 Role.OWNER);
