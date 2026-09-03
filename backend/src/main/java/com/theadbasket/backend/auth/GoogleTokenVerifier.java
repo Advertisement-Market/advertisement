@@ -1,6 +1,7 @@
 package com.theadbasket.backend.auth;
 
 import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.config.GoogleProperties;
@@ -29,10 +30,10 @@ public class GoogleTokenVerifier {
     /** Verifies the ID token and returns its claims, or throws if it is missing/invalid/untrusted. */
     public GoogleTokenInfo verify(String idToken) {
         if (!properties.enabled()) {
-            throw new BadRequestException("Google sign-in is not configured on the server.");
+            throw new BadRequestException(ErrorCode.GOOGLE_NOT_CONFIGURED);
         }
         if (idToken == null || idToken.isBlank()) {
-            throw new InvalidGoogleTokenException("Missing Google credential.");
+            throw new InvalidGoogleTokenException(ErrorCode.GOOGLE_CREDENTIAL_MISSING);
         }
 
         GoogleTokenInfo info;
@@ -43,16 +44,16 @@ public class GoogleTokenVerifier {
                     .body(GoogleTokenInfo.class);
         } catch (RuntimeException ex) {
             log.warn("Google token verification call failed: {}", ex.getMessage());
-            throw new InvalidGoogleTokenException("Google could not verify this sign-in. Please try again.");
+            throw new InvalidGoogleTokenException(ErrorCode.GOOGLE_VERIFICATION_FAILED);
         }
 
         if (info == null || info.sub() == null || info.email() == null) {
             log.warn("Google token verification returned an incomplete profile");
-            throw new InvalidGoogleTokenException("Google returned an incomplete profile.");
+            throw new InvalidGoogleTokenException(ErrorCode.GOOGLE_INCOMPLETE_PROFILE);
         }
         if (!properties.clientId().equals(info.aud())) {
             log.warn("Google token audience mismatch (aud={})", info.aud());
-            throw new InvalidGoogleTokenException("This Google sign-in was not issued for The AdBasket.");
+            throw new InvalidGoogleTokenException(ErrorCode.GOOGLE_AUDIENCE_MISMATCH);
         }
         return info;
     }

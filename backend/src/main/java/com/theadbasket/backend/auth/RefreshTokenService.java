@@ -1,5 +1,6 @@
 package com.theadbasket.backend.auth;
 
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.TokenRefreshException;
 import com.theadbasket.backend.config.JwtProperties;
 import com.theadbasket.backend.user.User;
@@ -32,12 +33,12 @@ public class RefreshTokenService {
     @Transactional(readOnly = true)
     public RefreshToken verify(String token) {
         RefreshToken refreshToken = repository.findByToken(token)
-                .orElseThrow(() -> new TokenRefreshException("Refresh token is invalid."));
+                .orElseThrow(() -> new TokenRefreshException(ErrorCode.TOKEN_INVALID));
         if (refreshToken.isRevoked()) {
-            throw new TokenRefreshException("Refresh token has been revoked.");
+            throw new TokenRefreshException(ErrorCode.TOKEN_REVOKED);
         }
         if (refreshToken.isExpired()) {
-            throw new TokenRefreshException("Refresh token has expired. Please sign in again.");
+            throw new TokenRefreshException(ErrorCode.TOKEN_EXPIRED);
         }
         return refreshToken;
     }
