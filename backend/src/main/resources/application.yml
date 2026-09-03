@@ -27,6 +27,12 @@ spring:
 server:
   port: 8080
 
+logging:
+  level:
+    # Method entry/exit + timing come from LoggingAspect at DEBUG. INFO here keeps that
+    # noise off by default; the dev profile raises it to DEBUG. Override via LOG_LEVEL_APP.
+    com.theadbasket: ${LOG_LEVEL_APP:INFO}
+
 management:
   endpoints:
     web:

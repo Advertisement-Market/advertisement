@@ -52,6 +52,7 @@ backend/
     │   │   ├── config/       # SecurityConfig, JwtProperties, JpaConfig (auditing), CORS
     │   │   ├── security/     # JwtService, JwtAuthenticationFilter, SecurityUser,
     │   │   │                 #   CustomUserDetailsService, RestAuthenticationEntryPoint
+    │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/ + logging/ (LoggingAspect)
     │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/ (AppException +
     │   │   │                 #   typed subclasses) + error/ (ErrorCode catalog)
     │   │   ├── user/         # User (entity), Role (enum), UserRepository
@@ -62,6 +63,7 @@ backend/
     │   │   ├── registration/ # RegistrationController/Service + role request DTOs
     │   │   └── web/          # PingController (GET /api/ping)
     │   └── resources/
+    │       ├── application.yml                # common config + app.jwt.* + logging levels
     │       ├── application.yml                # common config + app.jwt.* + spring.messages
     │       ├── application-dev.yml            # H2 (default)
     │       ├── application-prod.yml           # PostgreSQL
@@ -121,6 +123,26 @@ curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: applicati
 curl http://localhost:8080/api/auth/me -H "Authorization: Bearer <accessToken>"
 ```
 
+## Logging
+
+Method **entry/exit + elapsed time** are logged automatically for every `@RestController` and
+`@Service` by `common/logging/LoggingAspect` (an AOP `@Around` advice) — no per-method boilerplate.
+
+```
+DEBUG ... LoggingAspect : → AuthController.register()
+DEBUG ... LoggingAspect :   → AuthService.register()
+INFO  ... AuthService    : Registered account id=1 role=OWNER (local)
+DEBUG ... LoggingAspect :   ← AuthService.register() [623 ms]
+DEBUG ... LoggingAspect : ← AuthController.register() [637 ms]
+```
+
+- **Never logs argument or return values** — requests carry passwords, JWTs, refresh tokens, and
+  PII, so only class/method/timing are recorded. Business-significant events stay as explicit
+  `INFO`/`WARN` logs in the services (registration, login, token issuance, …).
+- **Level-driven:** entry/exit is `DEBUG`. The `com.theadbasket` logger is **DEBUG in dev**, **INFO
+  in prod** (so the tracing is off in prod); override anywhere with `LOG_LEVEL_APP`.
+- Servlet filters are intentionally out of scope (proxying a filter breaks it), so the aspect
+  targets `@RestController` + `@Service` only.
 ## Error responses
 
 Every error returns a consistent `ApiError` JSON body. Messages are **not** hardcoded at the

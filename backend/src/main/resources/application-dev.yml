@@ -9,3 +9,8 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+logging:
+  level:
+    # Show method entry/exit + timing (LoggingAspect) while developing.
+    com.theadbasket: DEBUG
