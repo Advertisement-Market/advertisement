@@ -1,9 +1,11 @@
 package com.theadbasket.backend.common.exception;
 
-/** Thrown when a refresh token is missing, expired, or revoked. Maps to HTTP 401. */
-public class TokenRefreshException extends RuntimeException {
+import com.theadbasket.backend.common.error.ErrorCode;
 
-    public TokenRefreshException(String message) {
-        super(message);
+/** Thrown when a refresh token is missing, expired, or revoked. Maps to HTTP 401. */
+public class TokenRefreshException extends AppException {
+
+    public TokenRefreshException(ErrorCode errorCode, Object... args) {
+        super(errorCode, args);
     }
 }
