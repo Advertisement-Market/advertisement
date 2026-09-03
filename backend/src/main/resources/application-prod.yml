@@ -11,3 +11,8 @@ management:
   endpoint:
     health:
       show-details: never
+
+logging:
+  level:
+    # Keep entry/exit DEBUG noise out of prod; business INFO/WARN/ERROR still logged.
+    com.theadbasket: INFO
