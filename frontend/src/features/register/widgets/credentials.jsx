@@ -33,9 +33,7 @@ export function SignedInBanner({ user }) {
         <polyline points="22 4 12 14.01 9 11.01" />
       </svg>
       <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-        <div style={{ color: 'var(--ink)', fontWeight: 500 }}>
-          Signed in as {user.email}
-        </div>
+        <div style={{ color: 'var(--ink)', fontWeight: 500 }}>Signed in as {user.email}</div>
         <div style={{ color: 'var(--ink-soft, #8c8476)', fontWeight: 300 }}>
           Your name and email are filled in from your account{google ? ' (Google)' : ''}.
         </div>

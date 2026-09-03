@@ -104,7 +104,9 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
         <div className="nav-cta">
           {isAuthenticated ? (
             <>
-              <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Hi, {user.firstName}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>
+                Hi, {user.firstName}
+              </span>
               {onboarded && (
                 <Link
                   to={dashTo}
@@ -166,7 +168,11 @@ export function Navbar({ links = [], roles = [], activeRole, mobileLinks = [] })
                   Dashboard
                 </Link>
               )}
-              <button className="btn-ghost-dark" style={{ padding: '10px 18px' }} onClick={handleLogout}>
+              <button
+                className="btn-ghost-dark"
+                style={{ padding: '10px 18px' }}
+                onClick={handleLogout}
+              >
                 Log out
               </button>
             </>

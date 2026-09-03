@@ -1,6 +1,7 @@
 package com.theadbasket.backend.registration;
 
 import com.theadbasket.backend.auth.AuthService;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.user.AuthProvider;
@@ -41,10 +42,10 @@ public class AccountRegistrar {
                                String rawPassword, String phone, Role role) {
         if (currentUserId != null) {
             User user = userRepository.findById(currentUserId)
-                    .orElseThrow(() -> new BadRequestException("Your session is no longer valid. Please sign in again."));
+                    .orElseThrow(() -> new BadRequestException(ErrorCode.SESSION_INVALID));
             if (user.getRole() != null && user.getRole().isOnboarded()) {
-                throw new BadRequestException(
-                        "This account is already registered as " + user.getRole().name().toLowerCase() + ".");
+                throw new BadRequestException(ErrorCode.ALREADY_REGISTERED,
+                        user.getRole().name().toLowerCase());
             }
             user.setRole(role);
             if (!user.hasPassword() && rawPassword != null && !rawPassword.isBlank()) {
@@ -55,10 +56,10 @@ public class AccountRegistrar {
         }
 
         if (rawEmail == null || rawEmail.isBlank()) {
-            throw new BadRequestException("Login email is required to create an account.");
+            throw new BadRequestException(ErrorCode.LOGIN_EMAIL_REQUIRED);
         }
         if (rawPassword == null || rawPassword.isBlank()) {
-            throw new BadRequestException("Password is required to create an account.");
+            throw new BadRequestException(ErrorCode.PASSWORD_REQUIRED);
         }
         authService.validateNewPassword(rawPassword);
         String email = rawEmail.trim().toLowerCase();
