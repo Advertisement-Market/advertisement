@@ -1,0 +1,25 @@
+# Opt-in override that swaps the stock Postgres image for a pg_cron-enabled build, so the
+# refresh-token cleanup runs on a schedule inside the database. The base docker-compose.yml is
+# unchanged; enable this only where pg_cron is wanted:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.pgcron.yml up -d --build
+#
+# `command:` preloads the pg_cron worker and points it at the app database; the init script in
+# backend/docker/pg_cron creates the extension and schedules the job on first init.
+#
+# NOTE: switching a populated volume from postgres:16-alpine to this image is fine (same major
+# version, compatible data dir). See backend/docker/pg_cron/README.md for details and verification.
+name: advertisement
+
+services:
+  advertisement-db:
+    image: ghcr.io/amjangde/advertisement-db-pgcron:latest
+    build:
+      context: ./backend/docker/pg_cron
+      dockerfile: Dockerfile
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_cron
+      - -c
+      - cron.database_name=${POSTGRES_DB:-adbasket}
