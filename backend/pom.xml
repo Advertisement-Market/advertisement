@@ -56,6 +56,14 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- AOP (method entry/exit logging aspect). Boot 4 dropped spring-boot-starter-aop;
+         spring-aop is already on the classpath, so AspectJ's weaver is all that's needed to
+         enable @Aspect proxying (picked up by Boot's AopAutoConfiguration). -->
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
+    </dependency>
+
     <!-- Metrics (Micrometer → Prometheus) -->
     <dependency>
       <groupId>io.micrometer</groupId>
