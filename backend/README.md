@@ -45,6 +45,7 @@ so the modules are pinned there. All other versions resolve exactly as planned.
 ```
 backend/
 ├── pom.xml
+├── docker/pg_cron/  # pg_cron-enabled Postgres image + init SQL (refresh-token cleanup)
 └── src/
     ├── main/
     │   ├── java/com/theadbasket/backend/
@@ -119,6 +120,25 @@ curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: applicati
 curl http://localhost:8080/api/auth/me -H "Authorization: Bearer <accessToken>"
 ```
 
+## Refresh-token cleanup
+
+Refresh tokens are pure housekeeping once expired/rotated, so old rows are deleted after **30 days**.
+The cleanup runs **inside PostgreSQL via the `pg_cron` extension** (not an app scheduler) — it fires
+once in the database no matter how many backend instances run, so there's no multi-instance
+duplication to guard against.
+
+- **Job:** daily at 03:00, `DELETE FROM refresh_tokens WHERE created_at < now() - interval '30 days'`.
+- **Enabling it** (opt-in; the stock `postgres:16-alpine` has no pg_cron):
+  ```bash
+  docker compose -f docker-compose.yml -f docker-compose.pgcron.yml up -d --build
+  ```
+  See [`docker/pg_cron/README.md`](docker/pg_cron/README.md) for the image, `shared_preload_libraries`
+  requirement, and verification queries.
+- **App side:** `RefreshTokenRepository.deleteByCreatedAtBefore(cutoff)` holds the same DELETE
+  predicate as a tested (`RefreshTokenRepositoryTest`), manual-trigger fallback.
+- Dev/test run on **H2**, which has no pg_cron — the scheduled job exists only against PostgreSQL;
+  the predicate itself is covered by the H2 repository test.
+
 ## Testing
 
 ```bash
@@ -128,6 +148,7 @@ mvn verify            # also runs the Testcontainers IT (needs Docker)
 
 - `AuthServiceTest` — Mockito unit test for registration (no Spring context).
 - `AuthFlowIntegrationTest` — full MockMvc flow (register → login → `/me`, 409/401/400 cases) on H2.
+- `RefreshTokenRepositoryTest` — `@DataJpaTest` (H2) for the age-based cleanup DELETE predicate.
 - `TheAdBasketApplicationTests` — context boots under H2 + Flyway.
 - `UserRepositoryIT` — runs against real PostgreSQL 18 via Testcontainers (**Docker required**).
 
