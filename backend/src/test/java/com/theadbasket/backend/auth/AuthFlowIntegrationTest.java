@@ -70,7 +70,10 @@ class AuthFlowIntegrationTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(register("dup@example.com", "OWNER")))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409));
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.errorCode").value("EMAIL_ALREADY_EXISTS"))
+                // Message text comes from messages.properties with the email arg interpolated.
+                .andExpect(jsonPath("$.message").value("An account already exists for email: dup@example.com"));
     }
 
     @Test
@@ -80,7 +83,9 @@ class AuthFlowIntegrationTest {
                 .andExpect(status().isCreated());
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON).content(login("wrong@example.com", "nope")))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_CREDENTIALS"))
+                .andExpect(jsonPath("$.message").value("Invalid email or password."));
     }
 
     @Test
@@ -90,6 +95,7 @@ class AuthFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content(bad))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors").isNotEmpty());
     }
 

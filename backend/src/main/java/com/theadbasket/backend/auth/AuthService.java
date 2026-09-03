@@ -5,6 +5,7 @@ import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
 import com.theadbasket.backend.auth.dto.LoginRequest;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
 import com.theadbasket.backend.auth.dto.UserResponse;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
@@ -94,7 +95,7 @@ public class AuthService {
     public UserResponse currentUser(Long userId) {
         return userRepository.findById(userId)
                 .map(UserResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ACCOUNT_NOT_FOUND));
     }
 
     /** Verifies a Google ID token, then signs in (linking) or creates a basic account. */
@@ -155,8 +156,8 @@ public class AuthService {
     public void validateNewPassword(String raw) {
         int len = raw == null ? 0 : raw.length();
         if (len < policy.passwordMinLength() || len > policy.passwordMaxLength()) {
-            throw new BadRequestException("Password must be " + policy.passwordMinLength()
-                    + "-" + policy.passwordMaxLength() + " characters.");
+            throw new BadRequestException(ErrorCode.PASSWORD_LENGTH,
+                    policy.passwordMinLength(), policy.passwordMaxLength());
         }
     }
 

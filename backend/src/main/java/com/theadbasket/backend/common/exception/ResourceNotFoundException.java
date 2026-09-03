@@ -1,9 +1,11 @@
 package com.theadbasket.backend.common.exception;
 
-/** Thrown when a requested entity does not exist. Maps to HTTP 404. */
-public class ResourceNotFoundException extends RuntimeException {
+import com.theadbasket.backend.common.error.ErrorCode;
 
-    public ResourceNotFoundException(String message) {
-        super(message);
+/** Thrown when a requested entity does not exist. Maps to HTTP 404. */
+public class ResourceNotFoundException extends AppException {
+
+    public ResourceNotFoundException(ErrorCode errorCode, Object... args) {
+        super(errorCode, args);
     }
 }
