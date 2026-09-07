@@ -141,11 +141,12 @@ GOOGLE_CLIENT_ID=<your-google-web-client-id> mvn spring-boot:run   # → http://
 ### 3. Run the frontend
 ```bash
 cd frontend
-cp .env.example .env        # set VITE_GOOGLE_CLIENT_ID (optional) and VITE_API_URL
+cp .env.example .env        # optional: set VITE_GOOGLE_CLIENT_ID or override VITE_API_URL
 npm install
 npm run dev                 # Vite dev server → http://localhost:5173
 ```
-The Vite dev server proxies `/api` requests to the backend at `http://localhost:8080`.
+The Vite dev server proxies `/api` requests to the backend at `http://localhost:8080` (overridable via `VITE_API_PROXY_TARGET` or `VITE_API_URL`).
+
 
 ### Frontend scripts
 | Command             | Description                          |
