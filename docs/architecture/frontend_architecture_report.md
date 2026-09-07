@@ -122,7 +122,7 @@ Instead of a heavy state library like Redux, the app uses React Context.
 ### 5.4. `src/features/` - Domain Logic Modules
 *   **`auth/`**: Authentication logic.
     *   [`googleIdentity.js`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/googleIdentity.js): Shared Google Identity Services (GIS) loader and initialization. Configures FedCM compliance (`use_fedcm_for_prompt: true`) and centralized credential callback delegation.
-    *   [`GoogleOneTap.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/GoogleOneTap.jsx): Invokes Google's Identity Services prompt adhering to modern FedCM standards (`isDismissedMoment()`). In local development (`import.meta.env.DEV`), automatically clears the `g_state` cookie on load and dismissal to bypass the exponential cooldown for testing.
+    *   [`GoogleOneTap.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/GoogleOneTap.jsx): Invokes Google's Identity Services prompt adhering to modern FedCM standards. If the visitor selects an account, the resulting Google ID token is passed to `loginWithGoogle()`.
     *   [`GoogleButton.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/GoogleButton.jsx): Explicit "Continue with Google" button rendered via GIS for cross-browser fallback (including Safari / ITP).
 *   **`register/`**: Registration workflows. Contains `RegisterShell.jsx` for multi-step onboarding.
 
