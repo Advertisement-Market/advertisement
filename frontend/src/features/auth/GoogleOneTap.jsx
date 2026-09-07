@@ -31,11 +31,22 @@ export function GoogleOneTap() {
       }
     };
 
+    // In local development, bypass Google One Tap cooldown by clearing the g_state cookie.
+    const clearCooldown = () => {
+      if (import.meta.env.DEV) {
+        document.cookie = 'g_state=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        if (typeof window !== 'undefined') {
+          document.cookie = `g_state=;path=/;domain=${window.location.hostname};expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+        }
+      }
+    };
+    clearCooldown();
+
     initGoogleIdentity(onCredential).then((id) => {
       if (cancelled || !id) return;
       id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          // Expected when visitor is not signed in to Google or prompt is dismissed.
+        if (notification.isDismissedMoment()) {
+          clearCooldown();
         }
       });
     });

@@ -120,8 +120,10 @@ Instead of a heavy state library like Redux, the app uses React Context.
     *   [`Button.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/components/ui/Button/Button.jsx): A polymorphic component. It dynamically renders a React `<Link>`, an HTML `<a>`, or a `<button>` based on whether the props contain `to`, `href`, or neither.
 
 ### 5.4. `src/features/` - Domain Logic Modules
-*   **`auth/`**: Authentication logic. 
-    *   [`GoogleOneTap.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/GoogleOneTap.jsx): Invokes Google's Identity Services (GIS) prompt. If the user clicks their Google profile, it passes the resulting `idToken` to `loginWithGoogle()`.
+*   **`auth/`**: Authentication logic.
+    *   [`googleIdentity.js`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/googleIdentity.js): Shared Google Identity Services (GIS) loader and initialization. Configures FedCM compliance (`use_fedcm_for_prompt: true`) and centralized credential callback delegation.
+    *   [`GoogleOneTap.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/GoogleOneTap.jsx): Invokes Google's Identity Services prompt adhering to modern FedCM standards (`isDismissedMoment()`). In local development (`import.meta.env.DEV`), automatically clears the `g_state` cookie on load and dismissal to bypass the exponential cooldown for testing.
+    *   [`GoogleButton.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/features/auth/GoogleButton.jsx): Explicit "Continue with Google" button rendered via GIS for cross-browser fallback (including Safari / ITP).
 *   **`register/`**: Registration workflows. Contains `RegisterShell.jsx` for multi-step onboarding.
 
 ### 5.5. `src/pages/` - Routable Views
