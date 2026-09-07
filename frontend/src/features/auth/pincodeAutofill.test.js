@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 
 const PINCODE_MAP = {
-  '110001': 'New Delhi, Delhi',
-  '400001': 'Mumbai, Maharashtra',
-  '400059': 'Mumbai, Maharashtra',
-  '560001': 'Bengaluru, Karnataka',
-  '600001': 'Chennai, Tamil Nadu',
-  '700001': 'Kolkata, West Bengal',
-  '500001': 'Hyderabad, Telangana',
-  '380001': 'Ahmedabad, Gujarat',
-  '411001': 'Pune, Maharashtra',
+  110001: 'New Delhi, Delhi',
+  400001: 'Mumbai, Maharashtra',
+  400059: 'Mumbai, Maharashtra',
+  560001: 'Bengaluru, Karnataka',
+  600001: 'Chennai, Tamil Nadu',
+  700001: 'Kolkata, West Bengal',
+  500001: 'Hyderabad, Telangana',
+  380001: 'Ahmedabad, Gujarat',
+  411001: 'Pune, Maharashtra',
 };
 
 /**
@@ -38,7 +38,9 @@ function applyPincodeAutofill({ pincode, currentCity, currentState, pincodeMap =
  * Encapsulates pincode input sanitization (digits only, max 6 characters).
  */
 function sanitizePincodeInput(rawInput) {
-  return String(rawInput ?? '').replace(/\D/g, '').slice(0, 6);
+  return String(rawInput ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 6);
 }
 
 describe('Pincode Autofill & Input Sanitization', () => {
