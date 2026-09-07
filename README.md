@@ -42,8 +42,25 @@ TheAdBasket_v1/
 │   │   └── config/           # externalized settings (JWT, Google, CORS, auth policy)
 │   ├── src/main/resources/   # application.yml + Flyway migrations
 │   └── pom.xml
+├── docs/                     # Centralized documentation hub (Docs-as-Code)
+│   ├── architecture/         # Deep-dive backend and frontend architecture reports
+│   ├── decisions/            # Architecture Decision Records (ADRs)
+│   ├── templates/            # PR technical spec & ADR templates
+│   ├── GUIDELINES.md         # Mandatory developer documentation & PR standards
+│   └── README.md             # Documentation hub navigation
 └── README.md
 ```
+
+## Documentation & Developer Guidelines
+
+This repository follows a strict **Docs-as-Code** standard. All developers must read and adhere to the guidelines before opening pull requests:
+
+- 📖 **[Documentation Hub](docs/README.md)** — Main index and navigation for all technical documentation.
+- 📐 **[Developer Guidelines & PR Rules](docs/GUIDELINES.md)** — When to document, PR tiers, and review checklist.
+- 🏛️ **[Backend Architecture Report](docs/architecture/backend_architecture_report.md)** — Exhaustive file-by-file reference for Spring Boot.
+- 🎨 **[Frontend Architecture Report](docs/architecture/frontend_architecture_report.md)** — Architecture reference for React 19 SPA.
+- 📝 **[Architecture Decisions (ADRs)](docs/decisions/)** — Historical and active architectural decision records.
+- 📋 **[PR Document Templates](docs/templates/)** — Backend and Frontend design & PR specification templates.
 
 ## Roles & Features
 
