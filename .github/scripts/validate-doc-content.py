@@ -59,14 +59,16 @@ def is_excluded(filepath: str) -> bool:
 
 def check_relative_link(source_file: Path, link_target: str) -> str | None:
     """Checks if a relative link in markdown points to an existing file."""
-    # Strip query and fragments
+    if link_target.startswith(("http://", "https://", "mailto:", "ftp:")):
+        return None
+
     parsed = urlparse(link_target)
+    if parsed.scheme in ("http", "https", "mailto", "ftp"):
+        return None
+
     target_path = parsed.path
     if not target_path:
         return None  # Anchor-only link (#section)
-
-    if target_path.startswith(("http://", "https://", "mailto:", "ftp:")):
-        return None
 
     # Check relative to source file directory
     resolved = (source_file.parent / target_path).resolve()

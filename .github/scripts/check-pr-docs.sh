@@ -83,6 +83,52 @@ if [ -n "$MATCHED_DOCS" ]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   python3 "$SCRIPT_DIR/validate-doc-content.py" $MATCHED_DOCS
   echo "✅ Documentation files verified."
+
+  # Validate PR document naming convention under docs/prs/
+  PR_DOCS=$(echo "$MATCHED_DOCS" | grep -E '^docs/prs/' || true)
+  if [ -n "$PR_DOCS" ]; then
+    PR_NUMBER=""
+    if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
+      PR_NUMBER=$(jq -r '.pull_request.number // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+    fi
+
+    INVALID_NAMES=false
+    HAS_CURRENT_PR_DOC=false
+
+    while IFS= read -r doc_file; do
+      [ -z "$doc_file" ] && continue
+      filename=$(basename "$doc_file")
+      
+      # Every file in docs/prs/ must match the PR-[0-9]+-<name>.md standard
+      if ! echo "$filename" | grep -qiE "^PR-[0-9]+-.+[a-z0-9]\.md$"; then
+        echo "❌ Invalid PR doc filename: '$doc_file'"
+        echo "   Expected pattern: 'docs/prs/PR-<number>-<short-description>.md'"
+        INVALID_NAMES=true
+      fi
+
+      # Check if this document matches current PR number
+      if [ -n "$PR_NUMBER" ] && echo "$filename" | grep -qiE "^PR-${PR_NUMBER}-.+[a-z0-9]\.md$"; then
+        HAS_CURRENT_PR_DOC=true
+      fi
+    done <<< "$PR_DOCS"
+
+    # In PR context, if code or config changed, verify that the PR doc matches the current PR number
+    if [ -n "$PR_NUMBER" ] && { [ "$CODE_CHANGED" = true ] || [ "$CONFIG_CHANGED" = true ]; }; then
+      if [ "$HAS_CURRENT_PR_DOC" = false ]; then
+        echo "❌ Missing or mismatched PR document for PR #$PR_NUMBER in 'docs/prs/'."
+        echo "   Expected a document matching: 'docs/prs/PR-${PR_NUMBER}-<short-description>.md'"
+        INVALID_NAMES=true
+      fi
+    fi
+
+    if [ "$INVALID_NAMES" = true ]; then
+      echo ""
+      echo "❌ ERROR: PR document filenames must follow the 'docs/prs/PR-<number>-<title>.md' convention."
+      log_summary "### ❌ PR Documentation Check: FAILED\n\n> ⚠️ **Invalid File Name:** PR document under \`docs/prs/\` must follow \`docs/prs/PR-<number>-<name>.md\`."
+      exit 1
+    fi
+    echo "✅ PR document naming convention verified."
+  fi
 fi
 
 # 3. Handle Pure Documentation PRs

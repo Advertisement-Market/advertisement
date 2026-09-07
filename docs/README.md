@@ -9,7 +9,7 @@ Welcome to the centralized documentation repository for **The AdBasket**. This f
 | Section | Description | Location |
 | :--- | :--- | :--- |
 | **Developer Guidelines** | Mandatory guidelines on writing docs, PR templates, and reviewer rules | [GUIDELINES.md](GUIDELINES.md) |
-| **Feature Specifications** | Technical specifications for cross-cutting and platform features | [features/pr-documentation-verification-system.md](features/pr-documentation-verification-system.md) |
+| **PR Technical Specs** | Standalone PR-level technical documents (PR-<number>-<title>.md) | [prs/](prs/) ([PR-18](prs/PR-18-documentation-verification-system.md), [PR-19](prs/PR-19-pr-naming-convention.md)) |
 | **Backend Architecture** | File-by-file exhaustive architecture report for Spring Boot API | [architecture/backend_architecture_report.md](architecture/backend_architecture_report.md) |
 | **Frontend Architecture** | Architecture, component structure, and state management report for React SPA | [architecture/frontend_architecture_report.md](architecture/frontend_architecture_report.md) |
 | **Architecture Decisions** | Architecture Decision Records (ADRs) tracking architectural history | [decisions/](decisions/) |
@@ -26,8 +26,9 @@ docs/
 │   └── frontend_architecture_report.md
 ├── decisions/                  # Architecture Decision Records (ADRs)
 │   └── 0001-record-architecture-decisions.md
-├── features/                   # Technical specs for platform & product features
-│   └── pr-documentation-verification-system.md
+├── prs/                        # Standalone PR technical documents (PR-<number>-<name>.md)
+│   ├── PR-18-documentation-verification-system.md
+│   └── PR-19-pr-naming-convention.md
 ├── templates/                  # Standard templates
 │   ├── adr-template.md
 │   ├── backend-pr-document-template.md
