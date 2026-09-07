@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
-Validates that documentation files added or modified in a PR are properly filled
-and do not contain boilerplate placeholders, empty sections, or unmodified templates.
+Advanced Document Quality & Completeness Validator for The AdBasket.
+Validates:
+1. No boilerplate template placeholders (e.g., [Feature Title], TODO, @[github_handle]).
+2. No unmodified copies of template files.
+3. No empty major sections.
+4. Balanced markdown code fences (```).
+5. Valid Mermaid diagram syntax declarations.
+6. No broken internal relative file links.
+7. Substantive content length.
 """
 
 import os
@@ -9,6 +16,7 @@ import re
 import sys
 import filecmp
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Placeholders that indicate an unfilled template
 PLACEHOLDER_PATTERNS = [
@@ -23,6 +31,7 @@ PLACEHOLDER_PATTERNS = [
     (re.compile(r"/\[route\]", re.IGNORECASE), "Unfilled Route: '[route]'"),
     (re.compile(r"\[Option\s*\d", re.IGNORECASE), "Unfilled ADR Option: '[Option X]'"),
     (re.compile(r"url_or_drag_image", re.IGNORECASE), "Unfilled UI Screenshot: 'url_or_drag_image'"),
+    (re.compile(r"\(Insert short video/GIF", re.IGNORECASE), "Unfilled Media Placeholder: '(Insert short video/GIF)'"),
     (re.compile(r"\bTODO\b", re.IGNORECASE), "Unresolved TODO keyword"),
     (re.compile(r"\bTBD\b", re.IGNORECASE), "Unresolved TBD keyword"),
 ]
@@ -36,11 +45,40 @@ EXCLUDED_FILES = {
 
 TEMPLATE_DIR = Path("docs/templates")
 
+VALID_MERMAID_TYPES = {
+    "graph", "flowchart", "sequencediagram", "classdiagram",
+    "erdiagram", "statediagram", "statediagram-v2", "gitgraph",
+    "pie", "mindmap", "timeline", "journey", "quadrantchart", "c4context"
+}
+
 def is_excluded(filepath: str) -> bool:
     norm = os.path.normpath(filepath)
     if norm in EXCLUDED_FILES or norm.startswith("docs/templates/"):
         return True
     return False
+
+def check_relative_link(source_file: Path, link_target: str) -> str | None:
+    """Checks if a relative link in markdown points to an existing file."""
+    # Strip query and fragments
+    parsed = urlparse(link_target)
+    target_path = parsed.path
+    if not target_path:
+        return None  # Anchor-only link (#section)
+
+    if target_path.startswith(("http://", "https://", "mailto:", "ftp:")):
+        return None
+
+    # Check relative to source file directory
+    resolved = (source_file.parent / target_path).resolve()
+    if resolved.exists():
+        return None
+
+    # Check relative to repo root
+    repo_resolved = (Path.cwd() / target_path.lstrip("/")).resolve()
+    if repo_resolved.exists():
+        return None
+
+    return f"Broken relative link: '{link_target}' target was not found."
 
 def check_file(filepath: Path) -> list[str]:
     issues = []
@@ -72,7 +110,7 @@ def check_file(filepath: Path) -> list[str]:
             if pattern.search(line):
                 issues.append(f"Line {line_num}: Contains {desc} -> `{line.strip()}`")
 
-    # 3. Check for empty major sections (e.g., "## Header" followed immediately by another "## Header")
+    # 3. Check for empty major sections
     section_header_pattern = re.compile(r"^(#{2,3})\s+(.+)$")
     last_header = None
     last_header_line = None
@@ -83,22 +121,64 @@ def check_file(filepath: Path) -> list[str]:
 
         if header_match:
             if last_header is not None:
-                # Two consecutive headers with nothing in between
                 issues.append(
                     f"Line {last_header_line}: Section '{last_header}' is empty (followed immediately by '{header_match.group(2)}')."
                 )
             last_header = header_match.group(2)
             last_header_line = line_num
         elif stripped and not stripped.startswith("<!--") and not stripped.startswith("---"):
-            # Non-empty non-comment content encountered; header has content
             last_header = None
             last_header_line = None
 
-    # If the file ended with a header and no content
     if last_header is not None:
         issues.append(f"Line {last_header_line}: Section '{last_header}' at the end of the file is empty.")
 
-    # 4. Check substantive content length (non-empty, non-header, non-delimiter lines)
+    # 4. Check balanced code fences and Mermaid diagrams
+    fence_count = 0
+    in_mermaid = False
+    mermaid_start_line = None
+    mermaid_has_type = False
+
+    link_pattern = re.compile(r"\[(?:[^\]]+)\]\(([^)]+)\)")
+
+    for line_num, line in enumerate(lines, start=1):
+        stripped = line.strip()
+
+        # Check relative links (outside raw code blocks)
+        if not (stripped.startswith("```") or in_mermaid):
+            for match in link_pattern.finditer(line):
+                link_url = match.group(1).strip()
+                link_err = check_relative_link(filepath, link_url)
+                if link_err:
+                    issues.append(f"Line {line_num}: {link_err}")
+
+        # Code block tracking
+        if stripped.startswith("```"):
+            fence_count += 1
+            if stripped.startswith("```mermaid"):
+                in_mermaid = True
+                mermaid_start_line = line_num
+                mermaid_has_type = False
+            elif in_mermaid:
+                # Closing mermaid fence
+                if not mermaid_has_type:
+                    issues.append(
+                        f"Line {mermaid_start_line}: Mermaid block does not declare a diagram type "
+                        f"(e.g., 'graph TD', 'sequenceDiagram', 'classDiagram')."
+                    )
+                in_mermaid = False
+        elif in_mermaid and stripped and not stripped.startswith("%%"):
+            first_word = stripped.split()[0].lower().replace(":", "")
+            if any(first_word.startswith(t) for t in VALID_MERMAID_TYPES):
+                mermaid_has_type = True
+
+    if fence_count % 2 != 0:
+        issues.append(f"Unbalanced code fences detected (found {fence_count} ``` delimiters). File formatting may be broken.")
+
+    if in_mermaid:
+        issues.append(f"Line {mermaid_start_line}: Unclosed Mermaid code block.")
+
+    # 5. Check substantive content length
     substantive_lines = [
         line.strip()
         for line in lines
@@ -148,11 +228,12 @@ def main():
         print("👉 How to resolve:")
         print("- Replace all placeholder values (e.g., [Feature Title], @[github_handle], TODO, etc.).")
         print("- Fill in all section headers with detailed explanations.")
-        print("- Ensure the file is not an unmodified copy of a template.")
+        print("- Ensure code blocks (```) and Mermaid diagrams are properly opened, typed, and closed.")
+        print("- Verify all relative markdown links point to existing files in the repo.")
         print("=" * 60)
         sys.exit(1)
 
-    print("✅ All documentation files are properly filled and verified!")
+    print("✅ All documentation files are properly filled, structured, and verified!")
     sys.exit(0)
 
 if __name__ == "__main__":
