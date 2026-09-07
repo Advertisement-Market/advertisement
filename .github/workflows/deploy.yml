@@ -45,8 +45,11 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
 
       - name: Extract metadata for Backend
         id: meta-backend
