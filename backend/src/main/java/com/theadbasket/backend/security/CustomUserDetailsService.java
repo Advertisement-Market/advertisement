@@ -1,12 +1,14 @@
 package com.theadbasket.backend.security;
 
 import com.theadbasket.backend.user.UserRepository;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 /** Loads users by email for Spring Security authentication. */
+@Primary
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 

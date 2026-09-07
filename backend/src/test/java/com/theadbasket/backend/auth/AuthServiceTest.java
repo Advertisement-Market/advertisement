@@ -12,6 +12,7 @@ import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
+import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.security.JwtService;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
@@ -25,7 +26,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/** Unit tests for {@link AuthService#register} using Mockito (no Spring context). */
+import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
+import com.theadbasket.backend.common.exception.BadRequestException;
+import com.theadbasket.backend.user.AuthProvider;
+import java.util.List;
+import java.util.Optional;
+
+/** Unit tests for {@link AuthService} using Mockito (no Spring context). */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -42,13 +49,16 @@ class AuthServiceTest {
     @Mock
     private GoogleTokenVerifier googleTokenVerifier;
 
+    private AuthProviderPolicyProperties authProviderPolicy;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
+        authProviderPolicy = new AuthProviderPolicyProperties();
         authService = new AuthService(userRepository, passwordEncoder, authenticationManager,
                 jwtService, refreshTokenService, googleTokenVerifier,
-                new AuthPolicyProperties(8, 72, Role.MEMBER));
+                new AuthPolicyProperties(8, 72, Role.MEMBER),
+                authProviderPolicy);
     }
 
     @Test
@@ -87,5 +97,40 @@ class AuthServiceTest {
                 .isInstanceOf(EmailAlreadyExistsException.class);
         verify(userRepository, never()).save(any(User.class));
         verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void loginWithGoogle_whenGoogleProviderDisabled_throwsBadRequestException() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL));
+
+        assertThatThrownBy(() -> authService.loginWithGoogle("some-token"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Google sign-in is currently unavailable");
+
+        verify(googleTokenVerifier, never()).verify(anyString());
+    }
+
+    @Test
+    void loginWithGoogle_whenGoogleProviderEnabled_createsUserAndReturnsTokens() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL, AuthProvider.GOOGLE));
+
+        GoogleTokenInfo tokenInfo = new GoogleTokenInfo(
+                "client-id", "google-sub-123", "googleuser@example.com",
+                true, "Google", "User", "Google User"
+        );
+        when(googleTokenVerifier.verify("valid-token")).thenReturn(tokenInfo);
+        when(userRepository.findByGoogleSub("google-sub-123")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("googleuser@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtService.generateAccessToken(any(User.class))).thenReturn("access-token");
+        when(jwtService.getAccessTokenExpiresInSeconds()).thenReturn(900L);
+        when(refreshTokenService.create(any(User.class))).thenAnswer(inv ->
+                new RefreshToken(inv.getArgument(0), "refresh-token", Instant.now().plusSeconds(1000)));
+
+        AuthResponse response = authService.loginWithGoogle("valid-token");
+
+        assertThat(response.accessToken()).isEqualTo("access-token");
+        assertThat(response.user().email()).isEqualTo("googleuser@example.com");
+        verify(userRepository).save(any(User.class));
     }
 }

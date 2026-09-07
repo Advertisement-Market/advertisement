@@ -30,25 +30,8 @@ public class ActuatorSecurityConfig {
     @Order(0)
     public SecurityFilterChain actuatorSecurityFilterChain(
             HttpSecurity http,
-            UserDetailsService actuatorUserDetailsService) throws Exception {
-
-        http
-                .securityMatcher(EndpointRequest.toAnyEndpoint())
-                .authorizeHttpRequests(auth -> auth
-                .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
-                .anyRequest().authenticated())
-                .httpBasic(withDefaults -> {
-                })
-                .csrf(csrf -> csrf.disable())
-                .userDetailsService(actuatorUserDetailsService);
-
-        return http.build();
-    }
-
-    @Bean
-    public UserDetailsService actuatorUserDetailsService(
             ActuatorCredentialsProperties credentials,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder) throws Exception {
 
         var admin = User.builder()
                 .username(credentials.username())
@@ -56,6 +39,18 @@ public class ActuatorSecurityConfig {
                 .roles("ACTUATOR_ADMIN")
                 .build();
 
-        return new InMemoryUserDetailsManager(admin);
+        UserDetailsService actuatorUserDetailsService = new InMemoryUserDetailsManager(admin);
+
+        http
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+                        .anyRequest().authenticated())
+                .httpBasic(withDefaults -> {
+                })
+                .csrf(csrf -> csrf.disable())
+                .userDetailsService(actuatorUserDetailsService);
+
+        return http.build();
     }
 }
