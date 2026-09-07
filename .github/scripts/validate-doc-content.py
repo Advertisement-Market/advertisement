@@ -28,8 +28,10 @@ PLACEHOLDER_PATTERNS = [
 ]
 
 EXCLUDED_FILES = {
+    "README.md",
     "docs/README.md",
     "docs/GUIDELINES.md",
+    "frontend/README.md",
 }
 
 TEMPLATE_DIR = Path("docs/templates")

@@ -38,17 +38,24 @@ echo "Changed files detected:"
 echo "$CHANGED_FILES"
 echo "--------------------------------------------------------"
 
-# Check if application code changed
+# 1. Check for Application Code changes (backend/ or frontend/)
 CODE_CHANGED=false
-if echo "$CHANGED_FILES" | grep -E '^(backend|frontend)/' >/dev/null 2>&1; then
+if echo "$CHANGED_FILES" | grep -E '^(backend|frontend)/' | grep -vE '\.(md|markdown)$' >/dev/null 2>&1; then
   CODE_CHANGED=true
+  echo "🔍 Application code changes detected in backend/ or frontend/."
 fi
 
-echo "🔍 Code changes detected in backend/ or frontend/."
+# 2. Check for Configuration & Infrastructure changes
+CONFIG_CHANGED=false
+if echo "$CHANGED_FILES" | grep -E '(docker-compose.*\.ya?ml|\.env.*|\.github/workflows/.*|Dockerfile.*|nginx.*\.conf)' >/dev/null 2>&1; then
+  CONFIG_CHANGED=true
+  echo "⚙️  Configuration or infrastructure changes detected."
+fi
 
-# Check if any documentation was added or modified under docs/
+# 3. Check for Documentation changes (docs/ directory or project READMEs)
 DOCS_CHANGED=false
-MATCHED_DOCS=$(echo "$CHANGED_FILES" | grep -E '^docs/.*\.md$' || true)
+MATCHED_DOCS=$(echo "$CHANGED_FILES" | grep -E '(^docs/.*\.md$|README\.md$)' || true)
+
 if [ -n "$MATCHED_DOCS" ]; then
   DOCS_CHANGED=true
   echo "📄 Documentation files detected in PR:"
@@ -60,17 +67,28 @@ if [ -n "$MATCHED_DOCS" ]; then
   echo "✅ Documentation files verified."
 fi
 
-if [ "$CODE_CHANGED" = false ]; then
-  echo "✅ No code changes in backend/ or frontend/ detected. Documentation check passed."
+# 4. Handle Pure Documentation PRs
+if [ "$CODE_CHANGED" = false ] && [ "$CONFIG_CHANGED" = false ] && [ "$DOCS_CHANGED" = true ]; then
+  echo ""
+  echo "✅ Pure documentation PR detected. All documents passed quality verification."
   exit 0
 fi
 
+# 5. Handle Pure Repository Meta / Chores (e.g. .gitignore, .vscode)
+if [ "$CODE_CHANGED" = false ] && [ "$CONFIG_CHANGED" = false ] && [ "$DOCS_CHANGED" = false ]; then
+  echo ""
+  echo "✅ Repository maintenance or metadata changes only. Documentation check passed."
+  exit 0
+fi
+
+# 6. If Code or Configuration changed, and valid documentation is included -> PASS
 if [ "$DOCS_CHANGED" = true ]; then
-  echo "✅ Documentation compliance and completeness checks passed!"
+  echo ""
+  echo "✅ Code/Configuration changes accompanied by verified documentation. Check passed!"
   exit 0
 fi
 
-# Check for exemption via PR body or label if running in GitHub Actions
+# 7. Check for explicit Exemption via PR description or label
 EXEMPT=false
 if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
   PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
@@ -90,23 +108,31 @@ if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
 fi
 
 if [ "$EXEMPT" = true ]; then
+  echo ""
   echo "✅ PR marked exempt from documentation requirement. Documentation check passed."
   exit 0
 fi
 
-# If we reached here, code was modified without docs or exemption
+# 8. Failure: Code or Configuration was modified without documentation or exemption
 echo ""
 echo "❌ ERROR: PR Documentation Check Failed!"
 echo "--------------------------------------------------------"
-echo "Code was modified in 'backend/' or 'frontend/', but no corresponding documentation was added or updated under 'docs/'."
+if [ "$CODE_CHANGED" = true ]; then
+  echo "• Application code was modified in 'backend/' or 'frontend/'."
+fi
+if [ "$CONFIG_CHANGED" = true ]; then
+  echo "• Infrastructure or environment configuration was modified (Docker/Compose/CI/env)."
+fi
+echo ""
+echo "No corresponding documentation was added or updated under 'docs/' or in 'README.md'."
 echo ""
 echo "👉 How to resolve:"
-echo "1. If this PR introduces a feature, API, schema migration, or UI change:"
-echo "   - Add or update technical documentation in 'docs/'."
+echo "1. If this PR introduces a feature, API, schema migration, or configuration change:"
+echo "   - Add or update technical documentation in 'docs/' or 'README.md'."
 echo "   - Use 'docs/templates/backend-pr-document-template.md' or 'docs/templates/frontend-pr-document-template.md'."
 echo "   - For architectural shifts, add an ADR under 'docs/decisions/'."
 echo ""
-echo "2. If this PR is a minor bugfix, typo, or chore exempt from docs:"
+echo "2. If this is a routine config tweak, minor bugfix, typo, or chore exempt from docs:"
 echo "   - In your GitHub PR description, check the exemption box: '[x] Exempt:'"
 echo "   - Or ask a maintainer to apply the 'no-doc-needed' label."
 echo ""
