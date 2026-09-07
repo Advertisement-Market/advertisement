@@ -22,7 +22,7 @@ graph TD
 | Tier | When to Use | Deliverable Location | Template |
 | :--- | :--- | :--- | :--- |
 | **Tier 1: PR Summary** | Bug fixes, typos, internal refactoring without contract changes | GitHub PR description | `.github/pull_request_template.md` |
-| **Tier 2: Technical Spec / PR Doc** | New features, public APIs, database schema changes, new screens or major user journeys | `docs/features/<feature-name>.md` or `docs/backend/` / `docs/frontend/` | `docs/templates/backend-pr-document-template.md`<br/>`docs/templates/frontend-pr-document-template.md` |
+| **Tier 2: Technical Spec / PR Doc** | New features, public APIs, database schema changes, new screens or major user journeys | `docs/prs/PR-<number>-<name>.md` | `docs/templates/backend-pr-document-template.md`<br/>`docs/templates/frontend-pr-document-template.md` |
 | **Tier 3: Architecture Decision (ADR)** | Technology adoption, protocol changes, security/auth model changes, major structural shifts | `docs/decisions/NNNN-<title>.md` | `docs/templates/adr-template.md` |
 
 ---
@@ -60,7 +60,8 @@ docs/
 ├── decisions/                  # Architecture Decision Records (ADRs) numbered sequentially
 │   ├── 0001-record-architecture-decisions.md
 │   └── 0002-<decision-title>.md
-├── features/                   # Functional specs and feature documentation
+├── prs/                        # Standalone PR technical documents (PR-<number>-<name>.md)
+│   └── PR-18-documentation-verification-system.md
 ├── backend/                    # Backend living documentation (APIs, schemas, services)
 ├── frontend/                   # Frontend living documentation (components, design system)
 ├── templates/                  # Standard templates for PRs and ADRs
@@ -72,8 +73,15 @@ docs/
 ```
 
 ### File Naming Conventions
-- Always use `lowercase-kebab-case.md` (e.g., `campaign-tender-flow.md`, `billing-integration.md`).
-- For ADRs, use four-digit zero-padded numbers: `0002-jwt-revocation-strategy.md`.
+
+1. **PR Technical Documents:**
+   - **Pattern:** `docs/prs/PR-<number>-<kebab-case-title>.md`
+   - **Requirement:** The `<number>` in the filename **must match the GitHub PR number** (e.g., `docs/prs/PR-18-documentation-verification-system.md`). The CI pipeline automatically enforces this matching.
+   - **Workflow:** Open your PR as a **Draft PR** first to receive your PR number from GitHub, name your document file accordingly, and commit it.
+2. **Architecture Decision Records (ADRs):**
+   - **Pattern:** `docs/decisions/NNNN-<kebab-case-title>.md` (e.g., `docs/decisions/0001-record-architecture-decisions.md`). Four-digit zero-padded numbers.
+3. **Living Documentation & Guides:**
+   - **Pattern:** `lowercase-kebab-case.md` (e.g., `campaign-tender-flow.md`).
 
 ---
 

@@ -1,6 +1,6 @@
 # Technical Specification: Automated PR Documentation Verification System
 
-- **PR Link / Ticket:** PR # / CI Documentation System
+- **PR Link / Ticket:** [PR #18](https://github.com/Advertisement-Market/advertisement/pull/18)
 - **Author:** @amjangde
 - **Date:** 2026-09-07
 - **Module / Path:** `.github/workflows/ci.yml`, `.github/scripts/`
