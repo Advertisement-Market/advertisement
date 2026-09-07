@@ -93,31 +93,38 @@ if [ -n "$MATCHED_DOCS" ]; then
     fi
 
     INVALID_NAMES=false
+    HAS_CURRENT_PR_DOC=false
+
     while IFS= read -r doc_file; do
       [ -z "$doc_file" ] && continue
       filename=$(basename "$doc_file")
       
-      if [ -n "$PR_NUMBER" ]; then
-        # When running in GitHub Actions PR context: must match current PR number
-        if ! echo "$filename" | grep -qiE "^PR-${PR_NUMBER}-.+[a-z0-9]\.md$"; then
-          echo "❌ Invalid PR doc filename: '$doc_file'"
-          echo "   Expected pattern: 'docs/prs/PR-${PR_NUMBER}-<short-description>.md'"
-          INVALID_NAMES=true
-        fi
-      else
-        # When running locally: must match general PR-<number>-<description>.md pattern
-        if ! echo "$filename" | grep -qiE "^PR-[0-9]+-.+[a-z0-9]\.md$"; then
-          echo "❌ Invalid PR doc filename: '$doc_file'"
-          echo "   Expected pattern: 'docs/prs/PR-<number>-<short-description>.md'"
-          INVALID_NAMES=true
-        fi
+      # Every file in docs/prs/ must match the PR-[0-9]+-<name>.md standard
+      if ! echo "$filename" | grep -qiE "^PR-[0-9]+-.+[a-z0-9]\.md$"; then
+        echo "❌ Invalid PR doc filename: '$doc_file'"
+        echo "   Expected pattern: 'docs/prs/PR-<number>-<short-description>.md'"
+        INVALID_NAMES=true
+      fi
+
+      # Check if this document matches current PR number
+      if [ -n "$PR_NUMBER" ] && echo "$filename" | grep -qiE "^PR-${PR_NUMBER}-.+[a-z0-9]\.md$"; then
+        HAS_CURRENT_PR_DOC=true
       fi
     done <<< "$PR_DOCS"
+
+    # In PR context, if code or config changed, verify that the PR doc matches the current PR number
+    if [ -n "$PR_NUMBER" ] && { [ "$CODE_CHANGED" = true ] || [ "$CONFIG_CHANGED" = true ]; }; then
+      if [ "$HAS_CURRENT_PR_DOC" = false ]; then
+        echo "❌ Missing or mismatched PR document for PR #$PR_NUMBER in 'docs/prs/'."
+        echo "   Expected a document matching: 'docs/prs/PR-${PR_NUMBER}-<short-description>.md'"
+        INVALID_NAMES=true
+      fi
+    fi
 
     if [ "$INVALID_NAMES" = true ]; then
       echo ""
       echo "❌ ERROR: PR document filenames must follow the 'docs/prs/PR-<number>-<title>.md' convention."
-      log_summary "### ❌ PR Documentation Check: FAILED\n\n> ⚠️ **Invalid File Name:** PR document under \`docs/prs/\` must follow \`docs/prs/PR-<number>-<name>.md\` matching the PR number."
+      log_summary "### ❌ PR Documentation Check: FAILED\n\n> ⚠️ **Invalid File Name:** PR document under \`docs/prs/\` must follow \`docs/prs/PR-<number>-<name>.md\`."
       exit 1
     fi
     echo "✅ PR document naming convention verified."
