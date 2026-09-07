@@ -52,8 +52,9 @@ src/
 The frontend talks to the backend through a single Axios instance:
 
 - **`src/lib/apiClient.js`** — Axios client with `baseURL` from `VITE_API_URL` (default
-  `http://localhost:8080`). A request interceptor attaches the `Authorization: Bearer <token>`
+  `""`, using relative paths so dev and prod reverse proxies handle routing cleanly). A request interceptor attaches the `Authorization: Bearer <token>`
   header; a response interceptor performs a one-time `401 → refresh → retry`.
+
 - **`src/lib/authStorage.js`** — persists the access token, refresh token, and current user in
   `localStorage`; the session is rehydrated on load by `AuthProvider`.
 - **`src/features/auth/authApi.js`** — thin wrappers over the auth/registration endpoints
