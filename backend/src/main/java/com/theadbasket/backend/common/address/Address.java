@@ -1,10 +1,22 @@
 package com.theadbasket.backend.common.address;
 
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "addresses")
+@EntityListeners(AuditingEntityListener.class)
 public class Address {
 
     @Id
@@ -29,23 +41,13 @@ public class Address {
     @Column(name = "pincode", nullable = false, length = 6)
     private String pincode;
 
+    @CreatedDate
     @Column(name = "created_ts", nullable = false, updatable = false)
-    private LocalDateTime createdTs;
+    private Instant createdTs;
 
+    @LastModifiedDate
     @Column(name = "updated_ts", nullable = false)
-    private LocalDateTime updatedTs;
-
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdTs = now;
-        this.updatedTs = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedTs = LocalDateTime.now();
-    }
+    private Instant updatedTs;
 
     public Address() {
     }
@@ -115,11 +117,19 @@ public class Address {
         this.pincode = pincode;
     }
 
-    public LocalDateTime getCreatedTs() {
+    public Instant getCreatedTs() {
         return createdTs;
     }
 
-    public LocalDateTime getUpdatedTs() {
+    public void setCreatedTs(Instant createdTs) {
+        this.createdTs = createdTs;
+    }
+
+    public Instant getUpdatedTs() {
         return updatedTs;
+    }
+
+    public void setUpdatedTs(Instant updatedTs) {
+        this.updatedTs = updatedTs;
     }
 }
