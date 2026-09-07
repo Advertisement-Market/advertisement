@@ -31,7 +31,7 @@ class GoogleTokenInfoTest {
         assertThat(info.sub()).isEqualTo("12345");
         assertThat(info.email()).isEqualTo("user@gmail.com");
         assertThat(info.isEmailVerified()).isTrue();
-        assertThat(info.emailVerified()).isTrue();
+        assertThat(info.emailVerified()).isEqualTo("true");
         assertThat(info.givenName()).isEqualTo("Jane");
         assertThat(info.familyName()).isEqualTo("Doe");
         assertThat(info.name()).isEqualTo("Jane Doe");

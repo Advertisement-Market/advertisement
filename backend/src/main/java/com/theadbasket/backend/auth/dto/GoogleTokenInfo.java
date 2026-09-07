@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Verified claims from Google's tokeninfo endpoint. {@code is_email_verified}
- * arrives as a string ("true"/"false"); unknown fields are ignored so the model
+ * Verified claims from Google's tokeninfo endpoint. {@code email_verified}
+ * arrives as a string ("true"/"false") or boolean; unknown fields are ignored so the model
  * survives Google adding claims.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -16,15 +16,16 @@ public record GoogleTokenInfo(
         String email,
         @JsonProperty("email_verified")
         @JsonAlias("is_email_verified")
-        boolean emailVerified,
+        String emailVerified,
         @JsonProperty("given_name")
         String givenName,
         @JsonProperty("family_name")
         String familyName,
         String name
-        ) {
+) {
 
     public boolean isEmailVerified() {
-        return emailVerified;
+        return "true".equalsIgnoreCase(emailVerified);
     }
 }
+
