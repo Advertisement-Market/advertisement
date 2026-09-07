@@ -52,10 +52,21 @@ fi
 echo "--------------------------------------------------------"
 
 # 1. Classify Changes
+BACKEND_CHANGED=false
+if echo "$CHANGED_FILES $DELETED_FILES" | grep -E '^backend/' | grep -vE '\.(md|markdown)$' >/dev/null 2>&1; then
+  BACKEND_CHANGED=true
+  echo "🔍 Application code changes detected in 'backend/'."
+fi
+
+FRONTEND_CHANGED=false
+if echo "$CHANGED_FILES $DELETED_FILES" | grep -E '^frontend/' | grep -vE '\.(md|markdown)$' >/dev/null 2>&1; then
+  FRONTEND_CHANGED=true
+  echo "🔍 Application code changes detected in 'frontend/'."
+fi
+
 CODE_CHANGED=false
-if echo "$CHANGED_FILES $DELETED_FILES" | grep -E '^(backend|frontend)/' | grep -vE '\.(md|markdown)$' >/dev/null 2>&1; then
+if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
   CODE_CHANGED=true
-  echo "🔍 Application code changes detected in backend/ or frontend/."
 fi
 
 CONFIG_CHANGED=false
@@ -154,7 +165,7 @@ if [ "$CODE_CHANGED" = true ] || [ "$CONFIG_CHANGED" = true ]; then
   if [ "$HAS_VALID_PR_DOC" = true ]; then
     echo ""
     echo "✅ Code/Configuration changes accompanied by verified PR document. Check passed!"
-    log_summary "### 📋 PR Documentation Check: Passed\n\n- **Application Code Changed:** $CODE_CHANGED\n- **Configuration Changed:** $CONFIG_CHANGED\n- **Database Migration Changed:** $DB_MIGRATION_CHANGED\n- **Status:** ✅ Valid PR document included and verified."
+    log_summary "### 📋 PR Documentation Check: Passed\n\n- **Backend Code Changed:** $BACKEND_CHANGED\n- **Frontend Code Changed:** $FRONTEND_CHANGED\n- **Configuration Changed:** $CONFIG_CHANGED\n- **Database Migration Changed:** $DB_MIGRATION_CHANGED\n- **Status:** ✅ Valid PR document included and verified."
     exit 0
   fi
   echo "⚠️  Code or configuration changes detected, but no dedicated PR document found in 'docs/prs/'."
@@ -191,8 +202,12 @@ fi
 echo ""
 echo "❌ ERROR: PR Document Missing!"
 echo "--------------------------------------------------------"
-if [ "$CODE_CHANGED" = true ]; then
-  echo "• Application code was modified in 'backend/' or 'frontend/'."
+if [ "$BACKEND_CHANGED" = true ] && [ "$FRONTEND_CHANGED" = true ]; then
+  echo "• Application code was modified in both 'backend/' and 'frontend/'."
+elif [ "$BACKEND_CHANGED" = true ]; then
+  echo "• Application code was modified in 'backend/'."
+elif [ "$FRONTEND_CHANGED" = true ]; then
+  echo "• Application code was modified in 'frontend/'."
 fi
 if [ "$CONFIG_CHANGED" = true ]; then
   echo "• Infrastructure or environment configuration was modified (Docker/Compose/CI/env)."
@@ -209,7 +224,15 @@ echo ""
 echo "👉 How to resolve:"
 echo "1. Create a dedicated PR document under 'docs/prs/':"
 echo "   - File pattern: 'docs/prs/PR-${PR_NUMBER:-<number>}-<short-description>.md'"
-echo "   - Template: 'docs/templates/frontend-pr-document-template.md' or 'backend-pr-document-template.md'"
+if [ "$BACKEND_CHANGED" = true ] && [ "$FRONTEND_CHANGED" = true ]; then
+  echo "   - Template: Use 'docs/templates/backend-pr-document-template.md' or 'docs/templates/frontend-pr-document-template.md'"
+elif [ "$BACKEND_CHANGED" = true ]; then
+  echo "   - Template: 'docs/templates/backend-pr-document-template.md'"
+elif [ "$FRONTEND_CHANGED" = true ]; then
+  echo "   - Template: 'docs/templates/frontend-pr-document-template.md'"
+else
+  echo "   - Template: 'docs/templates/backend-pr-document-template.md' or 'docs/templates/frontend-pr-document-template.md'"
+fi
 echo ""
 echo "2. If this is a minor bugfix, typo, or chore exempt from docs:"
 echo "   - In your GitHub PR description, check the exemption box: '[x] Exempt: [reason]'"
@@ -218,6 +241,6 @@ echo ""
 echo "Refer to docs/GUIDELINES.md for complete documentation rules."
 echo "--------------------------------------------------------"
 
-log_summary "### ❌ PR Documentation Check: FAILED\n\n| Check | Status |\n| :--- | :--- |\n| Application Code Changed | \`$CODE_CHANGED\` |\n| Configuration Changed | \`$CONFIG_CHANGED\` |\n| Database Migration Changed | \`$DB_MIGRATION_CHANGED\` |\n| Dedicated PR Document in \`docs/prs/\` | \`$HAS_VALID_PR_DOC\` |\n| Exemption Declared | \`$EXEMPT\` |\n\n> ⚠️ **Action Required:** Code/configuration was changed without a dedicated PR document in \`docs/prs/PR-${PR_NUMBER:-<number>}-<name>.md\` or an explicit exemption."
+log_summary "### ❌ PR Documentation Check: FAILED\n\n| Check | Status |\n| :--- | :--- |\n| Backend Code Changed | \`$BACKEND_CHANGED\` |\n| Frontend Code Changed | \`$FRONTEND_CHANGED\` |\n| Configuration Changed | \`$CONFIG_CHANGED\` |\n| Database Migration Changed | \`$DB_MIGRATION_CHANGED\` |\n| Dedicated PR Document in \`docs/prs/\` | \`$HAS_VALID_PR_DOC\` |\n| Exemption Declared | \`$EXEMPT\` |\n\n> ⚠️ **Action Required:** Code/configuration was changed without a dedicated PR document in \`docs/prs/PR-${PR_NUMBER:-<number>}-<name>.md\` or an explicit exemption."
 
 exit 1
