@@ -347,6 +347,11 @@ sequenceDiagram
 The canonical feature-policy configuration in `backend/config/feature-policy.yml` controls enabled authentication providers and application roles, dynamically bound via `@RefreshScope`:
 
 ```yaml
+<<<<<<< HEAD
+=======
+# Hot-reloadable feature policy — edit this file and POST :8081/actuator/refresh
+# to apply changes without a restart.
+>>>>>>> 1ecc560 (docs(prs): rewrite PR-12 technical documentation with 50-test suite verification)
 app:
   roles:
     enabled: [MEMBER, ADVERTISER, OWNER, AGENCY]
@@ -355,7 +360,10 @@ app:
 ```
 
 ### Hot Reload Mechanism
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1ecc560 (docs(prs): rewrite PR-12 technical documentation with 50-test suite verification)
 Changes to `backend/config/feature-policy.yml` can be reloaded at runtime without application restart by sending an authenticated request to the Actuator endpoint:
 
 ```bash
@@ -385,6 +393,7 @@ mvn test
 
 ---
 
+<<<<<<< HEAD
 ### 6.2 Key Unit & Policy Guard Tests
 
 The unit test suite covers core business logic, configuration models, and policy enforcement guards without booting the full Spring web stack:
@@ -413,6 +422,21 @@ The unit test suite covers core business logic, configuration models, and policy
 * **Zero-arg constructor & JavaBean mutability:** Verifies property setters required by Spring Cloud `ConfigurationPropertiesRebinder` during `/actuator/refresh`.
 * **Constraint validation:** Verifies `@NotBlank` and `@NotEmpty` validation constraints.
 * **Spring Boot context binding:** Verifies `ApplicationContextRunner` property binding from YAML/environment.
+=======
+### 6.2 Key Unit Tests
+
+The following tests were added or updated in `AuthServiceTest`:
+
+| Test                                                                            | Purpose                                                                                                       |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `login_whenLocalProviderDisabled_throwsBadRequestException()`                   | Verifies that password login is rejected when the `LOCAL` authentication provider is disabled.                |
+| `login_whenLocalProviderEnabled_authenticatesAndReturnsTokens()`                | Verifies successful authentication and token issuance when local login is enabled.                          |
+| `register_whenLocalProviderDisabled_throwsBadRequestException()`                | Verifies that local registration is blocked when local authentication is disabled.                            |
+| `register_whenTargetRoleDisabled_throwsBadRequestException()`                   | Verifies that registration fails when the requested role is disabled by policy.                               |
+| `loginWithGoogle_whenGoogleProviderDisabled_throwsBadRequestException()`        | Verifies that Google login is rejected when the `GOOGLE` provider is disabled.                                |
+| `loginWithGoogle_whenNewUserAndDefaultRoleDisabled_throwsBadRequestException()` | Verifies that Google account provisioning is blocked when the configured default role is disabled.            |
+| `loginWithGoogle_whenGoogleProviderEnabled_createsUserAndReturnsTokens()`       | Verifies successful Google authentication, account creation, and token issuance when the provider is enabled. |
+>>>>>>> 1ecc560 (docs(prs): rewrite PR-12 technical documentation with 50-test suite verification)
 
 ---
 
