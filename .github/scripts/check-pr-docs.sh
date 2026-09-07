@@ -84,16 +84,18 @@ if [ -n "$MATCHED_DOCS" ]; then
   python3 "$SCRIPT_DIR/validate-doc-content.py" $MATCHED_DOCS
   echo "✅ Documentation files verified."
 
-  # Validate PR document naming convention under docs/prs/
-  PR_DOCS=$(echo "$MATCHED_DOCS" | grep -E '^docs/prs/' || true)
-  if [ -n "$PR_DOCS" ]; then
-    PR_NUMBER=""
-    if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
-      PR_NUMBER=$(jq -r '.pull_request.number // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
-    fi
+  # 3. Check for dedicated PR document (docs/prs/) or ADR (docs/decisions/)
+  PR_NUMBER=""
+  if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
+    PR_NUMBER=$(jq -r '.pull_request.number // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+  fi
 
+  PR_DOCS=$(echo "$MATCHED_DOCS" | grep -E '^docs/prs/' || true)
+  ADR_DOCS=$(echo "$MATCHED_DOCS" | grep -E '^docs/decisions/' || true)
+  HAS_VALID_PR_DOC=false
+
+  if [ -n "$PR_DOCS" ]; then
     INVALID_NAMES=false
-    HAS_CURRENT_PR_DOC=false
 
     while IFS= read -r doc_file; do
       [ -z "$doc_file" ] && continue
@@ -106,20 +108,15 @@ if [ -n "$MATCHED_DOCS" ]; then
         INVALID_NAMES=true
       fi
 
-      # Check if this document matches current PR number
-      if [ -n "$PR_NUMBER" ] && echo "$filename" | grep -qiE "^PR-${PR_NUMBER}-.+[a-z0-9]\.md$"; then
-        HAS_CURRENT_PR_DOC=true
+      # Check if this document matches current PR number (or any valid PR number if running locally)
+      if [ -n "$PR_NUMBER" ]; then
+        if echo "$filename" | grep -qiE "^PR-${PR_NUMBER}-.+[a-z0-9]\.md$"; then
+          HAS_VALID_PR_DOC=true
+        fi
+      else
+        HAS_VALID_PR_DOC=true
       fi
     done <<< "$PR_DOCS"
-
-    # In PR context, if code or config changed, verify that the PR doc matches the current PR number
-    if [ -n "$PR_NUMBER" ] && { [ "$CODE_CHANGED" = true ] || [ "$CONFIG_CHANGED" = true ]; }; then
-      if [ "$HAS_CURRENT_PR_DOC" = false ]; then
-        echo "❌ Missing or mismatched PR document for PR #$PR_NUMBER in 'docs/prs/'."
-        echo "   Expected a document matching: 'docs/prs/PR-${PR_NUMBER}-<short-description>.md'"
-        INVALID_NAMES=true
-      fi
-    fi
 
     if [ "$INVALID_NAMES" = true ]; then
       echo ""
@@ -129,9 +126,14 @@ if [ -n "$MATCHED_DOCS" ]; then
     fi
     echo "✅ PR document naming convention verified."
   fi
+
+  # An ADR in docs/decisions/ also qualifies as valid architectural documentation
+  if [ -n "$ADR_DOCS" ]; then
+    HAS_VALID_PR_DOC=true
+  fi
 fi
 
-# 3. Handle Pure Documentation PRs
+# 4. Handle Pure Documentation PRs (no application code or configuration modified)
 if [ "$CODE_CHANGED" = false ] && [ "$CONFIG_CHANGED" = false ] && [ "$DOCS_CHANGED" = true ]; then
   echo ""
   echo "✅ Pure documentation PR detected. All documents passed quality verification."
@@ -139,7 +141,7 @@ if [ "$CODE_CHANGED" = false ] && [ "$CONFIG_CHANGED" = false ] && [ "$DOCS_CHAN
   exit 0
 fi
 
-# 4. Handle Pure Repository Meta / Chores (e.g. .gitignore, .vscode)
+# 5. Handle Pure Repository Meta / Chores (e.g. .gitignore, .vscode)
 if [ "$CODE_CHANGED" = false ] && [ "$CONFIG_CHANGED" = false ] && [ "$DOCS_CHANGED" = false ]; then
   echo ""
   echo "✅ Repository maintenance or metadata changes only. Documentation check passed."
@@ -147,15 +149,18 @@ if [ "$CODE_CHANGED" = false ] && [ "$CONFIG_CHANGED" = false ] && [ "$DOCS_CHAN
   exit 0
 fi
 
-# 5. If Code or Configuration changed, and valid documentation is included -> PASS
-if [ "$DOCS_CHANGED" = true ]; then
-  echo ""
-  echo "✅ Code/Configuration changes accompanied by verified documentation. Check passed!"
-  log_summary "### 📋 PR Documentation Check: Passed\n\n- **Application Code Changed:** $CODE_CHANGED\n- **Configuration Changed:** $CONFIG_CHANGED\n- **Database Migration Changed:** $DB_MIGRATION_CHANGED\n- **Status:** ✅ Valid documentation included and verified."
-  exit 0
+# 6. If Code or Configuration changed: REQUIRE a dedicated PR document in docs/prs/ (or ADR)
+if [ "$CODE_CHANGED" = true ] || [ "$CONFIG_CHANGED" = true ]; then
+  if [ "$HAS_VALID_PR_DOC" = true ]; then
+    echo ""
+    echo "✅ Code/Configuration changes accompanied by verified PR document. Check passed!"
+    log_summary "### 📋 PR Documentation Check: Passed\n\n- **Application Code Changed:** $CODE_CHANGED\n- **Configuration Changed:** $CONFIG_CHANGED\n- **Database Migration Changed:** $DB_MIGRATION_CHANGED\n- **Status:** ✅ Valid PR document included and verified."
+    exit 0
+  fi
+  echo "⚠️  Code or configuration changes detected, but no dedicated PR document found in 'docs/prs/'."
 fi
 
-# 6. Check for explicit Exemption via PR description or label
+# 7. Check for explicit Exemption via PR description or label
 EXEMPT=false
 EXEMPT_REASON=""
 if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
@@ -182,9 +187,9 @@ if [ "$EXEMPT" = true ]; then
   exit 0
 fi
 
-# 7. Failure: Code or Configuration was modified without documentation or exemption
+# 8. Failure: Code or Configuration was modified without a dedicated PR document or exemption
 echo ""
-echo "❌ ERROR: PR Documentation Check Failed!"
+echo "❌ ERROR: PR Document Missing!"
 echo "--------------------------------------------------------"
 if [ "$CODE_CHANGED" = true ]; then
   echo "• Application code was modified in 'backend/' or 'frontend/'."
@@ -196,21 +201,23 @@ if [ "$DB_MIGRATION_CHANGED" = true ]; then
   echo "• Flyway database migration script was added without schema documentation."
 fi
 echo ""
-echo "No corresponding documentation was added or updated under 'docs/' or in 'README.md'."
+echo "No dedicated PR document was found under 'docs/prs/PR-${PR_NUMBER:-<number>}-<short-description>.md' (or ADR under 'docs/decisions/')."
+if [ "$DOCS_CHANGED" = true ]; then
+  echo "ℹ️  Note: Modifying existing architecture reports or READMEs does not substitute for the required PR document."
+fi
 echo ""
 echo "👉 How to resolve:"
-echo "1. If this PR introduces a feature, API, schema migration, or configuration change:"
-echo "   - Add or update technical documentation in 'docs/' or 'README.md'."
-echo "   - Use 'docs/templates/backend-pr-document-template.md' or 'docs/templates/frontend-pr-document-template.md'."
-echo "   - For architectural shifts, add an ADR under 'docs/decisions/'."
+echo "1. Create a dedicated PR document under 'docs/prs/':"
+echo "   - File pattern: 'docs/prs/PR-${PR_NUMBER:-<number>}-<short-description>.md'"
+echo "   - Template: 'docs/templates/frontend-pr-document-template.md' or 'backend-pr-document-template.md'"
 echo ""
-echo "2. If this is a routine config tweak, minor bugfix, typo, or chore exempt from docs:"
+echo "2. If this is a minor bugfix, typo, or chore exempt from docs:"
 echo "   - In your GitHub PR description, check the exemption box: '[x] Exempt: [reason]'"
 echo "   - Or ask a maintainer to apply the 'no-doc-needed' label."
 echo ""
 echo "Refer to docs/GUIDELINES.md for complete documentation rules."
 echo "--------------------------------------------------------"
 
-log_summary "### ❌ PR Documentation Check: FAILED\n\n| Check | Status |\n| :--- | :--- |\n| Application Code Changed | \`$CODE_CHANGED\` |\n| Configuration Changed | \`$CONFIG_CHANGED\` |\n| Database Migration Changed | \`$DB_MIGRATION_CHANGED\` |\n| Documentation Updated | \`$DOCS_CHANGED\` |\n| Exemption Declared | \`$EXEMPT\` |\n\n> ⚠️ **Action Required:** Code/configuration was changed without documentation or exemption. Please add/update docs under \`docs/\` or mark \`[x] Exempt: [reason]\` in the PR description."
+log_summary "### ❌ PR Documentation Check: FAILED\n\n| Check | Status |\n| :--- | :--- |\n| Application Code Changed | \`$CODE_CHANGED\` |\n| Configuration Changed | \`$CONFIG_CHANGED\` |\n| Database Migration Changed | \`$DB_MIGRATION_CHANGED\` |\n| Dedicated PR Document in \`docs/prs/\` | \`$HAS_VALID_PR_DOC\` |\n| Exemption Declared | \`$EXEMPT\` |\n\n> ⚠️ **Action Required:** Code/configuration was changed without a dedicated PR document in \`docs/prs/PR-${PR_NUMBER:-<number>}-<name>.md\` or an explicit exemption."
 
 exit 1
