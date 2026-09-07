@@ -164,9 +164,10 @@ This repository uses **GitHub Actions** for continuous integration (`.github/wor
 
 ### CI Workflows
 On every **Pull Request (PR)** and push to `main`, `master`, or `develop`, the workflow automatically executes:
+- **Documentation Job (`docs-check`)**: Verifies that PRs modifying `backend/` or `frontend/` contain documentation under `docs/` or an explicit exemption in the PR description. Fails and blocks merge if documentation is missing.
 - **Frontend Job (`frontend-ci`)**: Runs `npm ci`, ESLint (`npm run lint`), Prettier check (`npm run format:check`), Vitest unit tests (`npm run test`), and Vite build (`npm run build`).
 - **Backend Job (`backend-ci`)**: Runs `mvn clean verify`.
-- **Status Check Gate (`ci-status-check`)**: Unified gate named `CI / All Checks Passed` that succeeds only when both frontend and backend jobs pass.
+- **Status Check Gate (`ci-status-check`)**: Unified gate named `CI / All Checks Passed` that succeeds only when frontend, backend, and documentation compliance checks all pass.
 
 ### Setting Pipeline Success as a PR Merge Prerequisite in GitHub
 
