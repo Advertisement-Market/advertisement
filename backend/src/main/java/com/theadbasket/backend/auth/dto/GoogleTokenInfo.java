@@ -1,5 +1,6 @@
 package com.theadbasket.backend.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -13,8 +14,9 @@ public record GoogleTokenInfo(
         String aud,
         String sub,
         String email,
-        @JsonProperty("is_email_verified")
-        String emailVerified,
+        @JsonProperty("email_verified")
+        @JsonAlias("is_email_verified")
+        boolean emailVerified,
         @JsonProperty("given_name")
         String givenName,
         @JsonProperty("family_name")
@@ -23,6 +25,6 @@ public record GoogleTokenInfo(
         ) {
 
     public boolean isEmailVerified() {
-        return "true".equalsIgnoreCase(emailVerified);
+        return emailVerified;
     }
 }
