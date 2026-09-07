@@ -49,13 +49,14 @@ public class AdvertiserRegistrationService {
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName(), request.accountEmail(), request.password(), request.contactPhone(),
                 Role.ADVERTISER);
-        Address address = new Address();
-        address.setLine1(request.addressLine1().trim());
-        address.setLine2(blankToNull(request.addressLine2()));
-        address.setLandmark(blankToNull(request.landmark()));
-        address.setCity(request.city().trim());
-        address.setState(request.state().trim());
-        address.setPincode(request.pincode().trim());
+        Address address = Address.of(
+                request.addressLine1(),
+                request.addressLine2(),
+                request.landmark(),
+                request.city(),
+                request.state(),
+                request.pincode()
+        );
 
         AdvertiserProfile profile = new AdvertiserProfile();
         profile.setUser(user);

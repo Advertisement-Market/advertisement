@@ -61,6 +61,25 @@ public class Address {
         this.pincode = pincode;
     }
 
+    /**
+     * Shared factory method to construct and sanitize an Address instance.
+     */
+    public static Address of(String line1, String line2, String landmark,
+            String city, String state, String pincode) {
+        Address a = new Address();
+        a.line1 = line1 != null ? line1.trim() : null;
+        a.line2 = blankToNull(line2);
+        a.landmark = blankToNull(landmark);
+        a.city = city != null ? city.trim() : null;
+        a.state = state != null ? state.trim() : null;
+        a.pincode = pincode != null ? pincode.trim() : null;
+        return a;
+    }
+
+    private static String blankToNull(String val) {
+        return (val == null || val.isBlank()) ? null : val.trim();
+    }
+
     public Long getId() {
         return id;
     }
