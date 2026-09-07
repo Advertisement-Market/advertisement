@@ -2597,19 +2597,36 @@
 
           <div class="form-section" style="border-bottom:none;">
             <div class="form-section-title">Office Location</div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>PIN Code <span class="req">*</span></label>
-                <input type="text" class="form-control" id="f_pincode" maxlength="6" placeholder="400001"
-                  oninput="autofillCity(this)" />
-                <div class="pincode-autofill" id="hqCityFill"></div>
-              </div>
-              <div class="form-group"></div>
+            <div class="form-group">
+              <label>Address Line 1 <span class="req">*</span></label>
+              <input type="text" class="form-control" id="f_addressLine1"
+                placeholder="e.g., 12th Floor, Lotus Corporate Park" />
             </div>
             <div class="form-group">
-              <label>Office Address <span class="req">*</span></label>
-              <textarea class="form-control" id="f_officeAddress" rows="2"
-                placeholder="e.g., 12th Floor, Lotus Corporate Park, Goregaon East, Mumbai – 400063"></textarea>
+              <label>Address Line 2 <span class="opt">(optional)</span></label>
+              <input type="text" class="form-control" id="f_addressLine2"
+                placeholder="e.g., Goregaon East" />
+            </div>
+            <div class="form-group">
+              <label>Landmark <span class="opt">(optional)</span></label>
+              <input type="text" class="form-control" id="f_landmark"
+                placeholder="e.g., Near Filmcity Road" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>City <span class="req">*</span></label>
+                <input type="text" class="form-control" id="f_city" placeholder="e.g., Mumbai" />
+              </div>
+              <div class="form-group">
+                <label>State <span class="req">*</span></label>
+                <input type="text" class="form-control" id="f_state" placeholder="e.g., Maharashtra" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>PIN Code <span class="req">*</span></label>
+              <input type="text" class="form-control" id="f_pincode" maxlength="6" placeholder="400001"
+                oninput="autofillCity(this)" />
+              <div class="pincode-autofill" id="hqCityFill"></div>
             </div>
           </div>
 
@@ -3406,8 +3423,11 @@
         if (!document.getElementById('f_email').value.trim()) { showToast('Please enter an email address.', 'error'); return false; }
         const phone = document.getElementById('f_phone').value.replace(/\D/g, '');
         if (phone.length !== 10) { showToast('Please enter a valid 10-digit mobile number.', 'error'); return false; }
-        if (!document.getElementById('f_pincode').value.trim()) { showToast('Please enter your PIN code.', 'error'); return false; }
-        if (!document.getElementById('f_officeAddress').value.trim()) { showToast('Please enter your office address.', 'error'); return false; }
+        if (!document.getElementById('f_addressLine1').value.trim()) { showToast('Please enter your office address (Address Line 1).', 'error'); return false; }
+        if (!document.getElementById('f_city').value.trim()) { showToast('Please enter your city.', 'error'); return false; }
+        if (!document.getElementById('f_state').value.trim()) { showToast('Please enter your state.', 'error'); return false; }
+        const pin = document.getElementById('f_pincode').value.replace(/\D/g, '');
+        if (pin.length !== 6) { showToast('Please enter a valid 6-digit PIN code.', 'error'); return false; }
       }
       if (step === 4) {
         if (!document.getElementById('f_projectTitle').value.trim()) { showToast('Please enter a project title.', 'error'); return false; }
@@ -3682,9 +3702,17 @@
       input.value = input.value.replace(/\D/g, '').slice(0, 6);
       const fill = document.getElementById('hqCityFill');
       if (input.value.length === 6) {
-        const city = pincodeMap[input.value] || 'India';
+        const match = pincodeMap[input.value];
+        const city = match || 'India';
         fill.textContent = city;
         fill.classList.add('show');
+        if (match) {
+          const [autoCity, autoState] = match.split(',').map(s => s.trim());
+          const cityEl = document.getElementById('f_city');
+          const stateEl = document.getElementById('f_state');
+          if (cityEl && !cityEl.value.trim() && autoCity) cityEl.value = autoCity;
+          if (stateEl && !stateEl.value.trim() && autoState) stateEl.value = autoState;
+        }
       } else {
         fill.classList.remove('show');
       }
@@ -3778,7 +3806,7 @@
       document.getElementById('rv_contact').innerHTML = contactName ? '<strong>' + contactName + '</strong>' + (desig ? ' — ' + desig : '') : '—';
       document.getElementById('rv_email').innerHTML = v('f_email') + (otpState.email.verified ? ' <span style="color:var(--green);font-weight:500;">(Verified)</span>' : '') || '—';
       document.getElementById('rv_mobile').innerHTML = (v('f_phone') ? '+91 ' + v('f_phone') : '—') + (otpState.mobile.verified ? ' <span style="color:var(--green);font-weight:500;">(Verified)</span>' : '');
-      document.getElementById('rv_address').textContent = [v('f_officeAddress'), v('f_pincode')].filter(Boolean).join(' — ') || '—';
+      document.getElementById('rv_address').textContent = [v('f_addressLine1'), v('f_addressLine2'), v('f_landmark'), v('f_city'), v('f_state'), v('f_pincode')].filter(Boolean).join(', ') || '—';
 
       const projTitle = v('f_projectTitle');
       const dur = v('f_duration');
