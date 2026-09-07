@@ -347,11 +347,6 @@ sequenceDiagram
 The canonical feature-policy configuration in `backend/config/feature-policy.yml` controls enabled authentication providers and application roles, dynamically bound via `@RefreshScope`:
 
 ```yaml
-<<<<<<< HEAD
-=======
-# Hot-reloadable feature policy — edit this file and POST :8081/actuator/refresh
-# to apply changes without a restart.
->>>>>>> 1ecc560 (docs(prs): rewrite PR-12 technical documentation with 50-test suite verification)
 app:
   roles:
     enabled: [MEMBER, ADVERTISER, OWNER, AGENCY]
@@ -360,10 +355,7 @@ app:
 ```
 
 ### Hot Reload Mechanism
-<<<<<<< HEAD
 
-=======
->>>>>>> 1ecc560 (docs(prs): rewrite PR-12 technical documentation with 50-test suite verification)
 Changes to `backend/config/feature-policy.yml` can be reloaded at runtime without application restart by sending an authenticated request to the Actuator endpoint:
 
 ```bash
