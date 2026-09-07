@@ -44,24 +44,29 @@ if echo "$CHANGED_FILES" | grep -E '^(backend|frontend)/' >/dev/null 2>&1; then
   CODE_CHANGED=true
 fi
 
+echo "🔍 Code changes detected in backend/ or frontend/."
+
+# Check if any documentation was added or modified under docs/
+DOCS_CHANGED=false
+MATCHED_DOCS=$(echo "$CHANGED_FILES" | grep -E '^docs/.*\.md$' || true)
+if [ -n "$MATCHED_DOCS" ]; then
+  DOCS_CHANGED=true
+  echo "📄 Documentation files detected in PR:"
+  echo "$MATCHED_DOCS"
+  echo ""
+  echo "🔍 Validating documentation files for completeness and placeholders..."
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  python3 "$SCRIPT_DIR/validate-doc-content.py" $MATCHED_DOCS
+  echo "✅ Documentation files verified."
+fi
+
 if [ "$CODE_CHANGED" = false ]; then
   echo "✅ No code changes in backend/ or frontend/ detected. Documentation check passed."
   exit 0
 fi
 
-echo "🔍 Code changes detected in backend/ or frontend/."
-
-# Check if any documentation was added or modified under docs/
-DOCS_CHANGED=false
-MATCHED_DOCS=$(echo "$CHANGED_FILES" | grep -E '^docs/' || true)
-if [ -n "$MATCHED_DOCS" ]; then
-  DOCS_CHANGED=true
-fi
-
 if [ "$DOCS_CHANGED" = true ]; then
-  echo "✅ Documentation update detected in docs/:"
-  echo "$MATCHED_DOCS"
-  echo "Documentation compliance check passed!"
+  echo "✅ Documentation compliance and completeness checks passed!"
   exit 0
 fi
 
