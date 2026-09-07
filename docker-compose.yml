@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-adbasket}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adbasket_secret_pass}
     volumes:
-      - advertisement_db_data:/var/lib/postgresql/data
+      - ${DB_DATA_PATH:-advertisement_db_data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-adbasket} -d $${POSTGRES_DB:-adbasket}"]
       interval: 10s
