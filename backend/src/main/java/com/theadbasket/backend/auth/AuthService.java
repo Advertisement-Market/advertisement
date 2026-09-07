@@ -20,8 +20,10 @@ import com.theadbasket.backend.common.exception.InvalidCredentialsException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
+import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.security.JwtService;
 import com.theadbasket.backend.user.AuthProvider;
+import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
 
@@ -41,6 +43,7 @@ public class AuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final AuthPolicyProperties policy;
     private final AuthProviderPolicyProperties authProviderPolicy;
+    private final RolePolicyProperties rolePolicy;
 
     public AuthService(UserRepository userRepository,
             PasswordEncoder passwordEncoder,
@@ -49,7 +52,8 @@ public class AuthService {
             RefreshTokenService refreshTokenService,
             GoogleTokenVerifier googleTokenVerifier,
             AuthPolicyProperties policy,
-            AuthProviderPolicyProperties authProviderPolicy) {
+            AuthProviderPolicyProperties authProviderPolicy,
+            RolePolicyProperties rolePolicy) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -58,6 +62,7 @@ public class AuthService {
         this.googleTokenVerifier = googleTokenVerifier;
         this.policy = policy;
         this.authProviderPolicy = authProviderPolicy;
+        this.rolePolicy = rolePolicy;
     }
 
     /**
@@ -66,6 +71,13 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
+            throw new BadRequestException("Local registration is currently unavailable. Please try again later.");
+        }
+        Role targetRole = request.role() != null ? request.role() : policy.defaultRole();
+        if (!rolePolicy.isEnabled(targetRole)) {
+            throw new BadRequestException("Registration for role " + targetRole + " is currently unavailable. Please try again later.");
+        }
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyExistsException(email);
@@ -77,7 +89,7 @@ public class AuthService {
                 email,
                 passwordEncoder.encode(request.password()),
                 normalizePhone(request.phone()),
-                request.role() != null ? request.role() : policy.defaultRole());
+                targetRole);
         user.setAuthProvider(AuthProvider.LOCAL);
         user = userRepository.save(user);
         log.info("Registered account id={} role={} (local)", user.getId(), user.getRole());
@@ -86,6 +98,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
+            throw new BadRequestException("Local sign-in is currently unavailable. Please try again later.");
+        }
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password()));
@@ -128,8 +143,12 @@ public class AuthService {
                 .orElse(null);
 
         if (user == null) {
+            Role defaultRole = policy.defaultRole();
+            if (!rolePolicy.isEnabled(defaultRole)) {
+                throw new BadRequestException("Registration is currently unavailable. Please try again later.");
+            }
             user = new User(firstNameFrom(info, email), blankToNull(info.familyName()),
-                    email, null, null, policy.defaultRole());
+                    email, null, null, defaultRole);
             user.setAuthProvider(AuthProvider.GOOGLE);
             user.setGoogleSub(info.sub());
             user.setEmailVerified(info.isEmailVerified());

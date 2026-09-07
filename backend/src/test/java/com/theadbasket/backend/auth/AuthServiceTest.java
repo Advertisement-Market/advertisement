@@ -9,28 +9,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
+import com.theadbasket.backend.auth.dto.LoginRequest;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
+import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
+import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.security.JwtService;
+import com.theadbasket.backend.user.AuthProvider;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
-import com.theadbasket.backend.common.exception.BadRequestException;
-import com.theadbasket.backend.user.AuthProvider;
-import java.util.List;
-import java.util.Optional;
 
 /** Unit tests for {@link AuthService} using Mockito (no Spring context). */
 @ExtendWith(MockitoExtension.class)
@@ -50,15 +52,20 @@ class AuthServiceTest {
     private GoogleTokenVerifier googleTokenVerifier;
 
     private AuthProviderPolicyProperties authProviderPolicy;
+    private RolePolicyProperties rolePolicy;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authProviderPolicy = new AuthProviderPolicyProperties();
+        rolePolicy = new RolePolicyProperties();
+        rolePolicy.setEnabled(List.of(Role.MEMBER, Role.ADVERTISER, Role.OWNER, Role.AGENCY));
+
         authService = new AuthService(userRepository, passwordEncoder, authenticationManager,
                 jwtService, refreshTokenService, googleTokenVerifier,
                 new AuthPolicyProperties(8, 72, Role.MEMBER),
-                authProviderPolicy);
+                authProviderPolicy,
+                rolePolicy);
     }
 
     @Test
@@ -100,6 +107,66 @@ class AuthServiceTest {
     }
 
     @Test
+    void register_whenLocalProviderDisabled_throwsBadRequestException() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.GOOGLE));
+
+        RegisterRequest request = new RegisterRequest(
+                "Rahul", "Sharma", "rahul@example.com", "", Role.ADVERTISER, "Passw0rd!");
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Local registration is currently unavailable");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void register_whenTargetRoleDisabled_throwsBadRequestException() {
+        rolePolicy.setEnabled(List.of(Role.MEMBER));
+
+        RegisterRequest request = new RegisterRequest(
+                "Rahul", "Sharma", "rahul@example.com", "", Role.ADVERTISER, "Passw0rd!");
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Registration for role ADVERTISER is currently unavailable");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void login_whenLocalProviderDisabled_throwsBadRequestException() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.GOOGLE));
+
+        LoginRequest request = new LoginRequest("rahul@example.com", "Passw0rd!");
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Local sign-in is currently unavailable");
+
+        verify(authenticationManager, never()).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    }
+
+    @Test
+    void login_whenLocalProviderEnabled_authenticatesAndReturnsTokens() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL));
+
+        User user = new User("Rahul", "Sharma", "rahul@example.com", "hashed", null, Role.MEMBER);
+        when(userRepository.findByEmailIgnoreCase("rahul@example.com")).thenReturn(Optional.of(user));
+        when(jwtService.generateAccessToken(user)).thenReturn("access-token");
+        when(jwtService.getAccessTokenExpiresInSeconds()).thenReturn(900L);
+        when(refreshTokenService.create(user)).thenReturn(
+                new RefreshToken(user, "refresh-token", Instant.now().plusSeconds(1000)));
+
+        LoginRequest request = new LoginRequest("rahul@example.com", "Passw0rd!");
+        AuthResponse response = authService.login(request);
+
+        assertThat(response.accessToken()).isEqualTo("access-token");
+        assertThat(response.user().email()).isEqualTo("rahul@example.com");
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    }
+
+    @Test
     void loginWithGoogle_whenGoogleProviderDisabled_throwsBadRequestException() {
         authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL));
 
@@ -108,6 +175,26 @@ class AuthServiceTest {
                 .hasMessageContaining("Google sign-in is currently unavailable");
 
         verify(googleTokenVerifier, never()).verify(anyString());
+    }
+
+    @Test
+    void loginWithGoogle_whenNewUserAndDefaultRoleDisabled_throwsBadRequestException() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL, AuthProvider.GOOGLE));
+        rolePolicy.setEnabled(List.of(Role.ADVERTISER)); // Role.MEMBER (default role) is disabled
+
+        GoogleTokenInfo tokenInfo = new GoogleTokenInfo(
+                "client-id", "google-sub-123", "newuser@example.com",
+                true, "New", "User", "New User"
+        );
+        when(googleTokenVerifier.verify("valid-token")).thenReturn(tokenInfo);
+        when(userRepository.findByGoogleSub("google-sub-123")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("newuser@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.loginWithGoogle("valid-token"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Registration is currently unavailable");
+
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
