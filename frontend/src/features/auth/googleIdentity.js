@@ -47,7 +47,7 @@ export async function initGoogleIdentity(onCredential) {
       },
       auto_select: false,
       cancel_on_tap_outside: false,
-      use_fedcm_for_prompt: true,
+      use_fedcm_for_prompt: false,
     });
     initialized = true;
   }

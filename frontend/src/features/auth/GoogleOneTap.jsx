@@ -33,7 +33,11 @@ export function GoogleOneTap() {
 
     initGoogleIdentity(onCredential).then((id) => {
       if (cancelled || !id) return;
-      id.prompt();
+      id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // Expected when visitor is not signed in to Google or prompt is dismissed.
+        }
+      });
     });
 
     return () => {
