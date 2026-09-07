@@ -78,7 +78,7 @@ class RegistrationFlowIntegrationTest {
             {
               "accountEmail":"agency@example.com","password":"Passw0rd!","agencyName":"Pixel & Print",
               "agencyType":"Full-Service Ad Agency","yearEstablished":2014,"yearsExperience":"10+ years",
-              "tagline":"Bold ideas","about":"Full-service OOH agency","website":"https://pp.in","contact_no":"",
+              "tagline":"Bold ideas","about":"Full-service OOH agency","website":"https://pp.in","contactNo":"",
               "linkedinUrl":"","addressLine1":"Andheri East","addressLine2":"","landmark":"","city":"Mumbai",
               "state":"Maharashtra","pincode":"400059",
               "firstName":"Priya","lastName":"Mehta","contactDesignation":"Director","contactEmail":"priya@pp.in",
