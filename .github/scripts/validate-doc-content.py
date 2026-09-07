@@ -111,8 +111,9 @@ def check_file(filepath: Path) -> list[str]:
                 issues.append(f"Line {line_num}: Contains {desc} -> `{line.strip()}`")
 
     # 3. Check for empty major sections
-    section_header_pattern = re.compile(r"^(#{2,3})\s+(.+)$")
+    section_header_pattern = re.compile(r"^(#{1,6})\s+(.+)$")
     last_header = None
+    last_header_level = 0
     last_header_line = None
 
     for line_num, line in enumerate(lines, start=1):
@@ -120,14 +121,18 @@ def check_file(filepath: Path) -> list[str]:
         header_match = section_header_pattern.match(stripped)
 
         if header_match:
-            if last_header is not None:
+            level = len(header_match.group(1))
+            # Only flag if a header is followed by another header of equal or higher hierarchy without content
+            if last_header is not None and level <= last_header_level:
                 issues.append(
                     f"Line {last_header_line}: Section '{last_header}' is empty (followed immediately by '{header_match.group(2)}')."
                 )
             last_header = header_match.group(2)
+            last_header_level = level
             last_header_line = line_num
         elif stripped and not stripped.startswith("<!--") and not stripped.startswith("---"):
             last_header = None
+            last_header_level = 0
             last_header_line = None
 
     if last_header is not None:
@@ -144,9 +149,10 @@ def check_file(filepath: Path) -> list[str]:
     for line_num, line in enumerate(lines, start=1):
         stripped = line.strip()
 
-        # Check relative links (outside raw code blocks)
+        # Check relative links outside code blocks and excluding inline backtick examples
         if not (stripped.startswith("```") or in_mermaid):
-            for match in link_pattern.finditer(line):
+            clean_line = re.sub(r"`[^`]+`", "", line)
+            for match in link_pattern.finditer(clean_line):
                 link_url = match.group(1).strip()
                 link_err = check_relative_link(filepath, link_url)
                 if link_err:

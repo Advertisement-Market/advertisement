@@ -9,6 +9,7 @@ Welcome to the centralized documentation repository for **The AdBasket**. This f
 | Section | Description | Location |
 | :--- | :--- | :--- |
 | **Developer Guidelines** | Mandatory guidelines on writing docs, PR templates, and reviewer rules | [GUIDELINES.md](GUIDELINES.md) |
+| **Feature Specifications** | Technical specifications for cross-cutting and platform features | [features/pr-documentation-verification-system.md](features/pr-documentation-verification-system.md) |
 | **Backend Architecture** | File-by-file exhaustive architecture report for Spring Boot API | [architecture/backend_architecture_report.md](architecture/backend_architecture_report.md) |
 | **Frontend Architecture** | Architecture, component structure, and state management report for React SPA | [architecture/frontend_architecture_report.md](architecture/frontend_architecture_report.md) |
 | **Architecture Decisions** | Architecture Decision Records (ADRs) tracking architectural history | [decisions/](decisions/) |
@@ -25,6 +26,8 @@ docs/
 │   └── frontend_architecture_report.md
 ├── decisions/                  # Architecture Decision Records (ADRs)
 │   └── 0001-record-architecture-decisions.md
+├── features/                   # Technical specs for platform & product features
+│   └── pr-documentation-verification-system.md
 ├── templates/                  # Standard templates
 │   ├── adr-template.md
 │   ├── backend-pr-document-template.md
