@@ -32,7 +32,6 @@ CREATE TABLE addresses (
 CREATE INDEX idx_addresses_pincode ON addresses (pincode);
 
 -- 4. Update advertiser_profiles
-ALTER TABLE advertiser_profiles RENAME COLUMN contact_email TO email;
 ALTER TABLE advertiser_profiles RENAME COLUMN created_at TO created_ts;
 ALTER TABLE advertiser_profiles RENAME COLUMN updated_at TO updated_ts;
 

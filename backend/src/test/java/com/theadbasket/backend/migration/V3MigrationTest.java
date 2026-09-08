@@ -117,12 +117,12 @@ class V3MigrationTest {
                 assertThat(rs.getTimestamp("expiry_ts")).isNotNull();
             }
 
-            // Verify advertiser_profiles address backfill
+            // Verify advertiser_profiles address backfill and contact_email preservation
             Long advAddressId;
             try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT email, address_id FROM advertiser_profiles WHERE id = 10")) {
+                 ResultSet rs = stmt.executeQuery("SELECT contact_email, address_id FROM advertiser_profiles WHERE id = 10")) {
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getString("email")).isEqualTo("adv@example.com");
+                assertThat(rs.getString("contact_email")).isEqualTo("adv@example.com");
                 advAddressId = rs.getLong("address_id");
                 assertThat(advAddressId).isNotNull().isPositive();
             }
