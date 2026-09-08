@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AddressTest {
 
@@ -50,16 +51,51 @@ class AddressTest {
     }
 
     @Test
-    @DisplayName("Address.of handles null inputs safely")
-    void addressOf_handlesNullInputs() {
-        Address address = Address.of(null, null, null, null, null, null);
+    @DisplayName("Address.of with null or blank line1 throws IllegalArgumentException")
+    void addressOf_withNullOrBlankLine1_throwsException() {
+        assertThatThrownBy(() -> Address.of(null, "Suite 400", null, "Bengaluru", "Karnataka", "560001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address line1 is required");
 
-        assertThat(address.getLine1()).isNull();
-        assertThat(address.getLine2()).isNull();
-        assertThat(address.getLandmark()).isNull();
-        assertThat(address.getCity()).isNull();
-        assertThat(address.getState()).isNull();
-        assertThat(address.getPincode()).isNull();
+        assertThatThrownBy(() -> Address.of("   ", "Suite 400", null, "Bengaluru", "Karnataka", "560001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address line1 is required");
+    }
+
+    @Test
+    @DisplayName("Address.of with null or blank city throws IllegalArgumentException")
+    void addressOf_withNullOrBlankCity_throwsException() {
+        assertThatThrownBy(() -> Address.of("12 MG Road", null, null, null, "Karnataka", "560001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address city is required");
+
+        assertThatThrownBy(() -> Address.of("12 MG Road", null, null, "   ", "Karnataka", "560001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address city is required");
+    }
+
+    @Test
+    @DisplayName("Address.of with null or blank state throws IllegalArgumentException")
+    void addressOf_withNullOrBlankState_throwsException() {
+        assertThatThrownBy(() -> Address.of("12 MG Road", null, null, "Bengaluru", null, "560001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address state is required");
+
+        assertThatThrownBy(() -> Address.of("12 MG Road", null, null, "Bengaluru", "   ", "560001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address state is required");
+    }
+
+    @Test
+    @DisplayName("Address.of with null or blank pincode throws IllegalArgumentException")
+    void addressOf_withNullOrBlankPincode_throwsException() {
+        assertThatThrownBy(() -> Address.of("12 MG Road", null, null, "Bengaluru", "Karnataka", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address pincode is required");
+
+        assertThatThrownBy(() -> Address.of("12 MG Road", null, null, "Bengaluru", "Karnataka", "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Address pincode is required");
     }
 
     @Test
