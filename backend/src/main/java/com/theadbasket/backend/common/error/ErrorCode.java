@@ -12,6 +12,7 @@ public enum ErrorCode {
 
     // Auth / credentials
     INVALID_CREDENTIALS("error.auth.invalidCredentials"),
+    AUTHENTICATION_REQUIRED("error.auth.authenticationRequired"),
     PASSWORD_LENGTH("error.auth.passwordLength"),
     PASSWORD_REQUIRED("error.auth.passwordRequired"),
     LOGIN_EMAIL_REQUIRED("error.auth.loginEmailRequired"),

@@ -128,6 +128,9 @@ class AuthFlowIntegrationTest {
     @Test
     void me_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                // The entry point emits the same ApiError shape, incl. a stable errorCode.
+                .andExpect(jsonPath("$.errorCode").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.message").value("Authentication is required to access this resource."));
     }
 }
