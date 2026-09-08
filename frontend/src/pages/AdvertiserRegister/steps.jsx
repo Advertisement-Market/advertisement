@@ -596,6 +596,7 @@ export function Step3() {
 }
 /* ── STEP 4 ── */
 export function Step4() {
+  const { field } = useRegister();
   return (
     <div className="step-panel active">
       <StepHeader
@@ -641,7 +642,13 @@ export function Step4() {
       <FormSection last title="Timeline">
         <FormRow>
           <Field name="f_startDate" type="date" label="Expected Start Date" required />
-          <Field name="f_endDate" type="date" label="Expected End Date" required />
+          <Field
+            name="f_endDate"
+            type="date"
+            label="Expected End Date"
+            required
+            min={field('f_startDate') || undefined}
+          />
           <Field
             name="f_duration"
             type="select"

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -56,4 +57,8 @@ public record CampaignBriefRequest(
         List<@NotBlank String> agencyPreferences
         ) {
 
+    @AssertTrue(message = "End date must be on or after start date.")
+    public boolean isValidDateRange() {
+        return startDate == null || endDate == null || !endDate.isBefore(startDate);
+    }
 }

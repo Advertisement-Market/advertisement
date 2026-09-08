@@ -105,6 +105,8 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_targetLocation')) return fail('Please enter a target location.');
     if (!d('f_startDate')) return fail('Please select an expected start date.');
     if (!d('f_endDate')) return fail('Please select an expected end date.');
+    if (d('f_startDate') && d('f_endDate') && d('f_endDate') < d('f_startDate'))
+      return fail('End date must be on or after start date.');
     if (!d('f_duration')) return fail('Please select a project duration.');
   }
   if (step === 5) {

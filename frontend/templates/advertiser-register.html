@@ -2692,7 +2692,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Expected Start Date <span class="req">*</span></label>
-                <input type="date" class="form-control" id="f_startDate" />
+                <input type="date" class="form-control" id="f_startDate" onchange="document.getElementById('f_endDate').min=this.value" />
               </div>
               <div class="form-group">
                 <label>Expected End Date <span class="req">*</span></label>
@@ -3434,8 +3434,14 @@
         if (!document.getElementById('f_projectDesc').value.trim()) { showToast('Please describe your project.', 'error'); return false; }
         if (!document.getElementById('f_targetAudience').value.trim()) { showToast('Please describe your target audience.', 'error'); return false; }
         if (!document.getElementById('f_targetLocation').value.trim()) { showToast('Please enter a target location.', 'error'); return false; }
-        if (!document.getElementById('f_startDate').value) { showToast('Please select an expected start date.', 'error'); return false; }
-        if (!document.getElementById('f_endDate').value) { showToast('Please select an expected end date.', 'error'); return false; }
+        const startDate = document.getElementById('f_startDate').value;
+        const endDate = document.getElementById('f_endDate').value;
+        if (!startDate) { showToast('Please select an expected start date.', 'error'); return false; }
+        if (!endDate) { showToast('Please select an expected end date.', 'error'); return false; }
+        if (startDate && endDate && endDate < startDate) {
+          showToast('End date must be on or after start date.', 'error');
+          return false;
+        }
         if (!document.getElementById('f_duration').value) { showToast('Please select a project duration.', 'error'); return false; }
       }
       if (step === 5) {
