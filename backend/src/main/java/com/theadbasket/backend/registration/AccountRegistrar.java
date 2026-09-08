@@ -3,7 +3,7 @@ package com.theadbasket.backend.registration;
 import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.common.error.ErrorCode;
@@ -20,7 +20,7 @@ import com.theadbasket.backend.user.UserRepository;
  * attaches a role to the signed-in account (promoting a MEMBER) or creates a
  * new account when the caller is anonymous.
  */
-@Component
+@Service
 public class AccountRegistrar {
 
     private final UserRepository userRepository;

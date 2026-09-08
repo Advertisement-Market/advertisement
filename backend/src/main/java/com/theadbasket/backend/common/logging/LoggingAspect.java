@@ -25,13 +25,16 @@ public class LoggingAspect {
     private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
 
     /**
-     * Application controllers and services. Deliberately excludes {@code @Component} beans:
-     * servlet filters (e.g. {@code JwtAuthenticationFilter}) are components too, and proxying a
-     * filter breaks it — so tracing stays on the request-handling and business layers.
+     * Public methods of application controllers and services. Deliberately excludes
+     * {@code @Component} beans: servlet filters (e.g. {@code JwtAuthenticationFilter}) are
+     * components too, and proxying a filter breaks it — so tracing stays on the request-handling
+     * and business layers. Restricting to {@code execution(public * *(..))} keeps synthetic and
+     * {@code Object} methods (toString/hashCode/equals) out of the trace.
      */
     @Pointcut("(@within(org.springframework.web.bind.annotation.RestController)"
             + " || @within(org.springframework.stereotype.Service))"
-            + " && within(com.theadbasket.backend..*)")
+            + " && within(com.theadbasket.backend..*)"
+            + " && execution(public * *(..))")
     public void applicationBeans() {
     }
 
