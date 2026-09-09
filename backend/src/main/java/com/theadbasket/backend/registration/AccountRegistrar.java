@@ -1,15 +1,18 @@
 package com.theadbasket.backend.registration;
 
+import java.util.List;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
+import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.user.AuthProvider;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
-import java.util.List;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 /**
  * Shared account provisioning for the role-specific registration services:
@@ -22,13 +25,16 @@ public class AccountRegistrar {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
+    private final AuthProviderPolicyProperties authProviderPolicy;
 
     public AccountRegistrar(UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            AuthService authService) {
+            AuthService authService,
+            AuthProviderPolicyProperties authProviderPolicy) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authService = authService;
+        this.authProviderPolicy = authProviderPolicy;
     }
 
     /**
@@ -37,7 +43,7 @@ public class AccountRegistrar {
      * optional password when the account has none (Google). An
      * already-onboarded account is rejected.</li>
      * <li><b>Anonymous:</b> requires email + password (length-checked) and
-     * creates a LOCAL account.</li>
+     * creates a LOCAL account (when LOCAL provider is enabled).</li>
      * </ul>
      */
     public User attachOrCreate(Long currentUserId, String firstName, String lastName, String rawEmail,
@@ -55,6 +61,10 @@ public class AccountRegistrar {
                 user.setPassword(passwordEncoder.encode(rawPassword));
             }
             return userRepository.save(user);
+        }
+
+        if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
+            throw new BadRequestException("Local registration is currently unavailable. Please try again later.");
         }
 
         if (rawEmail == null || rawEmail.isBlank()) {
