@@ -1,21 +1,21 @@
 package com.theadbasket.backend.registration.dto;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
 class AddressValidationTest {
 
@@ -127,13 +127,13 @@ class AddressValidationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "12345",      // 5 digits
-            "1234567",    // 7 digits
-            "40000A",     // alphanumeric
-            "400-01",     // special characters
-            "400 01",     // internal space
-            "",           // empty
-            "   "         // whitespace
+        "12345", // 5 digits
+        "1234567", // 7 digits
+        "40000A", // alphanumeric
+        "400-01", // special characters
+        "400 01", // internal space
+        "", // empty
+        "   " // whitespace
     })
     @DisplayName("Invalid pincode formats fail validation")
     void invalidPincodes_fail(String pincode) {

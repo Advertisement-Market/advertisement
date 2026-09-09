@@ -83,13 +83,14 @@ public class OwnerRegistrationService {
     }
 
     private BillboardListing toListing(BillboardListingRequest req, User user) {
-        Address address = new Address();
-        address.setLine1(req.addressLine1().trim());
-        address.setLine2(blankToNull(req.addressLine2()));
-        address.setLandmark(blankToNull(req.landmark()));
-        address.setCity(req.city().trim());
-        address.setState(req.state().trim());
-        address.setPincode(req.pincode().trim());
+        Address address = Address.of(
+                req.addressLine1(),
+                req.addressLine2(),
+                req.landmark(),
+                req.city(),
+                req.state(),
+                req.pincode()
+        );
 
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);

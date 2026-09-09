@@ -63,16 +63,30 @@ public class Address {
 
     /**
      * Shared factory method to construct and sanitize an Address instance.
+     * Enforces domain preconditions for required fields (line1, city, state, pincode).
      */
     public static Address of(String line1, String line2, String landmark,
             String city, String state, String pincode) {
+        if (line1 == null || line1.isBlank()) {
+            throw new IllegalArgumentException("Address line1 is required and cannot be blank.");
+        }
+        if (city == null || city.isBlank()) {
+            throw new IllegalArgumentException("Address city is required and cannot be blank.");
+        }
+        if (state == null || state.isBlank()) {
+            throw new IllegalArgumentException("Address state is required and cannot be blank.");
+        }
+        if (pincode == null || pincode.isBlank()) {
+            throw new IllegalArgumentException("Address pincode is required and cannot be blank.");
+        }
+
         Address a = new Address();
-        a.line1 = line1 != null ? line1.trim() : null;
+        a.line1 = line1.trim();
         a.line2 = blankToNull(line2);
         a.landmark = blankToNull(landmark);
-        a.city = city != null ? city.trim() : null;
-        a.state = state != null ? state.trim() : null;
-        a.pincode = pincode != null ? pincode.trim() : null;
+        a.city = city.trim();
+        a.state = state.trim();
+        a.pincode = pincode.trim();
         return a;
     }
 

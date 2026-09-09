@@ -60,7 +60,7 @@ public class AdvertiserProfile {
     @Column(name = "contact_designation", nullable = false, length = 120)
     private String contactDesignation;
 
-    @Column(name = "email", nullable = false, length = 180)
+    @Column(name = "contact_email", nullable = false, length = 180)
     private String contactEmail;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)

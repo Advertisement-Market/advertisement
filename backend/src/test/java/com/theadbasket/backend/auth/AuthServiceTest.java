@@ -75,8 +75,8 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         when(jwtService.generateAccessToken(any(User.class))).thenReturn("access-token");
         when(jwtService.getAccessTokenExpiresInSeconds()).thenReturn(900L);
-        when(refreshTokenService.create(any(User.class))).thenAnswer(inv ->
-                new RefreshToken(inv.getArgument(0), "refresh-token", Instant.now().plusSeconds(1000)));
+        when(refreshTokenService.create(any(User.class))).thenAnswer(inv
+                -> new RefreshToken(inv.getArgument(0), "refresh-token", Instant.now().plusSeconds(1000)));
 
         RegisterRequest request = new RegisterRequest(
                 "Rahul", "Sharma", "rahul@example.com", "", Role.ADVERTISER, "Passw0rd!");
@@ -184,7 +184,7 @@ class AuthServiceTest {
 
         GoogleTokenInfo tokenInfo = new GoogleTokenInfo(
                 "client-id", "google-sub-123", "newuser@example.com",
-                true, "New", "User", "New User"
+                "true", "New", "User", "New User"
         );
         when(googleTokenVerifier.verify("valid-token")).thenReturn(tokenInfo);
         when(userRepository.findByGoogleSubjectId("google-sub-123")).thenReturn(Optional.empty());
@@ -203,7 +203,7 @@ class AuthServiceTest {
 
         GoogleTokenInfo tokenInfo = new GoogleTokenInfo(
                 "client-id", "google-sub-123", "googleuser@example.com",
-                true, "Google", "User", "Google User"
+                "true", "Google", "User", "Google User"
         );
         when(googleTokenVerifier.verify("valid-token")).thenReturn(tokenInfo);
         when(userRepository.findByGoogleSubjectId("google-sub-123")).thenReturn(Optional.empty());
@@ -219,5 +219,55 @@ class AuthServiceTest {
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.user().email()).isEqualTo("googleuser@example.com");
         verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void loginWithGoogle_createsNewUser_andSetsEmailVerified() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL, AuthProvider.GOOGLE));
+        GoogleTokenInfo info = new GoogleTokenInfo(
+                "client-id", "google-sub-123", "googleuser@example.com", "true", "Google", "User", "Google User"
+        );
+        when(googleTokenVerifier.verify("valid-id-token")).thenReturn(info);
+        when(userRepository.findByGoogleSubjectId("google-sub-123")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("googleuser@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtService.generateAccessToken(any(User.class))).thenReturn("access-token");
+        when(jwtService.getAccessTokenExpiresInSeconds()).thenReturn(900L);
+        when(refreshTokenService.create(any(User.class))).thenAnswer(inv
+                -> new RefreshToken(inv.getArgument(0), "refresh-token", Instant.now().plusSeconds(1000)));
+
+        AuthResponse response = authService.loginWithGoogle("valid-id-token");
+
+        assertThat(response.accessToken()).isEqualTo("access-token");
+        assertThat(response.user().email()).isEqualTo("googleuser@example.com");
+        verify(userRepository).save(org.mockito.ArgumentMatchers.argThat(user
+                -> user.isEmailVerified() && user.getAuthProvider() == AuthProvider.GOOGLE
+        ));
+    }
+
+    @Test
+    void loginWithGoogle_linksExistingLocalAccount_andSetsEmailVerifiedTrue() {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL, AuthProvider.GOOGLE));
+        GoogleTokenInfo info = new GoogleTokenInfo(
+                "client-id", "google-sub-456", "existing@example.com", "true", "Existing", "User", "Existing User"
+        );
+        User existingUser = new User("Existing", "User", "existing@example.com", "pass", "1234567890", Role.ADVERTISER);
+        existingUser.setEmailVerified(false);
+
+        when(googleTokenVerifier.verify("valid-id-token")).thenReturn(info);
+        when(userRepository.findByGoogleSubjectId("google-sub-456")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("existing@example.com")).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtService.generateAccessToken(any(User.class))).thenReturn("access-token");
+        when(jwtService.getAccessTokenExpiresInSeconds()).thenReturn(900L);
+        when(refreshTokenService.create(any(User.class))).thenAnswer(inv
+                -> new RefreshToken(inv.getArgument(0), "refresh-token", Instant.now().plusSeconds(1000)));
+
+        AuthResponse response = authService.loginWithGoogle("valid-id-token");
+
+        assertThat(response.accessToken()).isEqualTo("access-token");
+        assertThat(existingUser.isEmailVerified()).isTrue();
+        assertThat(existingUser.getGoogleSubjectId()).isEqualTo("google-sub-456");
+        verify(userRepository).save(existingUser);
     }
 }
