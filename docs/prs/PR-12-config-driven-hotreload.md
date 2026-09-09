@@ -385,41 +385,58 @@ mvn test
 
 ---
 
-### 6.2 Key Unit Tests
+### 6.2 Key Unit & Policy Guard Tests
 
-The following tests were added or updated in `AuthServiceTest`:
+The unit test suite covers core business logic, configuration models, and policy enforcement guards without booting the full Spring web stack:
 
-| Test                                                                            | Purpose                                                                                                       |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `login_whenLocalProviderDisabled_throwsBadRequestException()`                   | Verifies that password login is rejected when the `LOCAL` authentication provider is disabled.                |
-| `login_whenLocalProviderEnabled_authenticatesAndReturnsTokens()`                | Verifies successful authentication and token issuance when local login is enabled.                          |
-| `register_whenLocalProviderDisabled_throwsBadRequestException()`                | Verifies that local registration is blocked when local authentication is disabled.                            |
-| `register_whenTargetRoleDisabled_throwsBadRequestException()`                   | Verifies that registration fails when the requested role is disabled by policy.                               |
-| `loginWithGoogle_whenGoogleProviderDisabled_throwsBadRequestException()`        | Verifies that Google login is rejected when the `GOOGLE` provider is disabled.                                |
-| `loginWithGoogle_whenNewUserAndDefaultRoleDisabled_throwsBadRequestException()` | Verifies that Google account provisioning is blocked when the configured default role is disabled.            |
-| `loginWithGoogle_whenGoogleProviderEnabled_createsUserAndReturnsTokens()`       | Verifies successful Google authentication, account creation, and token issuance when the provider is enabled. |
+#### `AuthServiceTest`
+| Test | Purpose |
+| --- | --- |
+| `login_whenLocalProviderDisabled_throwsBadRequestException()` | Verifies password login is rejected when `LOCAL` auth provider is disabled. |
+| `login_whenLocalProviderEnabled_authenticatesAndReturnsTokens()` | Verifies successful authentication and token issuance when local login is enabled. |
+| `register_whenLocalProviderDisabled_throwsBadRequestException()` | Verifies local registration is blocked when local authentication is disabled. |
+| `register_whenTargetRoleDisabled_throwsBadRequestException()` | Verifies registration fails when the requested role is disabled by policy. |
+| `loginWithGoogle_whenGoogleProviderDisabled_throwsBadRequestException()` | Verifies Google login is rejected when the `GOOGLE` provider is disabled. |
+| `loginWithGoogle_whenNewUserAndDefaultRoleDisabled_throwsBadRequestException()` | Verifies Google account provisioning is blocked when the configured default role is disabled. |
+| `loginWithGoogle_whenGoogleProviderEnabled_createsUserAndReturnsTokens()` | Verifies successful Google authentication, account creation, and token issuance. |
+
+#### `AccountRegistrarTest`
+| Test | Purpose |
+| --- | --- |
+| `attachOrCreate_whenAnonymousAndLocalProviderDisabled_throwsBadRequestException()` | Verifies anonymous role onboarding (`advertiser`, `owner`, `agency`) fails when `LOCAL` provider is disabled. |
+| `attachOrCreate_whenAnonymousAndLocalProviderEnabled_createsLocalUser()` | Verifies anonymous role onboarding creates local user when `LOCAL` provider is enabled. |
+| `attachOrCreate_whenSignedIn_attachesRoleSuccessfully()` | Verifies signed-in users (e.g. Google OAuth) can attach roles even if `LOCAL` registration is disabled. |
+| `attachOrCreate_whenSignedInAndAlreadyOnboarded_throwsBadRequestException()` | Prevents already onboarded accounts from re-registering. |
+| `attachOrCreate_whenAnonymousEmailExists_throwsException()` | Rejects registration when email already exists. |
+
+#### `ActuatorCredentialsPropertiesTest`, `RolePolicyPropertiesTest`, `AuthProviderPolicyPropertiesTest`
+* **Zero-arg constructor & JavaBean mutability:** Verifies property setters required by Spring Cloud `ConfigurationPropertiesRebinder` during `/actuator/refresh`.
+* **Constraint validation:** Verifies `@NotBlank` and `@NotEmpty` validation constraints.
+* **Spring Boot context binding:** Verifies `ApplicationContextRunner` property binding from YAML/environment.
 
 ---
 
 ### 6.3 Integration Verification
 
-`AuthFlowIntegrationTest` was executed to verify the complete authentication flow.
+The integration test suite executes end-to-end flows against the full Spring Boot application context on H2:
 
-The integration tests cover:
+#### `AuthFlowIntegrationTest`
+* **Sign-up & Login Flow:** End-to-end `POST /api/auth/register` → `POST /api/auth/login` → `GET /api/auth/me`.
+* **Token Rotation & Refresh:** Verifies `POST /api/auth/refresh` issues a new access token and rotated refresh token, and revokes previous single-use refresh tokens.
+* **Validation & Error Handling:** Verifies duplicate email conflict (`409`), invalid password (`401`), malformed request payload (`400`), and missing token (`401`).
 
-* End-to-end user registration.
-* Password-based authentication.
-* Token generation.
-* Token refresh.
-* Authentication policy enforcement.
-* Actuator endpoint security.
-* Isolation between Actuator authentication and application authentication.
+#### `RegistrationFlowIntegrationTest`
+* **Role Onboarding:** End-to-end profile creation and brief/listing persistence for advertiser, owner, and agency roles.
+* **Policy Enforcement Integration:** Verifies `POST /api/auth/register/advertiser` returns `400 Bad Request` with policy explanation when `LOCAL` provider is disabled.
+
+#### `TheAdBasketApplicationTests`
+* **Context Smoke Test:** Verifies Spring Boot application context boots cleanly with database migrations and configuration bindings.
 
 ---
 
 ## 7. Security Improvements
 
-This PR addresses a critical authentication configuration issue and strengthens policy enforcement throughout the authentication flow.
+This PR addresses critical authentication configuration issues and strengthens policy enforcement throughout the authentication flow.
 
 ### Before
 
@@ -465,21 +482,22 @@ This separation ensures that Actuator credentials cannot interfere with the appl
 
 ## 8. Final Verification Summary
 
-| Area                                  | Status               |
-| ------------------------------------- | -------------------- |
-| Security Bean Conflict                | ✅ Resolved           |
-| Actuator Authentication Isolation     | ✅ Implemented        |
+| Area | Status |
+| --- | --- |
+| Security Bean Conflict | ✅ Resolved |
+| Actuator Authentication Isolation | ✅ Implemented |
 | `CustomUserDetailsService` Resolution | ✅ Explicitly Primary |
-| Local Provider Policy                 | ✅ Enforced           |
-| Google Provider Policy                | ✅ Enforced           |
-| Role Policy Enforcement               | ✅ Enforced           |
-| OAuth Default Role Protection         | ✅ Implemented        |
-| Duplicate Configuration               | ✅ Removed            |
-| Canonical Policy File                 | ✅ Established        |
-| Backend Tests                         | ✅ 50 / 50 Passing    |
-| Integration Tests                     | ✅ Passing            |
-| Authentication Flow                   | ✅ Verified           |
-| Actuator Isolation                    | ✅ Verified           |
+| Local Provider Policy (`AuthService` & `AccountRegistrar`) | ✅ Enforced |
+| Google Provider Policy | ✅ Enforced |
+| Role Policy Enforcement | ✅ Enforced |
+| OAuth Default Role Protection | ✅ Implemented |
+| Actuator Refresh Rebinder Support | ✅ Implemented (`ActuatorCredentialsProperties`) |
+| Dual-path Config Import | ✅ Implemented (`application.yml`) |
+| Actuator Env Endpoint Exposure | ✅ Restricted (`health,info,prometheus,refresh`) |
+| Duplicate Configuration | ✅ Removed |
+| Canonical Policy File | ✅ Established |
+| Unit & Integration Tests | ✅ Passing |
+| Authentication & Refresh Flow | ✅ Verified |
 
 ---
 
