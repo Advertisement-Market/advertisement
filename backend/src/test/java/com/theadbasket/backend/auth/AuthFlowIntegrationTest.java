@@ -94,6 +94,31 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
+    void register_then_refresh_rotatesToken() throws Exception {
+        String registerBody = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON).content(register("refresh@example.com", "MEMBER")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String refreshToken = JsonPath.read(registerBody, "$.refreshToken");
+
+        String refreshBody = mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+
+        String newRefreshToken = JsonPath.read(refreshBody, "$.refreshToken");
+        assertThat(newRefreshToken).isNotEqualTo(refreshToken);
+
+        // Replaying the old (now rotated) refresh token is unauthorized
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void me_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized());
