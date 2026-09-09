@@ -21,7 +21,9 @@ spring:
   # currently enabled). Lives outside the jar so it can be edited without a
   # rebuild; see app.roles / app.auth-providers below.
   config:
-    import: optional:file:./config/feature-policy.yml
+    import:
+      - optional:file:./config/feature-policy.yml
+      - optional:file:./backend/config/feature-policy.yml
 
 server:
   port: 8080
