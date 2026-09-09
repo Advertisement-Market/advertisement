@@ -1,6 +1,16 @@
 package com.theadbasket.backend.advertiser;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.theadbasket.backend.user.User;
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -13,15 +23,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/** A campaign/requirement brief posted by an advertiser (the first one is captured at registration). */
+/**
+ * A campaign/requirement brief posted by an advertiser (the first one is
+ * captured at registration).
+ */
 @Entity
 @Table(name = "campaign_briefs")
 @EntityListeners(AuditingEntityListener.class)
@@ -50,6 +56,9 @@ public class CampaignBrief {
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
+
     @Column(nullable = false, length = 50)
     private String duration;
 
@@ -77,37 +86,134 @@ public class CampaignBrief {
     private List<String> agencyPreferences = new ArrayList<>();
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public Long getId() { return id; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getTargetAudience() { return targetAudience; }
-    public void setTargetAudience(String targetAudience) { this.targetAudience = targetAudience; }
-    public String getTargetLocation() { return targetLocation; }
-    public void setTargetLocation(String targetLocation) { this.targetLocation = targetLocation; }
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    public String getDuration() { return duration; }
-    public void setDuration(String duration) { this.duration = duration; }
-    public BigDecimal getBudgetMinValue() { return budgetMinValue; }
-    public void setBudgetMinValue(BigDecimal budgetMinValue) { this.budgetMinValue = budgetMinValue; }
-    public String getBudgetMinUnit() { return budgetMinUnit; }
-    public void setBudgetMinUnit(String budgetMinUnit) { this.budgetMinUnit = budgetMinUnit; }
-    public BigDecimal getBudgetMaxValue() { return budgetMaxValue; }
-    public void setBudgetMaxValue(BigDecimal budgetMaxValue) { this.budgetMaxValue = budgetMaxValue; }
-    public String getBudgetMaxUnit() { return budgetMaxUnit; }
-    public void setBudgetMaxUnit(String budgetMaxUnit) { this.budgetMaxUnit = budgetMaxUnit; }
-    public boolean isFlexibleBudget() { return flexibleBudget; }
-    public void setFlexibleBudget(boolean flexibleBudget) { this.flexibleBudget = flexibleBudget; }
-    public String getQuotationsRequired() { return quotationsRequired; }
-    public void setQuotationsRequired(String quotationsRequired) { this.quotationsRequired = quotationsRequired; }
-    public List<String> getAgencyPreferences() { return agencyPreferences; }
-    public void setAgencyPreferences(List<String> agencyPreferences) { this.agencyPreferences = agencyPreferences; }
-    public Instant getCreatedAt() { return createdAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getTargetAudience() {
+        return targetAudience;
+    }
+
+    public void setTargetAudience(String targetAudience) {
+        this.targetAudience = targetAudience;
+    }
+
+    public String getTargetLocation() {
+        return targetLocation;
+    }
+
+    public void setTargetLocation(String targetLocation) {
+        this.targetLocation = targetLocation;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    public String getDuration() {
+        return duration;
+    }
+
+    public void setDuration(String duration) {
+        this.duration = duration;
+    }
+
+    public BigDecimal getBudgetMinValue() {
+        return budgetMinValue;
+    }
+
+    public void setBudgetMinValue(BigDecimal budgetMinValue) {
+        this.budgetMinValue = budgetMinValue;
+    }
+
+    public String getBudgetMinUnit() {
+        return budgetMinUnit;
+    }
+
+    public void setBudgetMinUnit(String budgetMinUnit) {
+        this.budgetMinUnit = budgetMinUnit;
+    }
+
+    public BigDecimal getBudgetMaxValue() {
+        return budgetMaxValue;
+    }
+
+    public void setBudgetMaxValue(BigDecimal budgetMaxValue) {
+        this.budgetMaxValue = budgetMaxValue;
+    }
+
+    public String getBudgetMaxUnit() {
+        return budgetMaxUnit;
+    }
+
+    public void setBudgetMaxUnit(String budgetMaxUnit) {
+        this.budgetMaxUnit = budgetMaxUnit;
+    }
+
+    public boolean isFlexibleBudget() {
+        return flexibleBudget;
+    }
+
+    public void setFlexibleBudget(boolean flexibleBudget) {
+        this.flexibleBudget = flexibleBudget;
+    }
+
+    public String getQuotationsRequired() {
+        return quotationsRequired;
+    }
+
+    public void setQuotationsRequired(String quotationsRequired) {
+        this.quotationsRequired = quotationsRequired;
+    }
+
+    public List<String> getAgencyPreferences() {
+        return agencyPreferences;
+    }
+
+    public void setAgencyPreferences(List<String> agencyPreferences) {
+        this.agencyPreferences = agencyPreferences;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

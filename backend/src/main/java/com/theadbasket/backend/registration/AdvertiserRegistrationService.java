@@ -1,6 +1,11 @@
 package com.theadbasket.backend.registration;
 
-import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
+import java.util.ArrayList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.theadbasket.backend.advertiser.AdvertiserProfile;
 import com.theadbasket.backend.advertiser.AdvertiserProfileRepository;
@@ -8,17 +13,17 @@ import com.theadbasket.backend.advertiser.CampaignBrief;
 import com.theadbasket.backend.advertiser.CampaignBriefRepository;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.common.address.Address;
+import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
 import com.theadbasket.backend.registration.dto.AdvertiserRegistrationRequest;
 import com.theadbasket.backend.registration.dto.CampaignBriefRequest;
 import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
-import java.util.ArrayList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-/** Advertiser onboarding: account (attach/create) + advertiser profile + first campaign brief. */
+/**
+ * Advertiser onboarding: account (attach/create) + advertiser profile + first
+ * campaign brief.
+ */
 @Service
 public class AdvertiserRegistrationService {
 
@@ -30,9 +35,9 @@ public class AdvertiserRegistrationService {
     private final CampaignBriefRepository campaignBriefRepository;
 
     public AdvertiserRegistrationService(AccountRegistrar accountRegistrar,
-                                         AuthService authService,
-                                         AdvertiserProfileRepository advertiserProfileRepository,
-                                         CampaignBriefRepository campaignBriefRepository) {
+            AuthService authService,
+            AdvertiserProfileRepository advertiserProfileRepository,
+            CampaignBriefRepository campaignBriefRepository) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.advertiserProfileRepository = advertiserProfileRepository;
@@ -44,6 +49,14 @@ public class AdvertiserRegistrationService {
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName(), request.accountEmail(), request.password(), request.contactPhone(),
                 Role.ADVERTISER);
+        Address address = Address.of(
+                request.addressLine1(),
+                request.addressLine2(),
+                request.landmark(),
+                request.city(),
+                request.state(),
+                request.pincode()
+        );
 
         AdvertiserProfile profile = new AdvertiserProfile();
         profile.setUser(user);
@@ -54,8 +67,7 @@ public class AdvertiserRegistrationService {
         profile.setPanNumber(blankToNull(request.panNumber()));
         profile.setContactDesignation(request.contactDesignation());
         profile.setContactEmail(request.contactEmail().trim().toLowerCase());
-        profile.setOfficeAddress(request.officeAddress());
-        profile.setPincode(request.pincode());
+        profile.setAddress(address);
         profile.setIndustries(new ArrayList<>(request.industries()));
         advertiserProfileRepository.save(profile);
 
@@ -72,6 +84,7 @@ public class AdvertiserRegistrationService {
         brief.setTargetAudience(req.targetAudience());
         brief.setTargetLocation(req.targetLocation());
         brief.setStartDate(req.startDate());
+        brief.setEndDate(req.endDate());
         brief.setDuration(req.duration());
         brief.setBudgetMinValue(req.budgetMinValue());
         brief.setBudgetMinUnit(blankToNull(req.budgetMinUnit()));

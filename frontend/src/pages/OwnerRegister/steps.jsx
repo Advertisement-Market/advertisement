@@ -210,12 +210,25 @@ const APPROVAL = [
   { value: 'na', text: 'Not Applicable (Private property, no municipal approval needed)' },
 ];
 
-function usePincode(name) {
+function usePincode(name, cityField, stateField) {
   const { field, setField } = useRegister();
   const val = field(name);
   const city = val.length === 6 ? PINCODE_MAP[val] || 'India' : '';
   const err = useFieldError(name, [v.required(), v.pincode()]);
-  return { val, city, err, set: (val2) => setField(name, val2.replace(/\D/g, '').slice(0, 6)) };
+  const set = (val2) => {
+    const digits = val2.replace(/\D/g, '').slice(0, 6);
+    setField(name, digits);
+  };
+  const onBlur = (e) => {
+    err.onBlur(e);
+    const match = PINCODE_MAP[val];
+    if (match && cityField && stateField) {
+      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
+      if (!field(cityField).trim() && autoCity) setField(cityField, autoCity);
+      if (!field(stateField).trim() && autoState) setField(stateField, autoState);
+    }
+  };
+  return { val, city, err, set, onBlur };
 }
 
 /* ── STEP 1 ── */
@@ -342,7 +355,11 @@ function PhoneInput({ invalidClass, onBlur }) {
 
 /* ── STEP 2 ── */
 export function Step2() {
-  const biz = usePincode('f_bizPin');
+  const biz = usePincode('f_bizPin', 'f_bizCity', 'f_bizState');
+  const cityErr = useFieldError('f_bizCity', [v.required()]);
+  const stateErr = useFieldError('f_bizState', [v.required()]);
+  const { field, setField } = useRegister();
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -387,22 +404,6 @@ export function Step2() {
       </FormSection>
 
       <FormSection title="Office Address">
-        <div className="form-group">
-          <label>
-            Office Pincode <span className="req">*</span>
-          </label>
-          <input
-            type="text"
-            className={cn('form-control', biz.err.invalidClass)}
-            placeholder="411001"
-            maxLength={6}
-            value={biz.val}
-            onChange={(e) => biz.set(e.target.value)}
-            onBlur={biz.err.onBlur}
-          />
-          <div className={cn('pincode-autofill', biz.city && 'show')}>{biz.city}</div>
-          <FieldError show={biz.err.show} error={biz.err.error} />
-        </div>
         <Field
           name="f_bizAddr1"
           label="Address Line 1"
@@ -415,16 +416,65 @@ export function Step2() {
           optional
           placeholder="Street, Area, Colony"
         />
+        <FormRow>
+          <div className="form-group">
+            <label>
+              City <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', cityErr.invalidClass)}
+              placeholder="Pune"
+              value={field('f_bizCity')}
+              onChange={(e) => setField('f_bizCity', e.target.value)}
+              onBlur={cityErr.onBlur}
+            />
+            <FieldError show={cityErr.show} error={cityErr.error} />
+          </div>
+          <div className="form-group">
+            <label>
+              State <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', stateErr.invalidClass)}
+              placeholder="Maharashtra"
+              value={field('f_bizState')}
+              onChange={(e) => setField('f_bizState', e.target.value)}
+              onBlur={stateErr.onBlur}
+            />
+            <FieldError show={stateErr.show} error={stateErr.error} />
+          </div>
+        </FormRow>
+        <div className="form-group">
+          <label>
+            Office Pincode <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', biz.err.invalidClass)}
+            placeholder="411001"
+            maxLength={6}
+            value={biz.val}
+            onChange={(e) => biz.set(e.target.value)}
+            onBlur={biz.onBlur}
+          />
+          <div className={cn('pincode-autofill', biz.city && 'show')}>{biz.city}</div>
+          <FieldError show={biz.err.show} error={biz.err.error} />
+        </div>
       </FormSection>
 
       <RegNav nextLabel="Continue to Billboard Details" />
     </div>
   );
 }
-
 /* ── STEP 3 ── */
 export function Step3() {
-  const bb = usePincode('f_bbPin');
+  const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState');
+  const cityErr = useFieldError('f_bbCity', [v.required()]);
+  const stateErr = useFieldError('f_bbState', [v.required()]);
+  const { field, setField } = useRegister();
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -441,7 +491,49 @@ export function Step3() {
           required
           placeholder="e.g., Andheri Flyover — West Side Hoarding"
         />
+        <Field
+          name="f_bbAddr"
+          label="Address / Street Name"
+          required
+          placeholder="Road / Street / Highway name"
+        />
         <FormRow>
+          <Field
+            name="f_bbLandmark"
+            label="Nearby Landmark"
+            optional
+            placeholder="e.g., Andheri Station flyover"
+          />
+          <div className="form-group">
+            <label>
+              City <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', cityErr.invalidClass)}
+              placeholder="Mumbai"
+              value={field('f_bbCity')}
+              onChange={(e) => setField('f_bbCity', e.target.value)}
+              onBlur={cityErr.onBlur}
+            />
+            <FieldError show={cityErr.show} error={cityErr.error} />
+          </div>
+        </FormRow>
+        <FormRow>
+          <div className="form-group">
+            <label>
+              State <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', stateErr.invalidClass)}
+              placeholder="Maharashtra"
+              value={field('f_bbState')}
+              onChange={(e) => setField('f_bbState', e.target.value)}
+              onBlur={stateErr.onBlur}
+            />
+            <FieldError show={stateErr.show} error={stateErr.error} />
+          </div>
           <div className="form-group">
             <label>
               Billboard Pincode <span className="req">*</span>
@@ -453,24 +545,12 @@ export function Step3() {
               maxLength={6}
               value={bb.val}
               onChange={(e) => bb.set(e.target.value)}
-              onBlur={bb.err.onBlur}
+              onBlur={bb.onBlur}
             />
             <div className={cn('pincode-autofill', bb.city && 'show')}>{bb.city}</div>
             <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
-          <Field
-            name="f_bbLandmark"
-            label="Nearby Landmark"
-            optional
-            placeholder="e.g., Andheri Station flyover"
-          />
         </FormRow>
-        <Field
-          name="f_bbAddr"
-          label="Address / Street Name"
-          required
-          placeholder="Road / Street / Highway name"
-        />
       </FormSection>
 
       <FormSection title="Structure Type">
@@ -1037,7 +1117,9 @@ export function Step7() {
           body={join([
             v('f_companyName'),
             v('f_gst'),
-            [v('f_bizAddr1'), v('f_bizPin')].filter(Boolean).join(', '),
+            [v('f_bizAddr1'), v('f_bizCity'), v('f_bizState'), v('f_bizPin')]
+              .filter(Boolean)
+              .join(', '),
           ])}
         />
         <ReviewSection
@@ -1045,6 +1127,7 @@ export function Step7() {
           editStep={3}
           body={join([
             v('f_bbName'),
+            [v('f_bbAddr'), v('f_bbCity'), v('f_bbState')].filter(Boolean).join(', '),
             v('f_bbType'),
             v('f_bbWidth') && v('f_bbHeight') && `${v('f_bbWidth')} × ${v('f_bbHeight')} ft`,
             v('f_facing'),

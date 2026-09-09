@@ -1,22 +1,25 @@
 package com.theadbasket.backend.user;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import java.time.Instant;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 /**
- * A registered account. Starts as a {@link Role#MEMBER} identity account (local password or
- * Google) and is promoted to a marketplace role when the owner completes a role registration.
+ * A registered account. Starts as a {@link Role#MEMBER} identity account (local
+ * password or Google) and is promoted to a marketplace role when the owner
+ * completes a role registration.
  */
 @Entity
 @Table(name = "users")
@@ -36,9 +39,12 @@ public class User {
     @Column(nullable = false, unique = true, length = 180)
     private String email;
 
-    /** BCrypt hash. Null for Google-only accounts that have not set a password yet. */
-    @Column(name = "password_hash", length = 100)
-    private String passwordHash;
+    /**
+     * BCrypt hash. Null for Google-only accounts that have not set a password
+     * yet.
+     */
+    @Column(name = "password", length = 100)
+    private String password;
 
     @Column(length = 20)
     private String phone;
@@ -51,40 +57,46 @@ public class User {
     @Column(name = "auth_provider", nullable = false, length = 20)
     private AuthProvider authProvider = AuthProvider.LOCAL;
 
-    /** Google subject id ("sub") when the account is (also) linked to Google; otherwise null. */
+    /**
+     * Google subject id ("sub") when the account is (also) linked to Google;
+     * otherwise null.
+     */
     @Column(name = "google_sub", length = 64)
     private String googleSub;
 
-    @Column(nullable = false)
+    @Column(name = "is_enabled", nullable = false)
     private boolean enabled = true;
 
-    @Column(name = "email_verified", nullable = false)
+    @Column(name = "is_email_verified", nullable = false)
     private boolean emailVerified = false;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_ts", nullable = false)
     private Instant updatedAt;
 
     protected User() {
         // for JPA
     }
 
-    public User(String firstName, String lastName, String email, String passwordHash, String phone, Role role) {
+    public User(String firstName, String lastName, String email, String password, String phone, Role role) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.phone = phone;
         this.role = role;
     }
 
-    /** True when the account has a usable local password (can sign in with email + password). */
+    /**
+     * True when the account has a usable local password (can sign in with email
+     * + password).
+     */
     public boolean hasPassword() {
-        return passwordHash != null && !passwordHash.isBlank();
+        return password != null && !password.isBlank();
     }
 
     public Long getId() {
@@ -115,12 +127,12 @@ public class User {
         this.email = email;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPassword() {
+        return password;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getPhone() {

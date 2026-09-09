@@ -333,8 +333,22 @@ export function Step1() {
 export function Step2() {
   const { field, setField } = useRegister();
   const pin = field('f_pincode');
-  const city = pin.length === 6 ? PINCODE_MAP[pin] || 'India' : '';
+  const suggestion = pin.length === 6 ? PINCODE_MAP[pin] || '' : '';
   const pinErr = useFieldError('f_pincode', [vr.required(), vr.pincode()]);
+  const line1Err = useFieldError('f_addressLine1', [vr.required()]);
+  const cityErr = useFieldError('f_city', [vr.required()]);
+  const stateErr = useFieldError('f_state', [vr.required()]);
+
+  const handlePincodeBlur = (e) => {
+    pinErr.onBlur(e);
+    const match = PINCODE_MAP[pin];
+    if (match) {
+      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
+      if (!field('f_city').trim() && autoCity) setField('f_city', autoCity);
+      if (!field('f_state').trim() && autoState) setField('f_state', autoState);
+    }
+  };
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -416,20 +430,68 @@ export function Step2() {
               placeholder="400001"
               value={pin}
               onChange={(e) => setField('f_pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onBlur={pinErr.onBlur}
+              onBlur={handlePincodeBlur}
             />
-            <div className={cn('pincode-autofill', city && 'show')}>{city}</div>
+            <div className={cn('pincode-autofill', suggestion && 'show')}>{suggestion}</div>
             <FieldError show={pinErr.show} error={pinErr.error} />
           </div>
         </FormRow>
+
         <Field
-          name="f_officeAddress"
-          type="textarea"
-          rows={2}
-          label="Office Address"
+          name="f_addressLine1"
+          label="Address Line 1"
           required
-          placeholder="e.g., 4th Floor, Pinnacle Business Park, Andheri East, Mumbai – 400093"
+          placeholder="e.g., 4th Floor, Pinnacle Business Park"
+          error={line1Err}
         />
+        <Field
+          name="f_addressLine2"
+          label={
+            <>
+              Address Line 2 <span className="opt">(optional)</span>
+            </>
+          }
+          placeholder="e.g., Andheri East"
+        />
+        <FormRow>
+          <Field
+            name="f_landmark"
+            label={
+              <>
+                Landmark <span className="opt">(optional)</span>
+              </>
+            }
+            placeholder="e.g., Near Metro Station"
+          />
+          <div className="form-group">
+            <label>
+              City <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', cityErr.invalidClass)}
+              placeholder="Mumbai"
+              value={field('f_city')}
+              onChange={(e) => setField('f_city', e.target.value)}
+              onBlur={cityErr.onBlur}
+            />
+            <FieldError show={cityErr.show} error={cityErr.error} />
+          </div>
+        </FormRow>
+        <div className="form-group">
+          <label>
+            State <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', stateErr.invalidClass)}
+            placeholder="Maharashtra"
+            value={field('f_state')}
+            onChange={(e) => setField('f_state', e.target.value)}
+            onBlur={stateErr.onBlur}
+          />
+          <FieldError show={stateErr.show} error={stateErr.error} />
+        </div>
       </FormSection>
 
       <FormSection
@@ -585,8 +647,8 @@ export function Step3() {
               type="tel"
               className="form-control"
               placeholder="22 2222 3333"
-              value={field('f_landline')}
-              onChange={(e) => setField('f_landline', e.target.value)}
+              value={field('f_contactNo')}
+              onChange={(e) => setField('f_contactNo', e.target.value)}
             />
           </div>
         </div>
@@ -952,7 +1014,19 @@ export function Step7() {
           editStep={2}
         />
         <ReviewRow label="Tagline" value={v('f_tagline')} editStep={2} />
-        <ReviewRow label="Headquarters" value={v('f_officeAddress')} editStep={2} />
+        <ReviewRow
+          label="Headquarters"
+          value={[
+            v('f_addressLine1'),
+            v('f_addressLine2'),
+            v('f_landmark'),
+            v('f_city'),
+            v('f_state'),
+          ]
+            .filter(Boolean)
+            .join(', ')}
+          editStep={2}
+        />
         <ReviewRow
           label="Contact"
           value={[[v('f_firstName'), v('f_lastName')].filter(Boolean).join(' '), v('f_desig')]
