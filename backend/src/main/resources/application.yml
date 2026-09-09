@@ -37,7 +37,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,refresh,env
+        include: health,info,prometheus,refresh
   endpoint:
     health:
       probes:
