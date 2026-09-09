@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.theadbasket.backend.advertiser.AdvertiserProfileRepository;
 import com.theadbasket.backend.advertiser.CampaignBriefRepository;
+import com.theadbasket.backend.agency.AgencyProfileRepository;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfileRepository;
