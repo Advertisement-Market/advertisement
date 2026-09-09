@@ -138,7 +138,7 @@ public class AuthService {
         GoogleTokenInfo info = googleTokenVerifier.verify(idToken);
         String email = info.email().trim().toLowerCase();
 
-        User user = userRepository.findByGoogleSub(info.sub())
+        User user = userRepository.findByGoogleSubjectId(info.sub())
                 .or(() -> userRepository.findByEmailIgnoreCase(email))
                 .orElse(null);
 
@@ -150,12 +150,12 @@ public class AuthService {
             user = new User(firstNameFrom(info, email), blankToNull(info.familyName()),
                     email, null, null, defaultRole);
             user.setAuthProvider(AuthProvider.GOOGLE);
-            user.setGoogleSub(info.sub());
+            user.setGoogleSubjectId(info.sub());
             user.setEmailVerified(info.isEmailVerified());
             user = userRepository.save(user);
-        } else if (user.getGoogleSub() == null) {
+        } else if (user.getGoogleSubjectId() == null) {
             // Link Google to an existing (local) account with the same email.
-            user.setGoogleSub(info.sub());
+            user.setGoogleSubjectId(info.sub());
             if (info.isEmailVerified()) {
                 user.setEmailVerified(true);
             }

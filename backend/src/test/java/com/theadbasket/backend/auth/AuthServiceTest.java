@@ -187,7 +187,7 @@ class AuthServiceTest {
                 true, "New", "User", "New User"
         );
         when(googleTokenVerifier.verify("valid-token")).thenReturn(tokenInfo);
-        when(userRepository.findByGoogleSub("google-sub-123")).thenReturn(Optional.empty());
+        when(userRepository.findByGoogleSubjectId("google-sub-123")).thenReturn(Optional.empty());
         when(userRepository.findByEmailIgnoreCase("newuser@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.loginWithGoogle("valid-token"))
@@ -206,7 +206,7 @@ class AuthServiceTest {
                 true, "Google", "User", "Google User"
         );
         when(googleTokenVerifier.verify("valid-token")).thenReturn(tokenInfo);
-        when(userRepository.findByGoogleSub("google-sub-123")).thenReturn(Optional.empty());
+        when(userRepository.findByGoogleSubjectId("google-sub-123")).thenReturn(Optional.empty());
         when(userRepository.findByEmailIgnoreCase("googleuser@example.com")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         when(jwtService.generateAccessToken(any(User.class))).thenReturn("access-token");
