@@ -9,5 +9,6 @@ export const authApi = {
   registerOwner: (dto) => api.post('/api/auth/register/owner', dto).then((r) => r.data),
   registerAgency: (dto) => api.post('/api/auth/register/agency', dto).then((r) => r.data),
   me: () => api.get('/api/auth/me').then((r) => r.data),
-  logout: (refreshToken) => api.post('/api/auth/logout', { refreshToken }),
+  logout: (refreshToken) =>
+    api.post('/api/auth/logout', refreshToken ? { refreshToken } : {}),
 };

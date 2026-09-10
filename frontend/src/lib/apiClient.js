@@ -7,6 +7,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 // Attach the bearer access token to every request.
@@ -18,21 +19,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On a 401 for a protected call, try a one-time token refresh, then replay the request.
+// On a 401 for a protected call, try a one-time token refresh via HttpOnly cookie, then replay the request.
 let refreshInFlight = null;
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
     const status = error.response?.status;
-    const refreshToken = authStorage.getRefreshToken();
     const isAuthCall = original?.url?.includes('/api/auth/');
 
-    if (status === 401 && refreshToken && !original?._retry && !isAuthCall) {
+    if (status === 401 && !original?._retry && !isAuthCall) {
       original._retry = true;
       try {
         refreshInFlight =
-          refreshInFlight || axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken });
+          refreshInFlight ||
+          axios.post(`${API_BASE_URL}/api/auth/refresh`, {}, { withCredentials: true });
         const { data } = await refreshInFlight;
         refreshInFlight = null;
         authStorage.setSession(data);

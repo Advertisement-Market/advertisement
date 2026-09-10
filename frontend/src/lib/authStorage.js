@@ -1,6 +1,7 @@
 /**
- * Persists the auth session (JWT access token, refresh token, current user) in
- * localStorage so it survives reloads. This is the single source of truth for tokens.
+ * Persists the auth session (JWT access token, current user) in
+ * localStorage so it survives reloads.
+ * Refresh tokens are managed securely via HttpOnly cookies by the browser.
  */
 const ACCESS_KEY = 'ab_access_token';
 const REFRESH_KEY = 'ab_refresh_token';
@@ -8,6 +9,7 @@ const USER_KEY = 'ab_user';
 
 export const authStorage = {
   getAccessToken: () => localStorage.getItem(ACCESS_KEY),
+  /** @deprecated Refresh token is now stored in HttpOnly cookie */
   getRefreshToken: () => localStorage.getItem(REFRESH_KEY),
   getUser: () => {
     try {
@@ -17,10 +19,11 @@ export const authStorage = {
       return null;
     }
   },
-  /** Store an AuthResponse ({ accessToken, refreshToken, user }). */
-  setSession: ({ accessToken, refreshToken, user }) => {
+  /** Store session attributes ({ accessToken, user }). Cleans up any legacy refresh token. */
+  setSession: ({ accessToken, user }) => {
     if (accessToken) localStorage.setItem(ACCESS_KEY, accessToken);
-    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
+    // Remove legacy refresh token if present
+    localStorage.removeItem(REFRESH_KEY);
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
   clear: () => {
