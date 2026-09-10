@@ -5,7 +5,7 @@ import { authApi } from '@/features/auth/authApi';
 
 /**
  * Holds the authenticated user and exposes login / register / logout actions.
- * On success each action stores the tokens + user and updates state; the session
+ * On success each action stores the session attributes + user and updates state; the session
  * is rehydrated from localStorage on load.
  */
 export function AuthProvider({ children }) {
@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     const refreshToken = authStorage.getRefreshToken();
-    if (refreshToken) authApi.logout(refreshToken).catch(() => {});
+    authApi.logout(refreshToken).catch(() => {});
     authStorage.clear();
     setUser(null);
   }, []);
