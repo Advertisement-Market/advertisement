@@ -7,14 +7,14 @@ import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.config.GoogleProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 /**
  * Verifies a Google ID token by calling Google's tokeninfo endpoint (which validates the signature
  * and expiry), then asserts the token's audience matches our configured OAuth client id.
  */
-@Component
+@Service
 public class GoogleTokenVerifier {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleTokenVerifier.class);
