@@ -5,6 +5,12 @@ spring:
     name: theadbasket-backend
   profiles:
     default: dev
+  messages:
+    # Error/message catalog resolved by MessageSource (see common/error/ErrorCode).
+    basename: messages
+    encoding: UTF-8
+    # If a key is missing, fall back to the key itself instead of throwing.
+    use-code-as-default-message: true
   jpa:
     # Flyway owns the schema; Hibernate only validates entities against it.
     hibernate:

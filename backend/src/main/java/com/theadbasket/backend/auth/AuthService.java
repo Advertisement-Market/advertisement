@@ -14,6 +14,7 @@ import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
 import com.theadbasket.backend.auth.dto.LoginRequest;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
 import com.theadbasket.backend.auth.dto.UserResponse;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
@@ -72,11 +73,11 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
-            throw new BadRequestException("Local registration is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.LOCAL_REGISTRATION_UNAVAILABLE);
         }
         Role targetRole = request.role() != null ? request.role() : policy.defaultRole();
         if (!rolePolicy.isEnabled(targetRole)) {
-            throw new BadRequestException("Registration for role " + targetRole + " is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.ROLE_REGISTRATION_UNAVAILABLE, targetRole);
         }
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
@@ -99,7 +100,7 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
-            throw new BadRequestException("Local sign-in is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.LOCAL_SIGNIN_UNAVAILABLE);
         }
         try {
             authenticationManager.authenticate(
@@ -122,7 +123,7 @@ public class AuthService {
     public UserResponse currentUser(Long userId) {
         return userRepository.findById(userId)
                 .map(UserResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ACCOUNT_NOT_FOUND));
     }
 
     /**
@@ -132,7 +133,7 @@ public class AuthService {
     @Transactional
     public AuthResponse loginWithGoogle(String idToken) {
         if (!authProviderPolicy.isEnabled(AuthProvider.GOOGLE)) {
-            throw new BadRequestException("Google sign-in is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.GOOGLE_SIGNIN_UNAVAILABLE);
         }
 
         GoogleTokenInfo info = googleTokenVerifier.verify(idToken);
@@ -145,7 +146,7 @@ public class AuthService {
         if (user == null) {
             Role defaultRole = policy.defaultRole();
             if (!rolePolicy.isEnabled(defaultRole)) {
-                throw new BadRequestException("Registration is currently unavailable. Please try again later.");
+                throw new BadRequestException(ErrorCode.REGISTRATION_UNAVAILABLE);
             }
             user = new User(firstNameFrom(info, email), blankToNull(info.familyName()),
                     email, null, null, defaultRole);
@@ -200,8 +201,8 @@ public class AuthService {
     public void validateNewPassword(String raw) {
         int len = raw == null ? 0 : raw.length();
         if (len < policy.passwordMinLength() || len > policy.passwordMaxLength()) {
-            throw new BadRequestException("Password must be " + policy.passwordMinLength()
-                    + "-" + policy.passwordMaxLength() + " characters.");
+            throw new BadRequestException(ErrorCode.PASSWORD_LENGTH,
+                    policy.passwordMinLength(), policy.passwordMaxLength());
         }
     }
 

@@ -12,6 +12,7 @@ import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
 import com.theadbasket.backend.auth.dto.LoginRequest;
 import com.theadbasket.backend.auth.dto.RegisterRequest;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
@@ -115,7 +116,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Local registration is currently unavailable");
+                .extracting("errorCode").isEqualTo(ErrorCode.LOCAL_REGISTRATION_UNAVAILABLE);
 
         verify(userRepository, never()).save(any(User.class));
     }
@@ -129,7 +130,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Registration for role ADVERTISER is currently unavailable");
+                .extracting("errorCode").isEqualTo(ErrorCode.ROLE_REGISTRATION_UNAVAILABLE);
 
         verify(userRepository, never()).save(any(User.class));
     }
@@ -142,7 +143,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Local sign-in is currently unavailable");
+                .extracting("errorCode").isEqualTo(ErrorCode.LOCAL_SIGNIN_UNAVAILABLE);
 
         verify(authenticationManager, never()).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
@@ -172,7 +173,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.loginWithGoogle("some-token"))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Google sign-in is currently unavailable");
+                .extracting("errorCode").isEqualTo(ErrorCode.GOOGLE_SIGNIN_UNAVAILABLE);
 
         verify(googleTokenVerifier, never()).verify(anyString());
     }
@@ -192,7 +193,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.loginWithGoogle("valid-token"))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Registration is currently unavailable");
+                .extracting("errorCode").isEqualTo(ErrorCode.REGISTRATION_UNAVAILABLE);
 
         verify(userRepository, never()).save(any(User.class));
     }

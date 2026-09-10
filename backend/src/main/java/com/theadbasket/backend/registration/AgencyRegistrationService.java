@@ -14,6 +14,7 @@ import com.theadbasket.backend.agency.PortfolioItem;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
 import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
@@ -50,7 +51,7 @@ public class AgencyRegistrationService {
     @Transactional
     public AuthResponse register(AgencyRegistrationRequest request, Long currentUserId) {
         if (!rolePolicyProperties.isEnabled(Role.AGENCY)) {
-            throw new BadRequestException("Agency registration is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.AGENCY_REGISTRATION_UNAVAILABLE);
         }
 
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),

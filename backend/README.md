@@ -52,7 +52,8 @@ backend/
     │   │   ├── config/       # SecurityConfig, JwtProperties, JpaConfig (auditing), CORS
     │   │   ├── security/     # JwtService, JwtAuthenticationFilter, SecurityUser,
     │   │   │                 #   CustomUserDetailsService, RestAuthenticationEntryPoint
-    │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/
+    │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/ (AppException +
+    │   │   │                 #   typed subclasses) + error/ (ErrorCode catalog)
     │   │   ├── user/         # User (entity), Role (enum), UserRepository
     │   │   ├── auth/         # AuthController/Service, RefreshToken(+repo/service), dto/
     │   │   ├── advertiser/   # AdvertiserProfile + CampaignBrief (+repos)
@@ -61,9 +62,10 @@ backend/
     │   │   ├── registration/ # RegistrationController/Service + role request DTOs
     │   │   └── web/          # PingController (GET /api/ping)
     │   └── resources/
-    │       ├── application.yml                # common config + app.jwt.*
+    │       ├── application.yml                # common config + app.jwt.* + spring.messages
     │       ├── application-dev.yml            # H2 (default)
     │       ├── application-prod.yml           # PostgreSQL
+    │       ├── messages.properties            # error-message catalog (keyed by ErrorCode)
     │       └── db/migration/V1__init.sql      # Flyway: users + refresh_tokens
     └── test/                                  # unit (Mockito) + MockMvc flow (H2) + Testcontainers IT
 ```
@@ -119,6 +121,36 @@ curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: applicati
 curl http://localhost:8080/api/auth/me -H "Authorization: Bearer <accessToken>"
 ```
 
+## Error responses
+
+Every error returns a consistent `ApiError` JSON body. Messages are **not** hardcoded at the
+throw site — each error carries a stable, machine-readable **`errorCode`** and its human text is
+resolved from `messages.properties` via Spring's `MessageSource`.
+
+```json
+{
+  "timestamp": "2026-09-04T12:34:56.789Z",
+  "status": 409,
+  "error": "Conflict",
+  "errorCode": "EMAIL_ALREADY_EXISTS",
+  "message": "An account already exists for email: rahul@example.com",
+  "path": "/api/auth/register"
+}
+```
+
+- **`errorCode`** — an `ErrorCode` enum name (see
+  `common/error/ErrorCode.java`). Clients should branch on this, not on `message` text.
+- **`message`** — display text from `messages.properties`; supports `{0}` placeholders
+  interpolated from the throw site (email, role, password min/max, …).
+- **`fieldErrors`** — present only for `400` bean-validation failures (`errorCode:
+  VALIDATION_FAILED`); a `field → message` map. Omitted otherwise.
+
+**Adding / changing an error:** add a constant to `ErrorCode` with a message key, add that key to
+`messages.properties`, and throw the matching exception (`BadRequestException`,
+`ResourceNotFoundException`, `TokenRefreshException`, `InvalidGoogleTokenException`, …) with the
+code plus any args. **Localization:** drop in a `messages_<lang>.properties` (e.g.
+`messages_hi.properties`) — no code change needed.
+
 ## Testing
 
 ```bash
@@ -147,3 +179,5 @@ mvn wrapper:wrapper -Dmaven=3.9.11
 - **Set `JWT_SECRET`** (>= 32 chars) in every non-dev environment — the default is dev-only.
 - CORS is open to `http://localhost:5173` (Vite) for the upcoming frontend integration.
 - Passwords are BCrypt-hashed and never returned; refresh tokens are rotated (single-use).
+- Login and other Spring authentication failures return a generic `INVALID_CREDENTIALS` error so
+  the API never reveals whether an account exists for a given email.

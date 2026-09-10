@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.owner.BillboardListing;
@@ -50,7 +51,7 @@ public class OwnerRegistrationService {
     @Transactional
     public AuthResponse register(OwnerRegistrationRequest request, Long currentUserId) {
         if (!rolePolicyProperties.isEnabled(Role.OWNER)) {
-            throw new BadRequestException("Owner registration is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.OWNER_REGISTRATION_UNAVAILABLE);
         }
 
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
