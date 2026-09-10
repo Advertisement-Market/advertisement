@@ -7,6 +7,13 @@ const ACCESS_KEY = 'ab_access_token';
 const REFRESH_KEY = 'ab_refresh_token';
 const USER_KEY = 'ab_user';
 
+// Proactive migration cleanup: immediately purge any legacy refresh token from localStorage
+try {
+  localStorage.removeItem(REFRESH_KEY);
+} catch {
+  // Ignore in non-browser/restricted environments
+}
+
 export const authStorage = {
   getAccessToken: () => localStorage.getItem(ACCESS_KEY),
   /** @deprecated Refresh token is now stored in HttpOnly cookie */
@@ -22,13 +29,16 @@ export const authStorage = {
   /** Store session attributes ({ accessToken, user }). Cleans up any legacy refresh token. */
   setSession: ({ accessToken, user }) => {
     if (accessToken) localStorage.setItem(ACCESS_KEY, accessToken);
-    // Remove legacy refresh token if present
-    localStorage.removeItem(REFRESH_KEY);
+    try {
+      localStorage.removeItem(REFRESH_KEY);
+    } catch {}
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
   clear: () => {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(USER_KEY);
+    try {
+      localStorage.removeItem(ACCESS_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(USER_KEY);
+    } catch {}
   },
 };
