@@ -359,11 +359,8 @@ app:
 Changes to `backend/config/feature-policy.yml` can be reloaded at runtime without application restart by sending an authenticated request to the Actuator endpoint:
 
 ```bash
-# Via host port mapping (host port 8082 -> container port 8081):
-curl -u admin:dev-only-change-me -X POST http://localhost:8082/actuator/refresh
+curl -u admin:dev-only-change-me -X POST http://localhost:8081/actuator/refresh
 ```
-
-*(Alternatively, within the internal Docker container network, use port `8081`: `curl -u admin:dev-only-change-me -X POST http://127.0.0.1:8081/actuator/refresh`)*
 
 This dynamically refreshes the `RolePolicyProperties` and `AuthProviderPolicyProperties` Spring beans across the running JVM.
 
