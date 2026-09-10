@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 # Copy packaged Spring Boot JAR from builder stage
 COPY --from=builder /app/target/*.jar /app/app.jar
 
-EXPOSE 8080
+EXPOSE 8080 8081
 
 # Run Spring Boot application with production profile
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-Dspring.profiles.active=prod", "-jar", "/app/app.jar"]
