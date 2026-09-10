@@ -62,7 +62,7 @@ public class User {
      * otherwise null.
      */
     @Column(name = "google_sub", length = 64)
-    private String googleSub;
+    private String googleSubjectId;
 
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled = true;
@@ -159,12 +159,12 @@ public class User {
         this.authProvider = authProvider;
     }
 
-    public String getGoogleSub() {
-        return googleSub;
+    public String getGoogleSubjectId() {
+        return googleSubjectId;
     }
 
-    public void setGoogleSub(String googleSub) {
-        this.googleSub = googleSub;
+    public void setGoogleSubjectId(String googleSubjectId) {
+        this.googleSubjectId = googleSubjectId;
     }
 
     public boolean isEnabled() {

@@ -401,7 +401,7 @@ This section accounts for **every single file** in the `backend/` project direct
     - **Role:** Enum (`LOCAL`, `GOOGLE`).
 
 29. [`user/UserRepository.java`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/java/com/theadbasket/backend/user/UserRepository.java)
-    - **Role:** `JpaRepository<User, Long>` with `findByEmailIgnoreCase`, `findByGoogleSub`, and `existsByEmailIgnoreCase`.
+    - **Role:** `JpaRepository<User, Long>` with `findByEmailIgnoreCase`, `findByGoogleSubjectId`, and `existsByEmailIgnoreCase`.
 
 ---
 

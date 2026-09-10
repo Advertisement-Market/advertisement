@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,8 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.theadbasket.backend.advertiser.AdvertiserProfileRepository;
 import com.theadbasket.backend.advertiser.CampaignBriefRepository;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
+import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfileRepository;
+import com.theadbasket.backend.user.AuthProvider;
+import java.util.List;
 
 /**
  * End-to-end role registration (advertiser/owner/agency) against the full stack
@@ -41,6 +45,8 @@ class RegistrationFlowIntegrationTest {
     private BillboardListingRepository billboardListings;
     @Autowired
     private AgencyProfileRepository agencyProfiles;
+    @Autowired
+    private AuthProviderPolicyProperties authProviderPolicy;
 
     private static final String ADVERTISER = """
             {
@@ -136,4 +142,19 @@ class RegistrationFlowIntegrationTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.fieldErrors").isNotEmpty());
     }
+
+    @Test
+    @DirtiesContext
+    void advertiserRegistration_whenLocalProviderDisabled_returns400() throws Exception {
+        authProviderPolicy.setEnabled(List.of(AuthProvider.GOOGLE));
+        try {
+            mockMvc.perform(post("/api/auth/register/advertiser")
+                    .contentType(MediaType.APPLICATION_JSON).content(ADVERTISER))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Local registration is currently unavailable. Please try again later."));
+        } finally {
+            authProviderPolicy.setEnabled(List.of(AuthProvider.LOCAL, AuthProvider.GOOGLE));
+        }
+    }
 }
+

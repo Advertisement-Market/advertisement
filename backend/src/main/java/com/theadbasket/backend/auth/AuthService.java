@@ -1,5 +1,14 @@
 package com.theadbasket.backend.auth;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.auth.dto.GoogleTokenInfo;
 import com.theadbasket.backend.auth.dto.LoginRequest;
@@ -10,20 +19,17 @@ import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
+import com.theadbasket.backend.config.AuthProviderPolicyProperties;
+import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.security.JwtService;
 import com.theadbasket.backend.user.AuthProvider;
+import com.theadbasket.backend.user.Role;
 import com.theadbasket.backend.user.User;
 import com.theadbasket.backend.user.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-/** Registration, login (local + Google), and token refresh/rotation. */
+/**
+ * Registration, login (local + Google), and token refresh/rotation.
+ */
 @Service
 public class AuthService {
 
@@ -36,14 +42,18 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final AuthPolicyProperties policy;
+    private final AuthProviderPolicyProperties authProviderPolicy;
+    private final RolePolicyProperties rolePolicy;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       JwtService jwtService,
-                       RefreshTokenService refreshTokenService,
-                       GoogleTokenVerifier googleTokenVerifier,
-                       AuthPolicyProperties policy) {
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService,
+            GoogleTokenVerifier googleTokenVerifier,
+            AuthPolicyProperties policy,
+            AuthProviderPolicyProperties authProviderPolicy,
+            RolePolicyProperties rolePolicy) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -51,11 +61,23 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
         this.googleTokenVerifier = googleTokenVerifier;
         this.policy = policy;
+        this.authProviderPolicy = authProviderPolicy;
+        this.rolePolicy = rolePolicy;
     }
 
-    /** Basic (identity-only) sign-up. Role defaults to the configured default (MEMBER) when absent. */
+    /**
+     * Basic (identity-only) sign-up. Role defaults to the configured default
+     * (MEMBER) when absent.
+     */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
+            throw new BadRequestException("Local registration is currently unavailable. Please try again later.");
+        }
+        Role targetRole = request.role() != null ? request.role() : policy.defaultRole();
+        if (!rolePolicy.isEnabled(targetRole)) {
+            throw new BadRequestException("Registration for role " + targetRole + " is currently unavailable. Please try again later.");
+        }
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyExistsException(email);
@@ -67,7 +89,7 @@ public class AuthService {
                 email,
                 passwordEncoder.encode(request.password()),
                 normalizePhone(request.phone()),
-                request.role() != null ? request.role() : policy.defaultRole());
+                targetRole);
         user.setAuthProvider(AuthProvider.LOCAL);
         user = userRepository.save(user);
         log.info("Registered account id={} role={} (local)", user.getId(), user.getRole());
@@ -76,6 +98,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
+            throw new BadRequestException("Local sign-in is currently unavailable. Please try again later.");
+        }
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password()));
@@ -89,7 +114,10 @@ public class AuthService {
         return issueTokensFor(user);
     }
 
-    /** Current user's profile, looked up by id from the JWT principal (used by GET /api/auth/me). */
+    /**
+     * Current user's profile, looked up by id from the JWT principal (used by
+     * GET /api/auth/me).
+     */
     @Transactional(readOnly = true)
     public UserResponse currentUser(Long userId) {
         return userRepository.findById(userId)
@@ -97,26 +125,37 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
     }
 
-    /** Verifies a Google ID token, then signs in (linking) or creates a basic account. */
+    /**
+     * Verifies a Google ID token, then signs in (linking) or creates a basic
+     * account.
+     */
     @Transactional
     public AuthResponse loginWithGoogle(String idToken) {
+        if (!authProviderPolicy.isEnabled(AuthProvider.GOOGLE)) {
+            throw new BadRequestException("Google sign-in is currently unavailable. Please try again later.");
+        }
+
         GoogleTokenInfo info = googleTokenVerifier.verify(idToken);
         String email = info.email().trim().toLowerCase();
 
-        User user = userRepository.findByGoogleSub(info.sub())
+        User user = userRepository.findByGoogleSubjectId(info.sub())
                 .or(() -> userRepository.findByEmailIgnoreCase(email))
                 .orElse(null);
 
         if (user == null) {
+            Role defaultRole = policy.defaultRole();
+            if (!rolePolicy.isEnabled(defaultRole)) {
+                throw new BadRequestException("Registration is currently unavailable. Please try again later.");
+            }
             user = new User(firstNameFrom(info, email), blankToNull(info.familyName()),
-                    email, null, null, policy.defaultRole());
+                    email, null, null, defaultRole);
             user.setAuthProvider(AuthProvider.GOOGLE);
-            user.setGoogleSub(info.sub());
+            user.setGoogleSubjectId(info.sub());
             user.setEmailVerified(info.isEmailVerified());
             user = userRepository.save(user);
-        } else if (user.getGoogleSub() == null) {
+        } else if (user.getGoogleSubjectId() == null) {
             // Link Google to an existing (local) account with the same email.
-            user.setGoogleSub(info.sub());
+            user.setGoogleSubjectId(info.sub());
             if (info.isEmailVerified()) {
                 user.setEmailVerified(true);
             }
@@ -140,7 +179,10 @@ public class AuthService {
         refreshTokenService.revoke(refreshToken);
     }
 
-    /** Issues a fresh access + refresh token pair for the given user (reused by registration). */
+    /**
+     * Issues a fresh access + refresh token pair for the given user (reused by
+     * registration).
+     */
     public AuthResponse issueTokensFor(User user) {
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.create(user);
@@ -151,7 +193,10 @@ public class AuthService {
                 UserResponse.from(user));
     }
 
-    /** Validates a new/updated password against the configured policy (length bounds). */
+    /**
+     * Validates a new/updated password against the configured policy (length
+     * bounds).
+     */
     public void validateNewPassword(String raw) {
         int len = raw == null ? 0 : raw.length();
         if (len < policy.passwordMinLength() || len > policy.passwordMaxLength()) {

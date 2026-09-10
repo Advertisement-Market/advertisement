@@ -14,6 +14,8 @@ import com.theadbasket.backend.advertiser.CampaignBriefRepository;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.exception.BadRequestException;
+import com.theadbasket.backend.config.RolePolicyProperties;
 import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
 import com.theadbasket.backend.registration.dto.AdvertiserRegistrationRequest;
 import com.theadbasket.backend.registration.dto.CampaignBriefRequest;
@@ -33,19 +35,27 @@ public class AdvertiserRegistrationService {
     private final AuthService authService;
     private final AdvertiserProfileRepository advertiserProfileRepository;
     private final CampaignBriefRepository campaignBriefRepository;
+    private final RolePolicyProperties rolePolicyProperties;
 
     public AdvertiserRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
             AdvertiserProfileRepository advertiserProfileRepository,
-            CampaignBriefRepository campaignBriefRepository) {
+            CampaignBriefRepository campaignBriefRepository,
+            RolePolicyProperties rolePolicyProperties) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.advertiserProfileRepository = advertiserProfileRepository;
         this.campaignBriefRepository = campaignBriefRepository;
+        this.rolePolicyProperties = rolePolicyProperties;
     }
 
     @Transactional
     public AuthResponse register(AdvertiserRegistrationRequest request, Long currentUserId) {
+        if (!rolePolicyProperties.isEnabled(Role.ADVERTISER)) {
+            throw new BadRequestException("Advertiser registration is currently unavailable. Please try again later.");
+
+        }
+
         User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
                 request.lastName(), request.accountEmail(), request.password(), request.contactPhone(),
                 Role.ADVERTISER);

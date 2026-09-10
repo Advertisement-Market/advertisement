@@ -8,7 +8,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmailIgnoreCase(String email);
 
-    Optional<User> findByGoogleSub(String googleSub);
+    Optional<User> findByGoogleSubjectId(String googleSubjectId);
 
     boolean existsByEmailIgnoreCase(String email);
 }

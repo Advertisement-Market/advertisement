@@ -1,5 +1,6 @@
 package com.theadbasket.backend.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -91,6 +92,31 @@ class AuthFlowIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.fieldErrors").isNotEmpty());
+    }
+
+    @Test
+    void register_then_refresh_rotatesToken() throws Exception {
+        String registerBody = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON).content(register("refresh@example.com", "MEMBER")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String refreshToken = JsonPath.read(registerBody, "$.refreshToken");
+
+        String refreshBody = mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+
+        String newRefreshToken = JsonPath.read(refreshBody, "$.refreshToken");
+        assertThat(newRefreshToken).isNotEqualTo(refreshToken);
+
+        // Replaying the old (now rotated) refresh token is unauthorized
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
