@@ -14,6 +14,7 @@ import com.theadbasket.backend.advertiser.CampaignBriefRepository;
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
 import static com.theadbasket.backend.registration.AccountRegistrar.blankToNull;
@@ -52,7 +53,7 @@ public class AdvertiserRegistrationService {
     @Transactional
     public AuthResponse register(AdvertiserRegistrationRequest request, Long currentUserId) {
         if (!rolePolicyProperties.isEnabled(Role.ADVERTISER)) {
-            throw new BadRequestException("Advertiser registration is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.ADVERTISER_REGISTRATION_UNAVAILABLE);
 
         }
 

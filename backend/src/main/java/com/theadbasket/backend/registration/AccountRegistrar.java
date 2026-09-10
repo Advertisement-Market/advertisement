@@ -65,7 +65,7 @@ public class AccountRegistrar {
         }
 
         if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
-            throw new BadRequestException("Local registration is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.LOCAL_REGISTRATION_UNAVAILABLE);
         }
 
         if (rawEmail == null || rawEmail.isBlank()) {

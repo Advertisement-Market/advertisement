@@ -73,11 +73,11 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
-            throw new BadRequestException("Local registration is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.LOCAL_REGISTRATION_UNAVAILABLE);
         }
         Role targetRole = request.role() != null ? request.role() : policy.defaultRole();
         if (!rolePolicy.isEnabled(targetRole)) {
-            throw new BadRequestException("Registration for role " + targetRole + " is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.ROLE_REGISTRATION_UNAVAILABLE, targetRole);
         }
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
@@ -100,7 +100,7 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
-            throw new BadRequestException("Local sign-in is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.LOCAL_SIGNIN_UNAVAILABLE);
         }
         try {
             authenticationManager.authenticate(
@@ -133,7 +133,7 @@ public class AuthService {
     @Transactional
     public AuthResponse loginWithGoogle(String idToken) {
         if (!authProviderPolicy.isEnabled(AuthProvider.GOOGLE)) {
-            throw new BadRequestException("Google sign-in is currently unavailable. Please try again later.");
+            throw new BadRequestException(ErrorCode.GOOGLE_SIGNIN_UNAVAILABLE);
         }
 
         GoogleTokenInfo info = googleTokenVerifier.verify(idToken);
@@ -146,7 +146,7 @@ public class AuthService {
         if (user == null) {
             Role defaultRole = policy.defaultRole();
             if (!rolePolicy.isEnabled(defaultRole)) {
-                throw new BadRequestException("Registration is currently unavailable. Please try again later.");
+                throw new BadRequestException(ErrorCode.REGISTRATION_UNAVAILABLE);
             }
             user = new User(firstNameFrom(info, email), blankToNull(info.familyName()),
                     email, null, null, defaultRole);

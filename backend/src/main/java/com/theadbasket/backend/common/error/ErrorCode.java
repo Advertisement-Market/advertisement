@@ -37,6 +37,16 @@ public enum ErrorCode {
     TOKEN_REVOKED("error.token.revoked"),
     TOKEN_EXPIRED("error.token.expired"),
 
+    // Feature availability (config-driven policy guards)
+    LOCAL_REGISTRATION_UNAVAILABLE("error.policy.localRegistrationUnavailable"),
+    LOCAL_SIGNIN_UNAVAILABLE("error.policy.localSigninUnavailable"),
+    GOOGLE_SIGNIN_UNAVAILABLE("error.policy.googleSigninUnavailable"),
+    REGISTRATION_UNAVAILABLE("error.policy.registrationUnavailable"),
+    ROLE_REGISTRATION_UNAVAILABLE("error.policy.roleRegistrationUnavailable"),
+    ADVERTISER_REGISTRATION_UNAVAILABLE("error.policy.advertiserRegistrationUnavailable"),
+    OWNER_REGISTRATION_UNAVAILABLE("error.policy.ownerRegistrationUnavailable"),
+    AGENCY_REGISTRATION_UNAVAILABLE("error.policy.agencyRegistrationUnavailable"),
+
     // Generic
     VALIDATION_FAILED("error.validation.failed"),
     INTERNAL_ERROR("error.internal");

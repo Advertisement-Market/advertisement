@@ -1,6 +1,7 @@
 package com.theadbasket.backend.registration;
 
 import com.theadbasket.backend.auth.AuthService;
+import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
@@ -56,7 +57,7 @@ class AccountRegistrarTest {
                 null, "Rohan", "Kapoor", "rohan@example.com", "Passw0rd!", "+91 98765 43210", Role.ADVERTISER
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Local registration is currently unavailable");
+                .extracting("errorCode").isEqualTo(ErrorCode.LOCAL_REGISTRATION_UNAVAILABLE);
 
         verify(userRepository, never()).save(any(User.class));
     }
@@ -108,7 +109,7 @@ class AccountRegistrarTest {
                 100L, "Jane", "Doe", "jane@example.com", null, null, Role.AGENCY
         ))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("already registered as advertiser");
+                .extracting("errorCode").isEqualTo(ErrorCode.ALREADY_REGISTERED);
 
         verify(userRepository, never()).save(any(User.class));
     }
