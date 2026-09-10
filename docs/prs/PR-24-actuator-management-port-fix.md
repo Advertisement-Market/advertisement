@@ -1,6 +1,6 @@
 # Infrastructure Technical Specification: Spring Boot Actuator Management Port Alignment
 
-- **PR Link / Ticket:** [PR #23](https://github.com/Advertisement-Market/advertisement/pull/23)
+- **PR Link / Ticket:** [PR #24](https://github.com/Advertisement-Market/advertisement/pull/24)
 - **Author:** @amjangde
 - **Date:** 2026-09-10
 - **Module / Route:** `docker-compose.yml`, `backend/Dockerfile`, `frontend/nginx.conf`, `.env.example`
