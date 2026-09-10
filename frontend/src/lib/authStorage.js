@@ -31,7 +31,9 @@ export const authStorage = {
     if (accessToken) localStorage.setItem(ACCESS_KEY, accessToken);
     try {
       localStorage.removeItem(REFRESH_KEY);
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
   clear: () => {
@@ -39,6 +41,8 @@ export const authStorage = {
       localStorage.removeItem(ACCESS_KEY);
       localStorage.removeItem(REFRESH_KEY);
       localStorage.removeItem(USER_KEY);
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
   },
 };
