@@ -93,7 +93,17 @@ repository method.
 ## 7. Verification & Testing Evidence
 - **Automated Tests Added:**
   - Repository Tests: `RefreshTokenRepositoryTest.java` (`@DataJpaTest`, H2) backdates a token's
-    `created_ts` past the retention window and asserts only it is deleted.
+    `created_ts` past the retention window and asserts only it is deleted. The suite also applies
+    migration `V4` (the `created_ts` index) on H2.
+- **Review Follow-ups (addressed in this PR):**
+  - The pg_cron image is built on `postgres:16-alpine` (the stock base) to avoid collation changes
+    on existing volumes; pg_cron is compiled from source and the preload config is baked in so it
+    also works with a plain `docker run`.
+  - `deleteByCreatedAtBefore` is `@Transactional` + `@Modifying(clearAutomatically = true)`.
+  - Migration `V4` indexes `refresh_tokens (created_ts)`.
+- **Not covered by CI:** the pg_cron image build is not exercised by the pipeline (it builds the
+  backend jar and runs tests only). Whoever provisions the pg_cron image should run one
+  `docker build backend/docker/pg_cron` to confirm the from-source compile in their environment.
 - **Manual Verification (cURL / HTTP Client):** Not applicable (no HTTP surface). Verify the schedule
   against a real PostgreSQL:
   ```bash
