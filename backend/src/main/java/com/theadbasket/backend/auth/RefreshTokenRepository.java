@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Spring Data JPA repository for {@link RefreshToken}. */
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
@@ -23,7 +24,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
      *
      * @return the number of rows deleted
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("delete from RefreshToken t where t.createdAt < :cutoff")
     int deleteByCreatedAtBefore(@Param("cutoff") Instant cutoff);
 }
