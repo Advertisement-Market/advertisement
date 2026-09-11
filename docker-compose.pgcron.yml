@@ -4,11 +4,12 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.pgcron.yml up -d --build
 #
-# `command:` preloads the pg_cron worker and points it at the app database; the init script in
-# backend/docker/pg_cron creates the extension and schedules the job on first init.
+# The image is built on postgres:16-alpine — the SAME base the stock stack uses — so an existing
+# data volume keeps its collation and is not at risk of index corruption. The image also bakes in
+# `shared_preload_libraries=pg_cron`, so it works with a plain `docker run` too; the `command:`
+# below is only needed to point cron.database_name at a non-default POSTGRES_DB.
 #
-# NOTE: switching a populated volume from postgres:16-alpine to this image is fine (same major
-# version, compatible data dir). See backend/docker/pg_cron/README.md for details and verification.
+# See backend/docker/pg_cron/README.md for details and verification.
 name: advertisement
 
 services:

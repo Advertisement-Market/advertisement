@@ -9,9 +9,14 @@ multi-instance duplication to guard against.
 
 | File | Purpose |
 | ---- | ------- |
-| `Dockerfile` | `postgres:16` + `postgresql-16-cron` (pg_cron), copies the init script |
+| `Dockerfile` | `postgres:16-alpine` + pg_cron built from source, bakes the preload config, copies the init script |
 | `init/01-refresh-token-cleanup.sql` | Creates the extension and schedules the daily DELETE |
 | `../../../docker-compose.pgcron.yml` | Opt-in compose override that builds this image and preloads pg_cron |
+
+> **Why Alpine (not Debian)?** The stock stack runs `postgres:16-alpine` (musl libc). Building
+> pg_cron on a Debian `postgres:16` (glibc) and pointing it at an existing volume would change the
+> cluster's collation definitions and risk silent corruption of text B-Tree indexes, so this image
+> keeps the Alpine base and builds pg_cron there.
 
 ## Enabling it
 
@@ -22,10 +27,10 @@ cleanup on, layer the override:
 docker compose -f docker-compose.yml -f docker-compose.pgcron.yml up -d --build
 ```
 
-That override:
-- builds the DB from this `Dockerfile` (pg_cron installed), and
-- starts Postgres with `shared_preload_libraries=pg_cron` and `cron.database_name=adbasket` — both
-  are **required at startup**; they cannot be set from SQL.
+That override builds the DB from this `Dockerfile`. The image **bakes** `shared_preload_libraries =
+'pg_cron'` and `cron.database_name = 'adbasket'` into the config template, so pg_cron loads on any
+invocation — including a plain `docker run` — without extra flags. The override's `command:` is only
+there to point `cron.database_name` at a non-default `POSTGRES_DB`.
 
 The init script runs on **first cluster initialisation** only (empty data volume), as the superuser
 connected to the app database, and:
