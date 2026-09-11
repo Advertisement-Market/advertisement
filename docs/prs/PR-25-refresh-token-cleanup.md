@@ -62,7 +62,9 @@ repository method.
   (`backend/docker/pg_cron/init/01-refresh-token-cleanup.sql`), not by Flyway, because
   `CREATE EXTENSION pg_cron` and `cron.schedule` require the DB superuser and a preloaded worker.
 - **Tables Modified / Created:** None. Rows are deleted from the existing `refresh_tokens` table.
-- **Index Additions & Query Impact:** None added. The delete filters on `created_ts`.
+- **Index Additions & Query Impact:** Migration `V4__index_refresh_tokens_created_ts.sql` adds
+  `idx_refresh_tokens_created_ts` on `refresh_tokens (created_ts)`, so the daily DELETE uses an index
+  range scan instead of a full sequential scan.
 - **Backward Compatibility:** Fully compatible; only stale rows are removed. The predicate uses the
   normalized `created_ts` column introduced by migration `V3`.
 
@@ -79,7 +81,9 @@ repository method.
 ## 6. Performance, Reliability & Failure Modes
 - **Caching Strategy:** Not applicable.
 - **Transactions & Concurrency:** Running in the database once per schedule avoids the multi-instance
-  duplication an application `@Scheduled` job would need ShedLock/Quartz to prevent.
+  duplication an application `@Scheduled` job would need ShedLock/Quartz to prevent. The repository
+  fallback is annotated `@Modifying(clearAutomatically = true)` + `@Transactional` so it runs safely
+  even when called outside an existing transaction.
 - **Failure Modes & Fallbacks:** If pg_cron is not enabled (for example the stock `postgres:16-alpine`
   image, or a local H2 dev database), the scheduled job simply does not run and the table is not
   pruned; the tested repository method remains available to run the same delete manually.

@@ -181,6 +181,7 @@ once in the database no matter how many backend instances run, so there's no mul
 duplication to guard against.
 
 - **Job:** daily at 03:00, `DELETE FROM refresh_tokens WHERE created_ts < now() - interval '30 days'`.
+  Migration `V4` indexes `created_ts` so the sweep uses an index range scan, not a full table scan.
 - **Enabling it** (opt-in; the stock `postgres:16-alpine` has no pg_cron):
   ```bash
   docker compose -f docker-compose.yml -f docker-compose.pgcron.yml up -d --build
