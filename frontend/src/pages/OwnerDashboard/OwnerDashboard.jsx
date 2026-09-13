@@ -5,6 +5,7 @@ import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { LogoMark } from '@/components/layout/Logo';
+import { notificationApi } from '@/features/notification/notificationApi';
 import {
   NAV,
   TITLES,
@@ -94,20 +95,124 @@ function Sidebar({ active, onNav, userName }) {
   );
 }
 
+function formatTimeAgo(dateInput) {
+  if (!dateInput) return '';
+  const date = typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return String(dateInput);
+
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 function Topbar({ title, onAddListing, onNav }) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
-  const [notifs, setNotifs] = useState(NOTIFICATIONS);
+  const [notifs, setNotifs] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const ref = useRef(null);
+
   useEffect(() => {
     const onDoc = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('click', onDoc);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, []);
-  const hasUnread = notifs.some((n) => n.unread);
+
+  useEffect(() => {
+    if (!user) {
+      if (import.meta.env.DEV) {
+        setNotifs(
+          NOTIFICATIONS.map((n, i) => ({
+            id: i + 1,
+            title: '',
+            message: n.text,
+            tone: n.dot || 'teal',
+            read: !n.unread,
+            createdAt: null,
+            timeText: n.time,
+          }))
+        );
+        setUnreadCount(NOTIFICATIONS.filter((n) => n.unread).length);
+      }
+      return;
+    }
+
+    setLoading(true);
+    notificationApi
+      .getNotifications()
+      .then((data) => {
+        setNotifs(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      })
+      .catch(() => {
+        if (import.meta.env.DEV) {
+          setNotifs(
+            NOTIFICATIONS.map((n, i) => ({
+              id: i + 1,
+              title: '',
+              message: n.text,
+              tone: n.dot || 'teal',
+              read: !n.unread,
+              createdAt: null,
+              timeText: n.time,
+            }))
+          );
+          setUnreadCount(NOTIFICATIONS.filter((n) => n.unread).length);
+        } else {
+          showToast('Failed to load notifications.', 'error');
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [user, showToast]);
+
+  const handleItemClick = (n) => {
+    if (!n.read && user) {
+      setNotifs((prev) =>
+        prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+      notificationApi.markAsRead(n.id).catch(() => {});
+    }
+    if (n.targetUrl) {
+      setOpen(false);
+      if (n.targetUrl.includes('quotes')) onNav('quotes');
+      else if (n.targetUrl.includes('listings')) onNav('listings');
+      else if (n.targetUrl.includes('tenders')) onNav('tenders');
+      else if (n.targetUrl.includes('calendar')) onNav('calendar');
+      else if (n.targetUrl.includes('analytics')) onNav('analytics');
+      else if (n.targetUrl.includes('settings')) onNav('settings');
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+    if (user) {
+      notificationApi.markAllAsRead().catch(() => {});
+    }
+    showToast('All notifications marked as read.');
+  };
+
+  const hasUnread = unreadCount > 0;
+
   return (
     <div className="topbar">
       <div className="topbar-title">{title}</div>
@@ -128,7 +233,12 @@ function Topbar({ title, onAddListing, onNav }) {
           Add Listing
         </button>
         <div className="notif-wrap" ref={ref}>
-          <button className="notif-btn" onClick={() => setOpen((o) => !o)}>
+          <button
+            className="notif-btn"
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Notifications"
+            aria-expanded={open}
+          >
             <svg
               width="15"
               height="15"
@@ -144,33 +254,41 @@ function Topbar({ title, onAddListing, onNav }) {
             </svg>
             {hasUnread && <span className="notif-badge-dot" />}
           </button>
-          <div className={cn('notif-dropdown', open && 'open')}>
+          <div className={cn('notif-dropdown', open && 'open')} role="region" aria-label="Notifications panel">
             <div className="nd-header">
-              <h4>Notifications</h4>
-              <button
-                onClick={() => {
-                  setNotifs((p) => p.map((n) => ({ ...n, unread: false })));
-                  showToast('All notifications marked as read.');
-                }}
-              >
-                Mark all read
-              </button>
+              <h4>Notifications {unreadCount > 0 && `(${unreadCount})`}</h4>
+              {notifs.length > 0 && (
+                <button onClick={handleMarkAllRead}>
+                  Mark all read
+                </button>
+              )}
             </div>
-            {notifs.map((n, i) => (
-              <div
-                key={i}
-                className={cn('nd-item', n.unread && 'unread')}
-                onClick={() =>
-                  setNotifs((p) => p.map((x, idx) => (idx === i ? { ...x, unread: false } : x)))
-                }
-              >
-                <div className={cn('nd-dot', n.dot)} />
-                <div>
-                  <div className="nd-text">{n.text}</div>
-                  <div className="nd-time">{n.time}</div>
-                </div>
+            {loading && notifs.length === 0 ? (
+              <div style={{ padding: '20px 18px', textAlign: 'center', fontSize: 13, color: 'var(--ink-faint)' }}>
+                Loading notifications...
               </div>
-            ))}
+            ) : notifs.length === 0 ? (
+              <div style={{ padding: '24px 18px', textAlign: 'center', fontSize: 13, color: 'var(--ink-faint)' }}>
+                No notifications yet.
+              </div>
+            ) : (
+              notifs.map((n) => (
+                <div
+                  key={n.id}
+                  className={cn('nd-item', !n.read && 'unread')}
+                  onClick={() => handleItemClick(n)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className={cn('nd-dot', n.tone || 'teal')} />
+                  <div>
+                    {n.title && <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--ink-rich)', marginBottom: 2 }}>{n.title}</div>}
+                    <div className="nd-text">{n.message}</div>
+                    <div className="nd-time">{n.timeText || formatTimeAgo(n.createdAt)}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
         <div className="sb-avatar" style={{ cursor: 'pointer' }} onClick={() => onNav('settings')}>
