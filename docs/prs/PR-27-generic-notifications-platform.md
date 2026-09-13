@@ -75,7 +75,7 @@ sequenceDiagram
 
 ---
 
-## 3. Database Schema & Migration (`V4__create_notifications.sql`)
+## 3. Database Schema & Migration (`V5__create_notifications.sql`)
 
 ```sql
 CREATE TABLE notifications (
