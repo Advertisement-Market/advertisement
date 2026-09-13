@@ -11,6 +11,9 @@ import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationService;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfile;
@@ -35,17 +38,20 @@ public class OwnerRegistrationService {
     private final OwnerProfileRepository ownerProfileRepository;
     private final BillboardListingRepository billboardListingRepository;
     private final RolePolicyProperties rolePolicyProperties;
+    private final NotificationService notificationService;
 
     public OwnerRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
             OwnerProfileRepository ownerProfileRepository,
             BillboardListingRepository billboardListingRepository,
-            RolePolicyProperties rolePolicyProperties) {
+            RolePolicyProperties rolePolicyProperties,
+            NotificationService notificationService) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.ownerProfileRepository = ownerProfileRepository;
         this.billboardListingRepository = billboardListingRepository;
         this.rolePolicyProperties = rolePolicyProperties;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -78,7 +84,18 @@ public class OwnerRegistrationService {
         profile.setRegulatoryApprovals(blankToNull(request.regulatoryApprovals()));
         ownerProfileRepository.save(profile);
 
-        billboardListingRepository.save(toListing(request.billboard(), user));
+        BillboardListing listing = toListing(request.billboard(), user);
+        billboardListingRepository.save(listing);
+
+        notificationService.createNotification(
+                user,
+                "Welcome to The AdBasket!",
+                "Your account is registered. Your listing \"" + listing.getName() + "\" is under review and will be active shortly.",
+                NotificationCategory.ONBOARDING,
+                NotificationTone.TEAL,
+                "/owners/dashboard"
+        );
+
         log.info("Owner registration complete for user id={}", user.getId());
         return authService.issueTokensFor(user);
     }
