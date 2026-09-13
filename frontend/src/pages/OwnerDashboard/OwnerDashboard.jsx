@@ -97,7 +97,10 @@ function Sidebar({ active, onNav, userName }) {
 
 function formatTimeAgo(dateInput) {
   if (!dateInput) return '';
-  const date = typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput;
+  const date =
+    typeof dateInput === 'string' || typeof dateInput === 'number'
+      ? new Date(dateInput)
+      : dateInput;
   if (isNaN(date.getTime())) return String(dateInput);
 
   const now = new Date();
@@ -112,13 +115,29 @@ function formatTimeAgo(dateInput) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+const getMockNotifs = () =>
+  import.meta.env.DEV
+    ? NOTIFICATIONS.map((n, i) => ({
+        id: i + 1,
+        title: '',
+        message: n.text,
+        tone: n.dot || 'teal',
+        read: !n.unread,
+        createdAt: null,
+        timeText: n.time,
+      }))
+    : [];
+
+const getMockUnreadCount = () =>
+  import.meta.env.DEV ? NOTIFICATIONS.filter((n) => n.unread).length : 0;
+
 function Topbar({ title, onAddListing, onNav }) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
-  const [notifs, setNotifs] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [notifs, setNotifs] = useState(() => (user ? [] : getMockNotifs()));
+  const [unreadCount, setUnreadCount] = useState(() => (user ? 0 : getMockUnreadCount()));
+  const [loading, setLoading] = useState(() => Boolean(user));
   const ref = useRef(null);
 
   useEffect(() => {
@@ -138,56 +157,42 @@ function Topbar({ title, onAddListing, onNav }) {
 
   useEffect(() => {
     if (!user) {
-      if (import.meta.env.DEV) {
-        setNotifs(
-          NOTIFICATIONS.map((n, i) => ({
-            id: i + 1,
-            title: '',
-            message: n.text,
-            tone: n.dot || 'teal',
-            read: !n.unread,
-            createdAt: null,
-            timeText: n.time,
-          }))
-        );
-        setUnreadCount(NOTIFICATIONS.filter((n) => n.unread).length);
-      }
       return;
     }
 
-    setLoading(true);
+    let isMounted = true;
     notificationApi
       .getNotifications()
       .then((data) => {
-        setNotifs(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      })
-      .catch(() => {
-        if (import.meta.env.DEV) {
-          setNotifs(
-            NOTIFICATIONS.map((n, i) => ({
-              id: i + 1,
-              title: '',
-              message: n.text,
-              tone: n.dot || 'teal',
-              read: !n.unread,
-              createdAt: null,
-              timeText: n.time,
-            }))
-          );
-          setUnreadCount(NOTIFICATIONS.filter((n) => n.unread).length);
-        } else {
-          showToast('Failed to load notifications.', 'error');
+        if (isMounted) {
+          setNotifs(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
         }
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (isMounted) {
+          if (import.meta.env.DEV) {
+            setNotifs(getMockNotifs());
+            setUnreadCount(getMockUnreadCount());
+          } else {
+            showToast('Failed to load notifications.', 'error');
+          }
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, showToast]);
 
   const handleItemClick = (n) => {
     if (!n.read && user) {
-      setNotifs((prev) =>
-        prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
-      );
+      setNotifs((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
       setUnreadCount((c) => Math.max(0, c - 1));
       notificationApi.markAsRead(n.id).catch(() => {});
     }
@@ -254,21 +259,35 @@ function Topbar({ title, onAddListing, onNav }) {
             </svg>
             {hasUnread && <span className="notif-badge-dot" />}
           </button>
-          <div className={cn('notif-dropdown', open && 'open')} role="region" aria-label="Notifications panel">
+          <div
+            className={cn('notif-dropdown', open && 'open')}
+            role="region"
+            aria-label="Notifications panel"
+          >
             <div className="nd-header">
               <h4>Notifications {unreadCount > 0 && `(${unreadCount})`}</h4>
-              {notifs.length > 0 && (
-                <button onClick={handleMarkAllRead}>
-                  Mark all read
-                </button>
-              )}
+              {notifs.length > 0 && <button onClick={handleMarkAllRead}>Mark all read</button>}
             </div>
             {loading && notifs.length === 0 ? (
-              <div style={{ padding: '20px 18px', textAlign: 'center', fontSize: 13, color: 'var(--ink-faint)' }}>
+              <div
+                style={{
+                  padding: '20px 18px',
+                  textAlign: 'center',
+                  fontSize: 13,
+                  color: 'var(--ink-faint)',
+                }}
+              >
                 Loading notifications...
               </div>
             ) : notifs.length === 0 ? (
-              <div style={{ padding: '24px 18px', textAlign: 'center', fontSize: 13, color: 'var(--ink-faint)' }}>
+              <div
+                style={{
+                  padding: '24px 18px',
+                  textAlign: 'center',
+                  fontSize: 13,
+                  color: 'var(--ink-faint)',
+                }}
+              >
                 No notifications yet.
               </div>
             ) : (
@@ -282,7 +301,18 @@ function Topbar({ title, onAddListing, onNav }) {
                 >
                   <div className={cn('nd-dot', n.tone || 'teal')} />
                   <div>
-                    {n.title && <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--ink-rich)', marginBottom: 2 }}>{n.title}</div>}
+                    {n.title && (
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 12.5,
+                          color: 'var(--ink-rich)',
+                          marginBottom: 2,
+                        }}
+                      >
+                        {n.title}
+                      </div>
+                    )}
                     <div className="nd-text">{n.message}</div>
                     <div className="nd-time">{n.timeText || formatTimeAgo(n.createdAt)}</div>
                   </div>
