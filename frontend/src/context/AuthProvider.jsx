@@ -43,8 +43,7 @@ export function AuthProvider({ children }) {
   );
 
   const logout = useCallback(() => {
-    const refreshToken = authStorage.getRefreshToken();
-    authApi.logout(refreshToken).catch(() => {});
+    authApi.logout().catch(() => {});
     authStorage.clear();
     setUser(null);
   }, []);
