@@ -133,10 +133,12 @@ class AuthFlowIntegrationTest {
         String newRefreshToken = refreshResult.getResponse().getCookie("refreshToken").getValue();
         assertThat(newRefreshToken).isNotEqualTo(refreshToken);
 
-        // Replaying the old (now rotated) refresh token returns 401 TOKEN_REVOKED
+        // Replaying the old (now rotated) refresh token returns 401 TOKEN_REVOKED and clears the cookie
         mockMvc.perform(post("/api/auth/refresh")
                         .cookie(new Cookie("refreshToken", refreshToken)))
                 .andExpect(status().isUnauthorized())
+                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
+                .andExpect(cookie().maxAge("refreshToken", 0))
                 .andExpect(jsonPath("$.errorCode").value("TOKEN_REVOKED"))
                 .andExpect(jsonPath("$.message").value("Refresh token has been revoked."));
     }
@@ -163,6 +165,8 @@ class AuthFlowIntegrationTest {
     void refresh_missingToken_returns401TokenInvalid() throws Exception {
         mockMvc.perform(post("/api/auth/refresh"))
                 .andExpect(status().isUnauthorized())
+                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
+                .andExpect(cookie().maxAge("refreshToken", 0))
                 .andExpect(jsonPath("$.errorCode").value("TOKEN_INVALID"))
                 .andExpect(jsonPath("$.message").value("Refresh token is invalid."));
     }

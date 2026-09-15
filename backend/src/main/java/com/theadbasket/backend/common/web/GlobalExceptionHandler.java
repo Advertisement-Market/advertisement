@@ -1,5 +1,6 @@
 package com.theadbasket.backend.common.web;
 
+import com.theadbasket.backend.auth.AuthCookieService;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.AppException;
 import com.theadbasket.backend.common.exception.BadRequestException;
@@ -15,7 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
@@ -31,9 +34,11 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final MessageSource messageSource;
+    private final AuthCookieService authCookieService;
 
-    public GlobalExceptionHandler(MessageSource messageSource) {
+    public GlobalExceptionHandler(MessageSource messageSource, AuthCookieService authCookieService) {
         this.messageSource = messageSource;
+        this.authCookieService = authCookieService;
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
@@ -42,8 +47,19 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex, request);
     }
 
-    @ExceptionHandler({ InvalidCredentialsException.class, InvalidGoogleTokenException.class,
-            TokenRefreshException.class })
+    @ExceptionHandler(TokenRefreshException.class)
+    public ResponseEntity<ApiError> handleTokenRefresh(TokenRefreshException ex, HttpServletRequest request) {
+        log.warn("Token refresh failed on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        ResponseCookie deletionCookie = authCookieService.createDeletionCookie();
+        String message = resolve(ex.getErrorCode(), ex.getArgs());
+        ApiError body = ApiError.of(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                ex.getErrorCode().name(), message, request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.SET_COOKIE, deletionCookie.toString())
+                .body(body);
+    }
+
+    @ExceptionHandler({ InvalidCredentialsException.class, InvalidGoogleTokenException.class })
     public ResponseEntity<ApiError> handleUnauthorizedApp(AppException ex, HttpServletRequest request) {
         log.warn("Unauthorized on {}: {}", request.getRequestURI(), ex.getErrorCode());
         return build(HttpStatus.UNAUTHORIZED, ex, request);
