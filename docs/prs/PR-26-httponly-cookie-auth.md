@@ -16,7 +16,7 @@
   - Silent token refresh (`POST /api/auth/refresh`) and logout (`POST /api/auth/logout`) accept either cookie or request body (Dual-Input).
   - Replay of an already-rotated refresh token fails with `401 Unauthorized` and `errorCode: TOKEN_REVOKED`.
   - Frontend Axios client operates with `withCredentials: true` and automatically handles silent background refresh upon 401s.
-  - Legacy plaintext tokens in client `localStorage` are proactively purged at module initialization.
+  - Legacy tokens in `localStorage` are safely preserved for the initial session migration, supplied as fallback in the first refresh if no cookie exists, and purged once `setSession` completes.
 
 ---
 
@@ -123,7 +123,7 @@ sequenceDiagram
 ## 7. Verification & Testing Evidence
 - **Automated Tests Added / Updated:**
   - Unit Tests: `AuthCookieServiceTest.java` (3 unit tests for cookie creation and deletion).
-  - Integration Tests: `AuthFlowIntegrationTest.java` (9 full MockMvc tests verifying Set-Cookie headers, cookie-based refresh, `TOKEN_REVOKED` replay enforcement, body fallback, and logout cookie invalidation).
+  - Integration Tests: `AuthFlowIntegrationTest.java` (9 full MockMvc tests verifying Set-Cookie headers, cookie-based refresh, `TOKEN_REVOKED` replay enforcement and cookie invalidation, body fallback, and logout cookie invalidation).
   - Role Registration Tests: `RegistrationFlowIntegrationTest.java` (5 tests verifying Set-Cookie issuance across Advertiser, Owner, and Agency onboarding).
   - Total Backend Suite: **77 passing tests (0 failures, 0 errors)**.
 - **Frontend Automated Tests:**
@@ -132,3 +132,8 @@ sequenceDiagram
 - **Code Style & Linters:**
   - `npm run lint` &rarr; 0 errors.
   - `npm run format:check` &rarr; All files adhere to Prettier standards.
+- **Review Follow-ups (addressed in this PR):**
+  - **Dynamic Cookie Name Resolution:** Updated `@CookieValue(name = "${app.cookie.name:refreshToken}", required = false)` in `AuthController` for both `/refresh` and `/logout` to respect custom configurations.
+  - **Failed Refresh Cookie Invalidation:** Injected `AuthCookieService` into `GlobalExceptionHandler` to attach a deletion cookie (`maxAge=0`) whenever a `TokenRefreshException` is raised (`TOKEN_REVOKED`, `TOKEN_EXPIRED`, `TOKEN_INVALID`).
+  - **Zero-Drop Session Rehydration:** Removed module-level `localStorage` token wipe in `authStorage.js`, allowing `apiClient.js` to supply the legacy token during the first 401 refresh so existing users transition to cookies without forced logouts.
+  - **Cleaned Up Logout Signature:** Removed redundant `authStorage.getRefreshToken()` call from `AuthProvider.logout()`.
