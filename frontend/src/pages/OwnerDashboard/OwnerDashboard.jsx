@@ -296,6 +296,12 @@ function Topbar({ title, onAddListing, onNav }) {
                   key={n.id}
                   className={cn('nd-item', !n.read && 'unread')}
                   onClick={() => handleItemClick(n)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleItemClick(n);
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
                 >
