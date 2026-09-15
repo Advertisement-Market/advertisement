@@ -64,7 +64,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(
-            @CookieValue(name = "refreshToken", required = false) String cookieToken,
+            @CookieValue(name = "${app.cookie.name:refreshToken}", required = false) String cookieToken,
             @RequestBody(required = false) RefreshRequest request) {
         String token = resolveToken(cookieToken, request);
         AuthResponse response = authService.refresh(token);
@@ -76,7 +76,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @CookieValue(name = "refreshToken", required = false) String cookieToken,
+            @CookieValue(name = "${app.cookie.name:refreshToken}", required = false) String cookieToken,
             @RequestBody(required = false) RefreshRequest request) {
         String token = (cookieToken != null && !cookieToken.isBlank())
                 ? cookieToken
