@@ -7,16 +7,9 @@ const ACCESS_KEY = 'ab_access_token';
 const REFRESH_KEY = 'ab_refresh_token';
 const USER_KEY = 'ab_user';
 
-// Proactive migration cleanup: immediately purge any legacy refresh token from localStorage
-try {
-  localStorage.removeItem(REFRESH_KEY);
-} catch {
-  // Ignore in non-browser/restricted environments
-}
-
 export const authStorage = {
   getAccessToken: () => localStorage.getItem(ACCESS_KEY),
-  /** @deprecated Refresh token is now stored in HttpOnly cookie */
+  /** @deprecated Legacy fallback during session migration to HttpOnly cookies */
   getRefreshToken: () => localStorage.getItem(REFRESH_KEY),
   getUser: () => {
     try {

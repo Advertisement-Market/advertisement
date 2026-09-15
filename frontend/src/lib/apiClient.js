@@ -31,9 +31,13 @@ api.interceptors.response.use(
     if (status === 401 && !original?._retry && !isAuthCall) {
       original._retry = true;
       try {
+        const legacyRefreshToken = authStorage.getRefreshToken();
+        const refreshPayload = legacyRefreshToken ? { refreshToken: legacyRefreshToken } : {};
         refreshInFlight =
           refreshInFlight ||
-          axios.post(`${API_BASE_URL}/api/auth/refresh`, {}, { withCredentials: true });
+          axios.post(`${API_BASE_URL}/api/auth/refresh`, refreshPayload, {
+            withCredentials: true,
+          });
         const { data } = await refreshInFlight;
         refreshInFlight = null;
         authStorage.setSession(data);
