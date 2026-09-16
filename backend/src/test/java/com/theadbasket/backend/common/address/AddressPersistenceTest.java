@@ -4,6 +4,9 @@ import com.theadbasket.backend.advertiser.AdvertiserProfile;
 import com.theadbasket.backend.advertiser.AdvertiserProfileRepository;
 import com.theadbasket.backend.agency.AgencyProfile;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfile;
@@ -170,12 +173,12 @@ class AddressPersistenceTest {
         listing.setUser(user);
         listing.setName("WEH Prime Unipole");
         listing.setAddress(address);
-        listing.setType("Unipole");
+        listing.setType(BillboardType.UNIPOLE);
         listing.setWidthFt(new BigDecimal("40.00"));
         listing.setHeightFt(new BigDecimal("20.00"));
         listing.setFacing("North");
-        listing.setTrafficType("Vehicular");
-        listing.setAudienceType("Commuters");
+        listing.setTrafficType(TrafficType.HIGHWAY);
+        listing.setAudienceType(AudienceType.COMMUTERS);
         listing.setStartPrice(new BigDecimal("150000.00"));
         listing.setMinBooking("1 month");
 

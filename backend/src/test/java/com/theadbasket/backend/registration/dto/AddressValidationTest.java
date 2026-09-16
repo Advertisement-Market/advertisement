@@ -48,8 +48,8 @@ class AddressValidationTest {
             String line1, String line2, String landmark, String city, String state, String pincode) {
         return new BillboardListingRequest(
                 "Prime Unipole", line1, line2, landmark, city, state, pincode,
-                "Unipole", BigDecimal.valueOf(40), BigDecimal.valueOf(20), BigDecimal.valueOf(10),
-                "North", "Vehicular", "Commuters", "50k/day", BigDecimal.valueOf(100000), "1 month", "10% off"
+                "Unipole", null, BigDecimal.valueOf(40), BigDecimal.valueOf(20), BigDecimal.valueOf(10),
+                "North", "Highway", null, "Commuters", null, "50k/day", BigDecimal.valueOf(100000), "1 month", "10% off"
         );
     }
 

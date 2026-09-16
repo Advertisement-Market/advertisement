@@ -55,6 +55,8 @@ backend/
     │   │   │                 #   CustomUserDetailsService, RestAuthenticationEntryPoint
     │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/ (AppException +
     │   │   │                 #   typed subclasses) + error/ (ErrorCode catalog) + logging/ (LoggingAspect)
+    │   │   ├── lov/          # Config-driven billboard lists-of-values (BillboardType/TrafficType/
+    │   │   │                 #   AudienceType enums + config labels, LovService, LovController)
     │   │   ├── user/         # User (entity), Role (enum), UserRepository
     │   │   ├── auth/         # AuthController/Service, RefreshToken(+repo/service), dto/
     │   │   ├── advertiser/   # AdvertiserProfile + CampaignBrief (+repos)
@@ -104,6 +106,9 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar
 | POST   | `/api/auth/register/owner`      | —    | Full owner wizard → account + profile + listing    |
 | POST   | `/api/auth/register/agency`     | —    | Full agency wizard → account + profile             |
 | POST   | `/api/auth/login`               | —    | Authenticate → tokens + user                       |
+| GET    | `/api/lov/billboard-types`      | —    | Config-driven billboard-type options (`{code,label}`) |
+| GET    | `/api/lov/traffic-types`        | —    | Config-driven traffic-type options                 |
+| GET    | `/api/lov/audience-types`       | —    | Config-driven audience-type options                |
 | POST   | `/api/auth/refresh`    | —    | Exchange refresh token for a new pair (rotates)    |
 | POST   | `/api/auth/logout`     | —    | Revoke a refresh token → `204`                     |
 | GET    | `/api/auth/me`         | ✅   | Current user (Bearer access token)                 |
@@ -151,6 +156,28 @@ resolved from `messages.properties` via Spring's `MessageSource`.
 `ResourceNotFoundException`, `TokenRefreshException`, `InvalidGoogleTokenException`, …) with the
 code plus any args. **Localization:** drop in a `messages_<lang>.properties` (e.g.
 `messages_hi.properties`) — no code change needed.
+
+## Config-driven lookups (LOVs)
+
+Billboard **type**, **traffic type** and **audience type** are config-driven lists-of-values rather
+than free text. Each is a `LovType` enum in `lov/` whose constants are the stable **codes** stored on
+`billboard_listings` (e.g. `STATIC_HOARDING`); the human-readable **labels** live in
+`messages.properties` under `lov.<category>.<CODE>`, so wording and locale variants change without a
+recompile.
+
+- **Dropdown data:** `GET /api/lov/{billboard-types,traffic-types,audience-types}` returns
+  `[{ "code": "STATIC_HOARDING", "label": "Static Hoarding" }, …]` (public, no auth) for the owner form.
+- **Validation:** owner registration rejects any value outside the configured list with `400` and a
+  specific `errorCode` (`INVALID_BILLBOARD_TYPE` / `INVALID_TRAFFIC_TYPE` / `INVALID_AUDIENCE_TYPE`).
+  Submissions may send either the code or the label (case-insensitive); the canonical code is stored.
+- **"Other":** each list includes an `OTHER` code. When selected, the caller's free text is sent in the
+  companion field (`typeOther` / `trafficTypeOther` / `audienceTypeOther`) and persisted in the matching
+  `*_other` column; for any non-`OTHER` value the companion column stays null.
+- **Adding a value:** add a constant to the enum, add its `lov.<category>.<CODE>` label to
+  `messages.properties` — the endpoint and validation pick it up automatically.
+
+> **Frontend contract:** to use `OTHER`, the client must send `type=OTHER` (or traffic/audience) plus
+> the free text in the `*Other` field. Predefined selections keep working by sending the label as today.
 
 ## Logging
 

@@ -38,6 +38,9 @@ public record BillboardListingRequest(
         @NotBlank(message = "Billboard type is required.")
         @Size(max = 60)
         String type,
+        // Free-text description, used only when `type` is OTHER.
+        @Size(max = 120)
+        String typeOther,
         @NotNull(message = "Width is required.")
         @Positive
         BigDecimal widthFt,
@@ -52,9 +55,15 @@ public record BillboardListingRequest(
         @NotBlank(message = "Traffic type is required.")
         @Size(max = 80)
         String trafficType,
+        // Free-text description, used only when `trafficType` is OTHER.
+        @Size(max = 120)
+        String trafficTypeOther,
         @NotBlank(message = "Audience type is required.")
         @Size(max = 120)
         String audienceType,
+        // Free-text description, used only when `audienceType` is OTHER.
+        @Size(max = 120)
+        String audienceTypeOther,
         @Size(max = 60)
         String footfall,
         @NotNull(message = "Starting price is required.")
