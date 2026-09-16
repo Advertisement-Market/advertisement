@@ -20,6 +20,10 @@ import com.theadbasket.backend.advertiser.AdvertiserProfileRepository;
 import com.theadbasket.backend.advertiser.CampaignBriefRepository;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
+import com.theadbasket.backend.notification.Notification;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationRepository;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfileRepository;
 import com.theadbasket.backend.user.AuthProvider;
@@ -47,6 +51,8 @@ class RegistrationFlowIntegrationTest {
     private BillboardListingRepository billboardListings;
     @Autowired
     private AgencyProfileRepository agencyProfiles;
+    @Autowired
+    private NotificationRepository notificationRepository;
     @Autowired
     private AuthProviderPolicyProperties authProviderPolicy;
 
@@ -125,6 +131,11 @@ class RegistrationFlowIntegrationTest {
                 .andExpect(jsonPath("$.user.email").value("owner@example.com"));
         assertThat(ownerProfiles.count()).isEqualTo(1);
         assertThat(billboardListings.count()).isEqualTo(1);
+        assertThat(notificationRepository.count()).isEqualTo(1);
+        Notification notif = notificationRepository.findAll().get(0);
+        assertThat(notif.getCategory()).isEqualTo(NotificationCategory.ONBOARDING);
+        assertThat(notif.getTone()).isEqualTo(NotificationTone.TEAL);
+        assertThat(notif.isRead()).isFalse();
     }
 
     @Test
