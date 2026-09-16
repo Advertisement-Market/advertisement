@@ -69,6 +69,11 @@ app:
     secret: ${JWT_SECRET:dev-only-secret-change-me-in-production-min-32-chars-please}
     access-token-expiration: 15m
     refresh-token-expiration: 7d
+  cookie:
+    name: refreshToken
+    secure: ${COOKIE_SECURE:false}
+    same-site: Strict
+    path: /api/auth
   google:
     # OAuth 2.0 Web client id. The ID token's audience must match this. Set via GOOGLE_CLIENT_ID.
     # Leave blank to disable Google sign-in.

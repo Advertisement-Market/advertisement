@@ -10,6 +10,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,6 +103,9 @@ class RegistrationFlowIntegrationTest {
         mockMvc.perform(post("/api/auth/register/advertiser")
                 .contentType(MediaType.APPLICATION_JSON).content(ADVERTISER))
                 .andExpect(status().isCreated())
+                .andExpect(header().exists("Set-Cookie"))
+                .andExpect(cookie().exists("refreshToken"))
+                .andExpect(cookie().httpOnly("refreshToken", true))
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty())
                 .andExpect(jsonPath("$.user.email").value("adv@example.com"))
@@ -114,6 +119,8 @@ class RegistrationFlowIntegrationTest {
         mockMvc.perform(post("/api/auth/register/owner")
                 .contentType(MediaType.APPLICATION_JSON).content(OWNER))
                 .andExpect(status().isCreated())
+                .andExpect(header().exists("Set-Cookie"))
+                .andExpect(cookie().exists("refreshToken"))
                 .andExpect(jsonPath("$.user.role").value("OWNER"))
                 .andExpect(jsonPath("$.user.email").value("owner@example.com"));
         assertThat(ownerProfiles.count()).isEqualTo(1);
@@ -125,6 +132,8 @@ class RegistrationFlowIntegrationTest {
         mockMvc.perform(post("/api/auth/register/agency")
                 .contentType(MediaType.APPLICATION_JSON).content(AGENCY))
                 .andExpect(status().isCreated())
+                .andExpect(header().exists("Set-Cookie"))
+                .andExpect(cookie().exists("refreshToken"))
                 .andExpect(jsonPath("$.user.role").value("AGENCY"))
                 .andExpect(jsonPath("$.user.email").value("agency@example.com"));
         assertThat(agencyProfiles.count()).isEqualTo(1);
