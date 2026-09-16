@@ -948,14 +948,21 @@ function Overview({ onNav, calData, listingsCount }) {
   );
 }
 
-function Listings({ listings = [], loading = false, onAddListing, onEditListing, onDeleteListing }) {
+function Listings({
+  listings = [],
+  loading = false,
+  onAddListing,
+  onEditListing,
+  onDeleteListing,
+}) {
   const { showToast } = useToast();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
 
   const filtered = listings.filter((l) => {
     const nameMatch = (l.name || '').toLowerCase().includes(q.toLowerCase());
-    const metaText = `${l.addressLine1 || ''} ${l.city || ''} ${l.type || ''} ${l.meta || ''}`.toLowerCase();
+    const metaText =
+      `${l.addressLine1 || ''} ${l.city || ''} ${l.type || ''} ${l.meta || ''}`.toLowerCase();
     const queryMatch = !q || nameMatch || metaText.includes(q.toLowerCase());
     const currentStatus = (l.status || 'Available').toLowerCase();
     const statusMatch = status === 'all' || currentStatus === status;
@@ -1031,9 +1038,17 @@ function Listings({ listings = [], loading = false, onAddListing, onEditListing,
               <rect x="2" y="3" width="20" height="13" rx="2" />
               <path d="M12 16v5M8 21h8" />
             </svg>
-            <p>{listings.length === 0 ? 'No billboard listings yet.' : 'No listings match your search.'}</p>
+            <p>
+              {listings.length === 0
+                ? 'No billboard listings yet.'
+                : 'No listings match your search.'}
+            </p>
             {listings.length === 0 && (
-              <button className="btn-teal btn-sm" style={{ marginTop: 12 }} onClick={() => onAddListing()}>
+              <button
+                className="btn-teal btn-sm"
+                style={{ marginTop: 12 }}
+                onClick={() => onAddListing()}
+              >
                 Add Your First Listing
               </button>
             )}
@@ -1077,7 +1092,8 @@ function Listings({ listings = [], loading = false, onAddListing, onEditListing,
                 : '₹0');
 
             const currentStatus = l.status || 'Available';
-            const currentSc = l.sc || (currentStatus === 'Available' ? 'chip-available' : 'chip-booked');
+            const currentSc =
+              l.sc || (currentStatus === 'Available' ? 'chip-available' : 'chip-booked');
 
             return (
               <div className="listing-card-full" key={l.id || l.name}>
@@ -2562,8 +2578,8 @@ function DeleteListingModal({ listing, onClose, onConfirm }) {
     >
       <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, lineHeight: 1.5 }}>
         Are you sure you want to delete listing{' '}
-        <strong style={{ color: 'var(--ink-rich)' }}>&ldquo;{listing?.name}&rdquo;</strong>? This action cannot be
-        undone and will remove the billboard from your inventory.
+        <strong style={{ color: 'var(--ink-rich)' }}>&ldquo;{listing?.name}&rdquo;</strong>? This
+        action cannot be undone and will remove the billboard from your inventory.
       </p>
     </Modal>
   );
@@ -2656,9 +2672,7 @@ export function OwnerDashboard() {
     } else {
       setListings((prev) =>
         prev.map((l) =>
-          l.id === modal.listing?.id || l.name === modal.listing?.name
-            ? { ...l, ...payload }
-            : l,
+          l.id === modal.listing?.id || l.name === modal.listing?.name ? { ...l, ...payload } : l,
         ),
       );
       showToast('Billboard listing updated successfully!', 'success');
