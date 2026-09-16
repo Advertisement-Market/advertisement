@@ -952,27 +952,8 @@ function Listings({ listings = [], loading = false, onAddListing, onEditListing,
   const { showToast } = useToast();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
-  const [statusOverrides, setStatusOverrides] = useState({});
 
-  const toggle = (id) =>
-    setStatusOverrides((prev) => {
-      const current = prev[id] || {};
-      const newStatus = current.status === 'Booked' ? 'Available' : 'Booked';
-      return {
-        ...prev,
-        [id]: {
-          status: newStatus,
-          sc: newStatus === 'Available' ? 'chip-available' : 'chip-booked',
-        },
-      };
-    });
-
-  const displayListings = listings.map((l) => ({
-    ...l,
-    ...(statusOverrides[l.id] || {}),
-  }));
-
-  const filtered = displayListings.filter((l) => {
+  const filtered = listings.filter((l) => {
     const nameMatch = (l.name || '').toLowerCase().includes(q.toLowerCase());
     const metaText = `${l.addressLine1 || ''} ${l.city || ''} ${l.type || ''} ${l.meta || ''}`.toLowerCase();
     const queryMatch = !q || nameMatch || metaText.includes(q.toLowerCase());
@@ -1050,8 +1031,8 @@ function Listings({ listings = [], loading = false, onAddListing, onEditListing,
               <rect x="2" y="3" width="20" height="13" rx="2" />
               <path d="M12 16v5M8 21h8" />
             </svg>
-            <p>{displayListings.length === 0 ? 'No billboard listings yet.' : 'No listings match your search.'}</p>
-            {displayListings.length === 0 && (
+            <p>{listings.length === 0 ? 'No billboard listings yet.' : 'No listings match your search.'}</p>
+            {listings.length === 0 && (
               <button className="btn-teal btn-sm" style={{ marginTop: 12 }} onClick={() => onAddListing()}>
                 Add Your First Listing
               </button>
@@ -1125,19 +1106,9 @@ function Listings({ listings = [], loading = false, onAddListing, onEditListing,
                     </button>
                     <button
                       className="btn-danger btn-sm"
-                      onClick={() => {
-                        if (l.id && onDeleteListing) {
-                          onDeleteListing(l);
-                        } else {
-                          toggle(l.id);
-                          showToast(
-                            `"${l.name}" marked as ${currentStatus === 'Available' ? 'Booked' : 'Available'}.`,
-                            'success',
-                          );
-                        }
-                      }}
+                      onClick={() => onDeleteListing && onDeleteListing(l)}
                     >
-                      {l.id && onDeleteListing ? 'Delete' : currentStatus === 'Available' ? 'Mark Booked' : 'Mark Available'}
+                      Delete
                     </button>
                   </div>
                 </div>
