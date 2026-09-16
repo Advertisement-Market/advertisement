@@ -226,8 +226,10 @@ Authorization: Bearer JWT (`hasRole('OWNER')`)
   - Exports async methods: `getListings()`, `getListing(id)`, `createListing(payload)`, `updateListing(id, payload)`, `deleteListing(id)`.
 - **Owner Dashboard Component:** [`OwnerDashboard.jsx`](../../frontend/src/pages/OwnerDashboard/OwnerDashboard.jsx)
   - **Dynamic State Fetching:** Loads live listings on mount for authenticated users, falling back to development mocks only when unauthenticated in `DEV` mode.
-  - **Sidebar Badge Count:** Synchronized dynamically (`listingsCount = listings.length`).
-  - **Overview Metrics:** KPI card "Active Listings" dynamically displays `listings.length`.
+  - **Search & Status Filtering:**
+    - Text search filters listings in real time client-side across name, city, type, and address metadata.
+    - The status dropdown (`All Status`, `Available`, `Booked`) operates client-side: all persisted listings default to `Available`, with UI session state (`statusOverrides`) supporting interactive availability toggling. Persistent status lifecycle/booking calendar synchronization is scoped for future quote/booking integration.
+  - **Overview Metrics:** KPI tile "Active Listings" displays total inventory count (`listingsCount = listings.length`).
   - **Modal Interactions:**
     - `ListingFormModal` (Add & Edit modes) with form state validation and prefill.
     - `DeleteListingModal` with confirmation prompt and destructive action trigger.
