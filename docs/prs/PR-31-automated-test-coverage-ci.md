@@ -92,17 +92,17 @@ The Build and Test workflow (`.github/workflows/ci.yml`) was updated:
 
 ### Local Test Execution
 - Backend:
-  ```bash
+  ```text
   mvn clean verify
-  # [INFO] Analyzed bundle 'backend' with 71 classes
-  # [INFO] All coverage checks have been met.
-  # [INFO] BUILD SUCCESS
+  [INFO] Analyzed bundle 'backend' with 71 classes
+  [INFO] All coverage checks have been met.
+  [INFO] BUILD SUCCESS
   ```
 - Frontend:
-  ```bash
+  ```text
   npm run test:coverage
-  # % Coverage report from v8: All files: 6.56% Stmts, 44.71% Branch, 24.13% Funcs
-  # Test Files 4 passed (4) | Tests 20 passed (20)
+  Coverage report from v8: All files: 6.56% Stmts, 44.71% Branch, 24.13% Funcs
+  Test Files 4 passed (4) | Tests 20 passed (20)
   ```
 - Code style & Lint:
   ```bash
