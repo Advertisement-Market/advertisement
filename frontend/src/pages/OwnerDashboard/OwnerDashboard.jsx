@@ -2682,10 +2682,14 @@ export function OwnerDashboard() {
 
   const handleDeleteListing = async (id) => {
     if (user && id) {
-      await ownerListingApi.deleteListing(id);
-      showToast('Billboard listing deleted successfully.', 'success');
-      closeModal();
-      refreshListings();
+      try {
+        await ownerListingApi.deleteListing(id);
+        showToast('Billboard listing deleted successfully.', 'success');
+        closeModal();
+        refreshListings();
+      } catch (err) {
+        showToast(apiErrorMessage(err, 'Failed to delete listing.'), 'error');
+      }
     } else {
       setListings((prev) => prev.filter((l) => l.id !== id && l.name !== modal?.listing?.name));
       showToast('Billboard listing deleted successfully.', 'success');
