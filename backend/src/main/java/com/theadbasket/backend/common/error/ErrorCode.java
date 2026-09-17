@@ -52,6 +52,7 @@ public enum ErrorCode {
     INVALID_BILLBOARD_TYPE("error.billboard.invalidType"),
     INVALID_TRAFFIC_TYPE("error.billboard.invalidTrafficType"),
     INVALID_AUDIENCE_TYPE("error.billboard.invalidAudienceType"),
+    INVALID_FACING_DIRECTION("error.billboard.invalidFacing"),
 
     // Generic
     VALIDATION_FAILED("error.validation.failed"),

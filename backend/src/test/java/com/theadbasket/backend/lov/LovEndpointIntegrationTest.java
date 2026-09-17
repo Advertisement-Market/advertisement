@@ -34,6 +34,10 @@ class LovEndpointIntegrationTest {
     private BillboardListingRepository billboardListings;
 
     private static String ownerPayload(String audienceType, String audienceTypeOther) {
+        return ownerPayload("North", audienceType, audienceTypeOther);
+    }
+
+    private static String ownerPayload(String facing, String audienceType, String audienceTypeOther) {
         return """
                 {
                   "firstName":"Vikram","lastName":"Kumar","accountEmail":"lov-owner@example.com",
@@ -43,11 +47,11 @@ class LovEndpointIntegrationTest {
                   "tradeLicenseNo":"","ownershipType":"Owned","regulatoryApprovals":"",
                   "billboard":{"name":"BKC LED Screen","addressLine1":"BKC","addressLine2":"","landmark":"",
                     "city":"Mumbai","state":"Maharashtra","pincode":"400051",
-                    "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"North",
+                    "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"%s",
                     "trafficType":"City / Urban","audienceType":"%s","audienceTypeOther":"%s",
                     "footfall":"150000","startPrice":580000,"minBooking":"3 Months","discountNote":""},
                   "acceptedTerms":true
-                }""".formatted(audienceType, audienceTypeOther);
+                }""".formatted(facing, audienceType, audienceTypeOther);
     }
 
     @Test
@@ -56,6 +60,24 @@ class LovEndpointIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].code").value("STATIC_HOARDING"))
                 .andExpect(jsonPath("$[0].label").value("Static Hoarding"));
+    }
+
+    @Test
+    void facingDirectionsEndpoint_returnsStaticList() throws Exception {
+        mockMvc.perform(get("/api/lov/facing-directions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("NORTH"))
+                .andExpect(jsonPath("$[0].label").value("North"))
+                .andExpect(jsonPath("$.length()").value(8));
+    }
+
+    @Test
+    void ownerRegistration_rejectsUnknownFacingDirection() throws Exception {
+        mockMvc.perform(post("/api/auth/register/owner")
+                .contentType(MediaType.APPLICATION_JSON).content(ownerPayload("Upwards", "Commuters", "")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_FACING_DIRECTION"));
+        assertThat(billboardListings.count()).isZero();
     }
 
     @Test
