@@ -33,6 +33,8 @@ public class SecurityConfig {
         "/api/auth/register", "/api/auth/register/**",
         "/api/auth/login", "/api/auth/google", "/api/auth/refresh", "/api/auth/logout",
         "/api/ping",
+        // Config-driven billboard lookups feed the owner form before sign-in.
+        "/api/lov/**",
         "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
         "/h2-console/**"
     };
