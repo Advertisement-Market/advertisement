@@ -44,6 +44,26 @@ class LovServiceTest {
     }
 
     @Test
+    void facingDirections_areStatic_withBakedLabels() {
+        assertThat(lovService.facingDirections())
+                .hasSize(FacingDirection.values().length)
+                .startsWith(new LovOption("NORTH", "North"))
+                .contains(new LovOption("NORTH_EAST", "North-East"))
+                .contains(new LovOption("SOUTH_WEST", "South-West"));
+    }
+
+    @Test
+    void parseFacing_acceptsCodeOrLabel_andRejectsUnknown() {
+        assertThat(lovService.parseFacing("north_east")).isEqualTo(FacingDirection.NORTH_EAST);
+        assertThat(lovService.parseFacing("South-West")).isEqualTo(FacingDirection.SOUTH_WEST);
+        assertThatThrownBy(() -> lovService.parseFacing("Upwards"))
+                .isInstanceOf(BadRequestException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_FACING_DIRECTION);
+        assertThatThrownBy(() -> lovService.parseFacing("  "))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
     void parse_acceptsCode_caseInsensitive() {
         assertThat(lovService.parse(BillboardType.class, "static_hoarding", ErrorCode.INVALID_BILLBOARD_TYPE))
                 .isEqualTo(BillboardType.STATIC_HOARDING);

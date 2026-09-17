@@ -44,6 +44,38 @@ public class LovService {
     }
 
     /**
+     * Facing directions for the owner form dropdown. This is a <b>static</b> LOV — labels are baked
+     * into {@link FacingDirection}, not resolved from config.
+     */
+    public List<LovOption> facingDirections() {
+        List<LovOption> out = new ArrayList<>(FacingDirection.values().length);
+        for (FacingDirection direction : FacingDirection.values()) {
+            out.add(new LovOption(direction.code(), direction.label()));
+        }
+        return out;
+    }
+
+    /**
+     * Resolve a client-supplied facing to its {@link FacingDirection}, accepting either the code or
+     * the fixed label, case-insensitively.
+     *
+     * @throws BadRequestException {@code INVALID_FACING_DIRECTION} when blank or unknown
+     */
+    public FacingDirection parseFacing(String input) {
+        if (input != null) {
+            String trimmed = input.trim();
+            if (!trimmed.isEmpty()) {
+                for (FacingDirection direction : FacingDirection.values()) {
+                    if (direction.code().equalsIgnoreCase(trimmed) || direction.label().equalsIgnoreCase(trimmed)) {
+                        return direction;
+                    }
+                }
+            }
+        }
+        throw new BadRequestException(ErrorCode.INVALID_FACING_DIRECTION, input);
+    }
+
+    /**
      * Resolve a client-supplied value to its enum constant, accepting either the code or the
      * (localized) label, case-insensitively.
      *

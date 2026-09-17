@@ -13,6 +13,7 @@ import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.LovService;
 import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.notification.NotificationCategory;
@@ -121,6 +122,8 @@ public class OwnerRegistrationService {
         BillboardType type = lovService.parse(BillboardType.class, req.type(), ErrorCode.INVALID_BILLBOARD_TYPE);
         TrafficType trafficType = lovService.parse(TrafficType.class, req.trafficType(), ErrorCode.INVALID_TRAFFIC_TYPE);
         AudienceType audienceType = lovService.parse(AudienceType.class, req.audienceType(), ErrorCode.INVALID_AUDIENCE_TYPE);
+        // Static LOV: facing must be one of the eight compass directions.
+        FacingDirection facing = lovService.parseFacing(req.facing());
 
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
@@ -131,7 +134,7 @@ public class OwnerRegistrationService {
         listing.setWidthFt(req.widthFt());
         listing.setHeightFt(req.heightFt());
         listing.setGroundHeightFt(req.groundHeightFt());
-        listing.setFacing(req.facing());
+        listing.setFacing(facing);
         listing.setTrafficType(trafficType);
         listing.setTrafficTypeOther(trafficType == TrafficType.OTHER ? blankToNull(req.trafficTypeOther()) : null);
         listing.setAudienceType(audienceType);
