@@ -6,6 +6,7 @@ import com.theadbasket.backend.agency.AgencyProfile;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
@@ -176,7 +177,7 @@ class AddressPersistenceTest {
         listing.setType(BillboardType.UNIPOLE);
         listing.setWidthFt(new BigDecimal("40.00"));
         listing.setHeightFt(new BigDecimal("20.00"));
-        listing.setFacing("North");
+        listing.setFacing(FacingDirection.NORTH);
         listing.setTrafficType(TrafficType.HIGHWAY);
         listing.setAudienceType(AudienceType.COMMUTERS);
         listing.setStartPrice(new BigDecimal("150000.00"));

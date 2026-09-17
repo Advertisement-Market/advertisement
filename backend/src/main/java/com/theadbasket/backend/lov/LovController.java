@@ -34,4 +34,9 @@ public class LovController {
     public List<LovOption> audienceTypes() {
         return lovService.audienceTypes();
     }
+
+    @GetMapping("/facing-directions")
+    public List<LovOption> facingDirections() {
+        return lovService.facingDirections();
+    }
 }
