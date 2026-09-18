@@ -165,3 +165,26 @@ export function mapAgency(d, s) {
     acceptedTerms: !!d.f_termsAccept,
   };
 }
+
+export function mapBillboardListing(d) {
+  return {
+    name: d.f_bbName,
+    addressLine1: d.f_bbAddr,
+    addressLine2: trimOrNull(d.f_bbAddr2),
+    landmark: trimOrNull(d.f_bbLandmark),
+    city: d.f_bbCity,
+    state: d.f_bbState,
+    pincode: d.f_bbPin,
+    type: d.f_bbType,
+    widthFt: toNumber(d.f_bbWidth),
+    heightFt: toNumber(d.f_bbHeight),
+    groundHeightFt: toNumber(d.f_bbGroundHeight),
+    facing: d.f_facing,
+    trafficType: trimOrNull(d.f_trafficOther) || d.f_trafficType,
+    audienceType: trimOrNull(d.f_audienceOther) || d.f_audience,
+    footfall: trimOrNull(d.f_footfall),
+    startPrice: toNumber(d.f_startPrice),
+    minBooking: d.f_minBooking,
+    discountNote: trimOrNull(d.f_discountNote),
+  };
+}
