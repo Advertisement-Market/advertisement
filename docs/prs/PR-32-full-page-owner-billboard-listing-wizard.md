@@ -1,6 +1,6 @@
 # Frontend Technical Document: Full-Page Multi-Step Billboard Listing Creation Flow
 
-- **PR Link / Ticket:** #29
+- **PR Link / Ticket:** #32
 - **Author:** @vedafactor
 - **Date:** 2026-09-18
 - **Module / Route:** `frontend/src/pages/NewBillboardListing`, `frontend/src/pages/OwnerDashboard`, `frontend/src/features/owner`
