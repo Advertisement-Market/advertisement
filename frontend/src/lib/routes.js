@@ -21,6 +21,9 @@ export const ROUTES = {
   ownerDashboard: '/owners/dashboard',
   agencyDashboard: '/agencies/dashboard',
 
+  // Owner listing inventory
+  newBillboardListing: '/owners/listings/new',
+
   // Discovery
   browse: '/browse',
   browseAgencies: '/browse/agencies',

@@ -11,6 +11,7 @@ import { Browse } from '@/pages/Browse/Browse';
 import { BrowseAgencies } from '@/pages/BrowseAgencies/BrowseAgencies';
 import { AdvertiserDashboard } from '@/pages/AdvertiserDashboard/AdvertiserDashboard';
 import { OwnerDashboard } from '@/pages/OwnerDashboard/OwnerDashboard';
+import { NewBillboardListing } from '@/pages/NewBillboardListing/NewBillboardListing';
 import { AgencyDashboard } from '@/pages/AgencyDashboard/AgencyDashboard';
 import { ComingSoon } from '@/pages/_stubs/ComingSoon';
 
@@ -34,6 +35,7 @@ export function AppRoutes() {
 
       <Route path={ROUTES.advertiserDashboard} element={<AdvertiserDashboard />} />
       <Route path={ROUTES.ownerDashboard} element={<OwnerDashboard />} />
+      <Route path={ROUTES.newBillboardListing} element={<NewBillboardListing />} />
       <Route path={ROUTES.agencyDashboard} element={<AgencyDashboard />} />
 
       <Route path={ROUTES.browse} element={<Browse />} />

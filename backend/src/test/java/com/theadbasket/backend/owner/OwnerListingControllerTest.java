@@ -1,6 +1,7 @@
 package com.theadbasket.backend.owner;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.address.AddressRepository;
+import com.theadbasket.backend.notification.Notification;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationRepository;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
 import com.theadbasket.backend.security.JwtService;
@@ -49,6 +54,9 @@ class OwnerListingControllerTest {
 
     @Autowired
     private AddressRepository addressRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -177,6 +185,16 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.addressLine1").value("Central Avenue"))
                 .andExpect(jsonPath("$.city").value("Mumbai"))
                 .andExpect(jsonPath("$.pincode").value("400076"));
+
+        List<Notification> notifs = notificationRepository.findTop50ByUserIdOrderByCreatedTsDesc(owner1.getId());
+        assertThat(notifs).isNotEmpty();
+        Notification latest = notifs.get(0);
+        assertThat(latest.getTitle()).isEqualTo("New Billboard Listed");
+        assertThat(latest.getMessage()).contains("Powai IT Park LED");
+        assertThat(latest.getCategory()).isEqualTo(NotificationCategory.ONBOARDING);
+        assertThat(latest.getTone()).isEqualTo(NotificationTone.TEAL);
+        assertThat(latest.getTargetUrl()).isEqualTo("/owners/dashboard?tab=listings");
+        assertThat(latest.isRead()).isFalse();
     }
 
     @Test

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapAdvertiser, mapOwner, mapAgency } from './registrationMappers';
+import { mapAdvertiser, mapOwner, mapAgency, mapBillboardListing } from './registrationMappers';
 
 describe('registrationMappers - Address and Payload Structure', () => {
   describe('mapAdvertiser', () => {
@@ -231,6 +231,145 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(result.contactNo).toBe('022-12345678');
       expect(result.expertiseTags).toEqual(['OOH', 'Transit', 'Digital']);
       expect(result.portfolio).toEqual([{ title: 'Summer Campaign', meta: 'FMCG, 2025' }]);
+    });
+  });
+
+  describe('mapBillboardListing', () => {
+    it('maps form data to standalone BillboardListingCreateRequest format with proper types', () => {
+      const formData = {
+        f_bbName: 'Prime Unipole SG Highway',
+        f_bbAddr: 'Plot 45, SG Highway',
+        f_bbAddr2: '  Phase 2  ',
+        f_bbLandmark: '  Opposite Iscon Mall  ',
+        f_bbCity: 'Ahmedabad',
+        f_bbState: 'Gujarat',
+        f_bbPin: '380015',
+        f_bbType: 'Unipole',
+        f_bbWidth: '40',
+        f_bbHeight: '20',
+        f_bbGroundHeight: '10',
+        f_facing: 'North',
+        f_trafficType: 'Vehicular',
+        f_audience: 'Commuters',
+        f_footfall: '50,000/day',
+        f_startPrice: '150,000',
+        f_minBooking: '1 month',
+        f_discountNote: '10% discount on 3+ months',
+      };
+
+      const result = mapBillboardListing(formData);
+
+      expect(result).toEqual({
+        name: 'Prime Unipole SG Highway',
+        addressLine1: 'Plot 45, SG Highway',
+        addressLine2: 'Phase 2',
+        landmark: 'Opposite Iscon Mall',
+        city: 'Ahmedabad',
+        state: 'Gujarat',
+        pincode: '380015',
+        type: 'Unipole',
+        widthFt: 40,
+        heightFt: 20,
+        groundHeightFt: 10,
+        facing: 'North',
+        trafficType: 'Vehicular',
+        audienceType: 'Commuters',
+        footfall: '50,000/day',
+        startPrice: 150000,
+        minBooking: '1 month',
+        discountNote: '10% discount on 3+ months',
+      });
+    });
+
+    it('falls back to custom traffic and audience options when other is specified', () => {
+      const formData = {
+        f_bbName: 'Tech Park Screen',
+        f_bbAddr: 'Whitefield Main Rd',
+        f_bbCity: 'Bengaluru',
+        f_bbState: 'Karnataka',
+        f_bbPin: '560066',
+        f_bbType: 'LED Digital',
+        f_bbWidth: '30',
+        f_bbHeight: '15',
+        f_facing: 'East',
+        f_trafficType: 'other',
+        f_trafficOther: 'Metro Corridor',
+        f_audience: 'other',
+        f_audienceOther: 'IT Professionals',
+        f_startPrice: '200000',
+        f_minBooking: '2 weeks',
+      };
+
+      const result = mapBillboardListing(formData);
+
+      expect(result.trafficType).toBe('Metro Corridor');
+      expect(result.audienceType).toBe('IT Professionals');
+      expect(result.addressLine2).toBeNull();
+      expect(result.landmark).toBeNull();
+      expect(result.groundHeightFt).toBeNull();
+      expect(result.footfall).toBeNull();
+      expect(result.discountNote).toBeNull();
+    });
+
+    it('strictly excludes UI-only calendar and media upload fields from the API payload', () => {
+      const formDataWithMediaAndCalendar = {
+        f_bbName: 'Prime LED Hoarding',
+        f_bbAddr: 'JVLR Junction',
+        f_bbCity: 'Mumbai',
+        f_bbState: 'Maharashtra',
+        f_bbPin: '400076',
+        f_bbType: 'LED Digital',
+        f_bbWidth: '40',
+        f_bbHeight: '20',
+        f_facing: 'South',
+        f_trafficType: 'Highway',
+        f_audience: 'Commuters',
+        f_startPrice: '300000',
+        f_minBooking: '1 month',
+        // UI-only fields from Step 2 and Step 3:
+        f_photos: ['blob:http://localhost/photo1.jpg', 'blob:http://localhost/photo2.jpg'],
+        f_videoUrl: 'https://youtube.com/demo',
+        f_calBookedDates: ['2026-10-01', '2026-10-02'],
+        f_availOption: 'available',
+        f_lat: 19.1234,
+        f_lng: 72.8456,
+      };
+
+      const result = mapBillboardListing(formDataWithMediaAndCalendar);
+
+      // Verify exact 18 keys in output payload
+      const expectedKeys = [
+        'name',
+        'addressLine1',
+        'addressLine2',
+        'landmark',
+        'city',
+        'state',
+        'pincode',
+        'type',
+        'widthFt',
+        'heightFt',
+        'groundHeightFt',
+        'facing',
+        'trafficType',
+        'audienceType',
+        'footfall',
+        'startPrice',
+        'minBooking',
+        'discountNote',
+      ];
+      expect(Object.keys(result).sort()).toEqual(expectedKeys.sort());
+      expect(Object.keys(result).length).toBe(18);
+
+      // Explicitly assert UI-only fields are NOT present
+      expect(result).not.toHaveProperty('photos');
+      expect(result).not.toHaveProperty('f_photos');
+      expect(result).not.toHaveProperty('videoUrl');
+      expect(result).not.toHaveProperty('f_videoUrl');
+      expect(result).not.toHaveProperty('calBookedDates');
+      expect(result).not.toHaveProperty('availOption');
+      expect(result).not.toHaveProperty('lat');
+      expect(result).not.toHaveProperty('lng');
     });
   });
 });
