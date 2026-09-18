@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
@@ -2619,6 +2619,7 @@ function DeleteListingModal({ listing, onClose, onConfirm }) {
 
 /* ════════════════════════════════════════════════════════════════════ */
 export function OwnerDashboard() {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { user } = useAuth();
   const [page, setPage] = useState('overview');
@@ -2671,28 +2672,6 @@ export function OwnerDashboard() {
   const nav = (p) => {
     setPage(p);
   };
-
-  const handleCreateListing = async (payload) => {
-    if (user) {
-      await ownerListingApi.createListing(payload);
-      showToast('Billboard listing added successfully!', 'success');
-      refreshListings();
-    } else {
-      setListings((prev) => [
-        {
-          id: Date.now(),
-          ...payload,
-          views: 0,
-          quotes: 0,
-          status: 'Available',
-          sc: 'chip-available',
-        },
-        ...prev,
-      ]);
-      showToast('Billboard listing added successfully!', 'success');
-    }
-  };
-
   const handleUpdateListing = async (payload) => {
     if (user && modal?.listing?.id) {
       await ownerListingApi.updateListing(modal.listing.id, payload);
@@ -2730,7 +2709,7 @@ export function OwnerDashboard() {
       <div className="main">
         <Topbar
           title={TITLES[page] || 'Dashboard'}
-          onAddListing={() => setModal({ type: 'addListing' })}
+          onAddListing={() => navigate(ROUTES.newBillboardListing)}
           onNav={nav}
         />
         {page === 'overview' && (
@@ -2740,7 +2719,7 @@ export function OwnerDashboard() {
           <Listings
             listings={listings}
             loading={loadingListings}
-            onAddListing={() => setModal({ type: 'addListing' })}
+            onAddListing={() => navigate(ROUTES.newBillboardListing)}
             onEditListing={(listing) => setModal({ type: 'editListing', listing })}
             onDeleteListing={(listing) => setModal({ type: 'deleteListing', listing })}
           />
@@ -2756,13 +2735,6 @@ export function OwnerDashboard() {
         {page === 'settings' && <SettingsPage onSaveName={setUserName} />}
       </div>
 
-      {modal?.type === 'addListing' && (
-        <ListingFormModal
-          title="Add New Billboard Listing"
-          onClose={closeModal}
-          onSave={handleCreateListing}
-        />
-      )}
       {modal?.type === 'editListing' && (
         <ListingFormModal
           title="Edit Billboard Listing"
@@ -2775,6 +2747,7 @@ export function OwnerDashboard() {
       {modal?.type === 'deleteListing' && (
         <DeleteListingModal
           listing={modal.listing}
+
           onClose={closeModal}
           onConfirm={handleDeleteListing}
         />
