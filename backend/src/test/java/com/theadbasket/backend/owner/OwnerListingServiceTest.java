@@ -21,6 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationService;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -37,13 +40,16 @@ class OwnerListingServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private OwnerListingService ownerListingService;
 
     private User owner;
 
     @BeforeEach
     void setUp() {
-        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository);
+        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, notificationService);
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
     }
 
@@ -146,6 +152,15 @@ class OwnerListingServiceTest {
         BillboardListing saved = captor.getValue();
         assertThat(saved.getUser()).isEqualTo(owner);
         assertThat(saved.getName()).isEqualTo("Powai Prime Screen");
+
+        verify(notificationService).createNotification(
+                owner,
+                "New Billboard Listed",
+                "Your listing \"Powai Prime Screen\" has been created and submitted for verification.",
+                NotificationCategory.ONBOARDING,
+                NotificationTone.TEAL,
+                "/owners/dashboard?tab=listings"
+        );
     }
 
     @Test

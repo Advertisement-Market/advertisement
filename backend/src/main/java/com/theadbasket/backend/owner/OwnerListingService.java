@@ -10,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationService;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -26,11 +29,14 @@ public class OwnerListingService {
 
     private final BillboardListingRepository billboardListingRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public OwnerListingService(BillboardListingRepository billboardListingRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               NotificationService notificationService) {
         this.billboardListingRepository = billboardListingRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -80,6 +86,16 @@ public class OwnerListingService {
 
         BillboardListing saved = billboardListingRepository.save(listing);
         log.info("Created billboard listing id={} for user id={}", saved.getId(), userId);
+
+        notificationService.createNotification(
+                user,
+                "New Billboard Listed",
+                "Your listing \"" + saved.getName() + "\" has been created and submitted for verification.",
+                NotificationCategory.ONBOARDING,
+                NotificationTone.TEAL,
+                "/owners/dashboard?tab=listings"
+        );
+
         return BillboardListingDto.from(saved);
     }
 
