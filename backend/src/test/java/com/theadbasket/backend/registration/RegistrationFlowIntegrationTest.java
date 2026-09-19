@@ -84,7 +84,7 @@ class RegistrationFlowIntegrationTest {
                 "city":"Mumbai","state":"Maharashtra","pincode":"400051",
                 "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"North",
                 "trafficType":"City / Urban","audienceType":"Commuters","footfall":"150000","startPrice":580000,
-                "minBooking":"3 Months","discountNote":""},
+                "minBookingValue":3,"minBookingUnit":"MONTHS","discountNote":""},
               "acceptedTerms":true
             }""";
 

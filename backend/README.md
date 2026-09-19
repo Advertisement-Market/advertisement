@@ -110,6 +110,7 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar
 | GET    | `/api/lov/traffic-types`        | —    | Config-driven traffic-type options                 |
 | GET    | `/api/lov/audience-types`       | —    | Config-driven audience-type options                |
 | GET    | `/api/lov/facing-directions`    | —    | Static facing-direction options (8 compass points) |
+| GET    | `/api/lov/booking-duration-units` | — | Static min-booking units (Days / Weeks / Months)   |
 | POST   | `/api/auth/refresh`    | —    | Exchange refresh token for a new pair (rotates)    |
 | POST   | `/api/auth/logout`     | —    | Revoke a refresh token → `204`                     |
 | GET    | `/api/auth/me`         | ✅   | Current user (Bearer access token)                 |
@@ -170,6 +171,13 @@ recompile.
 bakes its labels into the enum (no config lookup). It is served the same way at
 `GET /api/lov/facing-directions` and validated the same way (`INVALID_FACING_DIRECTION`), but has no
 `OTHER`/companion column.
+
+**Minimum booking duration** is captured as a **value + unit** (two dropdowns): the owner picks a
+number and a `BookingDurationUnit` (`DAYS` / `WEEKS` / `MONTHS`, a static LOV served at
+`GET /api/lov/booking-duration-units`). The backend stores what the owner chose (`min_booking_value`,
+`min_booking_unit`) **and** the duration normalized to days (`min_booking_days = value × unit`, where
+a month is a flat **30 days**) so availability/pricing can compare listings on one scale. An unknown
+unit is rejected with `INVALID_BOOKING_DURATION_UNIT`; the value must be a positive integer.
 
 - **Dropdown data:** `GET /api/lov/{billboard-types,traffic-types,audience-types}` returns
   `[{ "code": "STATIC_HOARDING", "label": "Static Hoarding" }, …]` (public, no auth) for the owner form.
