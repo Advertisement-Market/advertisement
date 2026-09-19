@@ -6,6 +6,7 @@ import com.theadbasket.backend.agency.AgencyProfile;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
 import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.BillboardListing;
@@ -181,7 +182,9 @@ class AddressPersistenceTest {
         listing.setTrafficType(TrafficType.HIGHWAY);
         listing.setAudienceType(AudienceType.COMMUTERS);
         listing.setStartPrice(new BigDecimal("150000.00"));
-        listing.setMinBooking("1 month");
+        listing.setMinBookingValue(1);
+        listing.setMinBookingUnit(BookingDurationUnit.MONTHS);
+        listing.setMinBookingDays(30);
 
         BillboardListing savedListing = billboardListingRepository.saveAndFlush(listing);
         Long addressId = savedListing.getAddress().getId();

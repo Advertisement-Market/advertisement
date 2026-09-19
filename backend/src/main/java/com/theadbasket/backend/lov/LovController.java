@@ -39,4 +39,9 @@ public class LovController {
     public List<LovOption> facingDirections() {
         return lovService.facingDirections();
     }
+
+    @GetMapping("/booking-duration-units")
+    public List<LovOption> bookingDurationUnits() {
+        return lovService.bookingDurationUnits();
+    }
 }

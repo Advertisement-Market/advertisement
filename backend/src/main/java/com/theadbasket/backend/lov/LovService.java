@@ -76,6 +76,38 @@ public class LovService {
     }
 
     /**
+     * Minimum-booking duration units for the owner form dropdown. A <b>static</b> LOV — labels are
+     * baked into {@link BookingDurationUnit}.
+     */
+    public List<LovOption> bookingDurationUnits() {
+        List<LovOption> out = new ArrayList<>(BookingDurationUnit.values().length);
+        for (BookingDurationUnit unit : BookingDurationUnit.values()) {
+            out.add(new LovOption(unit.code(), unit.label()));
+        }
+        return out;
+    }
+
+    /**
+     * Resolve a client-supplied booking-duration unit to its {@link BookingDurationUnit}, accepting
+     * either the code or the fixed label, case-insensitively.
+     *
+     * @throws BadRequestException {@code INVALID_BOOKING_DURATION_UNIT} when blank or unknown
+     */
+    public BookingDurationUnit parseBookingDurationUnit(String input) {
+        if (input != null) {
+            String trimmed = input.trim();
+            if (!trimmed.isEmpty()) {
+                for (BookingDurationUnit unit : BookingDurationUnit.values()) {
+                    if (unit.code().equalsIgnoreCase(trimmed) || unit.label().equalsIgnoreCase(trimmed)) {
+                        return unit;
+                    }
+                }
+            }
+        }
+        throw new BadRequestException(ErrorCode.INVALID_BOOKING_DURATION_UNIT, input);
+    }
+
+    /**
      * Resolve a client-supplied value to its enum constant, accepting either the code or the
      * (localized) label, case-insensitively.
      *

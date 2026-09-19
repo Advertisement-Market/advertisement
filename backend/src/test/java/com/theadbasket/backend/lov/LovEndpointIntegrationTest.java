@@ -49,7 +49,7 @@ class LovEndpointIntegrationTest {
                     "city":"Mumbai","state":"Maharashtra","pincode":"400051",
                     "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"%s",
                     "trafficType":"City / Urban","audienceType":"%s","audienceTypeOther":"%s",
-                    "footfall":"150000","startPrice":580000,"minBooking":"3 Months","discountNote":""},
+                    "footfall":"150000","startPrice":580000,"minBookingValue":3,"minBookingUnit":"MONTHS","discountNote":""},
                   "acceptedTerms":true
                 }""".formatted(facing, audienceType, audienceTypeOther);
     }
@@ -101,5 +101,37 @@ class LovEndpointIntegrationTest {
         // Non-OTHER selections must not persist stray free text.
         assertThat(listing.getTrafficType()).isEqualTo(TrafficType.CITY_URBAN);
         assertThat(listing.getTrafficTypeOther()).isNull();
+    }
+
+    @Test
+    void bookingDurationUnitsEndpoint_returnsStaticList() throws Exception {
+        mockMvc.perform(get("/api/lov/booking-duration-units"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].code").value("DAYS"))
+                .andExpect(jsonPath("$[2].code").value("MONTHS"));
+    }
+
+    @Test
+    void ownerRegistration_storesMinBookingSplit_andNormalizedDays() throws Exception {
+        // Payload uses minBookingValue=3, minBookingUnit=MONTHS.
+        mockMvc.perform(post("/api/auth/register/owner")
+                .contentType(MediaType.APPLICATION_JSON).content(ownerPayload("Commuters", "")))
+                .andExpect(status().isCreated());
+
+        BillboardListing listing = billboardListings.findAll().get(0);
+        assertThat(listing.getMinBookingValue()).isEqualTo(3);
+        assertThat(listing.getMinBookingUnit()).isEqualTo(BookingDurationUnit.MONTHS);
+        assertThat(listing.getMinBookingDays()).isEqualTo(90);
+    }
+
+    @Test
+    void ownerRegistration_rejectsUnknownBookingUnit() throws Exception {
+        String payload = ownerPayload("Commuters", "").replace("\"minBookingUnit\":\"MONTHS\"", "\"minBookingUnit\":\"FORTNIGHTS\"");
+        mockMvc.perform(post("/api/auth/register/owner")
+                .contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_BOOKING_DURATION_UNIT"));
+        assertThat(billboardListings.count()).isZero();
     }
 }

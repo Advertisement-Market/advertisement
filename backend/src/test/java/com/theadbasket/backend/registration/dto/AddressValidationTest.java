@@ -49,7 +49,7 @@ class AddressValidationTest {
         return new BillboardListingRequest(
                 "Prime Unipole", line1, line2, landmark, city, state, pincode,
                 "Unipole", null, BigDecimal.valueOf(40), BigDecimal.valueOf(20), BigDecimal.valueOf(10),
-                "North", "Highway", null, "Commuters", null, "50k/day", BigDecimal.valueOf(100000), "1 month", "10% off"
+                "North", "Highway", null, "Commuters", null, "50k/day", BigDecimal.valueOf(100000), 1, "MONTHS", "10% off"
         );
     }
 

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
 import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.user.User;
@@ -95,8 +96,17 @@ public class BillboardListing {
     @Column(name = "start_price", nullable = false, precision = 14, scale = 2)
     private BigDecimal startPrice;
 
-    @Column(name = "min_booking", nullable = false, length = 50)
-    private String minBooking;
+    /** Minimum booking duration as the owner entered it: a count of {@link #minBookingUnit}. */
+    @Column(name = "min_booking_value", nullable = false)
+    private Integer minBookingValue;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "min_booking_unit", nullable = false, length = 20)
+    private BookingDurationUnit minBookingUnit;
+
+    /** The minimum booking duration normalized to days ({@code value * unit.daysPerUnit}). */
+    @Column(name = "min_booking_days", nullable = false)
+    private Integer minBookingDays;
 
     @Column(name = "discount_note", length = 500)
     private String discountNote;
@@ -229,12 +239,28 @@ public class BillboardListing {
         this.startPrice = startPrice;
     }
 
-    public String getMinBooking() {
-        return minBooking;
+    public Integer getMinBookingValue() {
+        return minBookingValue;
     }
 
-    public void setMinBooking(String minBooking) {
-        this.minBooking = minBooking;
+    public void setMinBookingValue(Integer minBookingValue) {
+        this.minBookingValue = minBookingValue;
+    }
+
+    public BookingDurationUnit getMinBookingUnit() {
+        return minBookingUnit;
+    }
+
+    public void setMinBookingUnit(BookingDurationUnit minBookingUnit) {
+        this.minBookingUnit = minBookingUnit;
+    }
+
+    public Integer getMinBookingDays() {
+        return minBookingDays;
+    }
+
+    public void setMinBookingDays(Integer minBookingDays) {
+        this.minBookingDays = minBookingDays;
     }
 
     public String getDiscountNote() {
