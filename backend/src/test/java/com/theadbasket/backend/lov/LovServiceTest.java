@@ -64,6 +64,31 @@ class LovServiceTest {
     }
 
     @Test
+    void bookingDurationUnits_areStatic_withBakedLabels() {
+        assertThat(lovService.bookingDurationUnits())
+                .containsExactly(
+                        new LovOption("DAYS", "Days"),
+                        new LovOption("WEEKS", "Weeks"),
+                        new LovOption("MONTHS", "Months"));
+    }
+
+    @Test
+    void parseBookingDurationUnit_acceptsCodeOrLabel_andRejectsUnknown() {
+        assertThat(lovService.parseBookingDurationUnit("weeks")).isEqualTo(BookingDurationUnit.WEEKS);
+        assertThat(lovService.parseBookingDurationUnit("Months")).isEqualTo(BookingDurationUnit.MONTHS);
+        assertThatThrownBy(() -> lovService.parseBookingDurationUnit("Fortnights"))
+                .isInstanceOf(BadRequestException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_BOOKING_DURATION_UNIT);
+    }
+
+    @Test
+    void bookingDurationUnit_normalizesToDays_monthIs30() {
+        assertThat(BookingDurationUnit.DAYS.toDays(5)).isEqualTo(5);
+        assertThat(BookingDurationUnit.WEEKS.toDays(2)).isEqualTo(14);
+        assertThat(BookingDurationUnit.MONTHS.toDays(2)).isEqualTo(60);
+    }
+
+    @Test
     void parse_acceptsCode_caseInsensitive() {
         assertThat(lovService.parse(BillboardType.class, "static_hoarding", ErrorCode.INVALID_BILLBOARD_TYPE))
                 .isEqualTo(BillboardType.STATIC_HOARDING);

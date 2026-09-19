@@ -69,9 +69,12 @@ public record BillboardListingRequest(
         @NotNull(message = "Starting price is required.")
         @Positive
         BigDecimal startPrice,
-        @NotBlank(message = "Minimum booking duration is required.")
-        @Size(max = 50)
-        String minBooking,
+        @NotNull(message = "Minimum booking duration is required.")
+        @Positive(message = "Minimum booking duration must be a positive number.")
+        Integer minBookingValue,
+        @NotBlank(message = "Minimum booking duration unit is required.")
+        @Size(max = 20)
+        String minBookingUnit,
         @Size(max = 500)
         String discountNote
         ) {
