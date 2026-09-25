@@ -10,6 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
+import com.theadbasket.backend.lov.FacingDirection;
+import com.theadbasket.backend.lov.LovService;
+import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -26,11 +32,14 @@ public class OwnerListingService {
 
     private final BillboardListingRepository billboardListingRepository;
     private final UserRepository userRepository;
+    private final LovService lovService;
 
     public OwnerListingService(BillboardListingRepository billboardListingRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               LovService lovService) {
         this.billboardListingRepository = billboardListingRepository;
         this.userRepository = userRepository;
+        this.lovService = lovService;
     }
 
     @Transactional(readOnly = true)
@@ -62,20 +71,31 @@ public class OwnerListingService {
                 req.pincode()
         );
 
+        BillboardType type = lovService.parse(BillboardType.class, req.type(), ErrorCode.INVALID_BILLBOARD_TYPE);
+        TrafficType trafficType = lovService.parse(TrafficType.class, req.trafficType(), ErrorCode.INVALID_TRAFFIC_TYPE);
+        AudienceType audienceType = lovService.parse(AudienceType.class, req.audienceType(), ErrorCode.INVALID_AUDIENCE_TYPE);
+        FacingDirection facing = lovService.parseFacing(req.facing());
+        BookingDurationUnit minBookingUnit = lovService.parseBookingDurationUnit(req.minBookingUnit());
+
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
         listing.setName(req.name().trim());
         listing.setAddress(address);
-        listing.setType(req.type().trim());
+        listing.setType(type);
+        listing.setTypeOther(type == BillboardType.OTHER ? blankToNull(req.typeOther()) : null);
         listing.setWidthFt(req.widthFt());
         listing.setHeightFt(req.heightFt());
         listing.setGroundHeightFt(req.groundHeightFt());
-        listing.setFacing(req.facing().trim());
-        listing.setTrafficType(req.trafficType().trim());
-        listing.setAudienceType(req.audienceType().trim());
+        listing.setFacing(facing);
+        listing.setTrafficType(trafficType);
+        listing.setTrafficTypeOther(trafficType == TrafficType.OTHER ? blankToNull(req.trafficTypeOther()) : null);
+        listing.setAudienceType(audienceType);
+        listing.setAudienceTypeOther(audienceType == AudienceType.OTHER ? blankToNull(req.audienceTypeOther()) : null);
         listing.setFootfall(blankToNull(req.footfall()));
         listing.setStartPrice(req.startPrice());
-        listing.setMinBooking(req.minBooking().trim());
+        listing.setMinBookingValue(req.minBookingValue());
+        listing.setMinBookingUnit(minBookingUnit);
+        listing.setMinBookingDays(minBookingUnit.toDays(req.minBookingValue()));
         listing.setDiscountNote(blankToNull(req.discountNote()));
 
         BillboardListing saved = billboardListingRepository.save(listing);
@@ -89,16 +109,49 @@ public class OwnerListingService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found"));
 
         if (req.name() != null) listing.setName(req.name().trim());
-        if (req.type() != null) listing.setType(req.type().trim());
+        if (req.type() != null) {
+            BillboardType type = lovService.parse(BillboardType.class, req.type(), ErrorCode.INVALID_BILLBOARD_TYPE);
+            listing.setType(type);
+            listing.setTypeOther(type == BillboardType.OTHER ? blankToNull(req.typeOther()) : null);
+        } else if (req.typeOther() != null && listing.getType() == BillboardType.OTHER) {
+            listing.setTypeOther(blankToNull(req.typeOther()));
+        }
+
         if (req.widthFt() != null) listing.setWidthFt(req.widthFt());
         if (req.heightFt() != null) listing.setHeightFt(req.heightFt());
         if (req.groundHeightFt() != null) listing.setGroundHeightFt(req.groundHeightFt());
-        if (req.facing() != null) listing.setFacing(req.facing().trim());
-        if (req.trafficType() != null) listing.setTrafficType(req.trafficType().trim());
-        if (req.audienceType() != null) listing.setAudienceType(req.audienceType().trim());
+
+        if (req.facing() != null) {
+            listing.setFacing(lovService.parseFacing(req.facing()));
+        }
+
+        if (req.trafficType() != null) {
+            TrafficType trafficType = lovService.parse(TrafficType.class, req.trafficType(), ErrorCode.INVALID_TRAFFIC_TYPE);
+            listing.setTrafficType(trafficType);
+            listing.setTrafficTypeOther(trafficType == TrafficType.OTHER ? blankToNull(req.trafficTypeOther()) : null);
+        } else if (req.trafficTypeOther() != null && listing.getTrafficType() == TrafficType.OTHER) {
+            listing.setTrafficTypeOther(blankToNull(req.trafficTypeOther()));
+        }
+
+        if (req.audienceType() != null) {
+            AudienceType audienceType = lovService.parse(AudienceType.class, req.audienceType(), ErrorCode.INVALID_AUDIENCE_TYPE);
+            listing.setAudienceType(audienceType);
+            listing.setAudienceTypeOther(audienceType == AudienceType.OTHER ? blankToNull(req.audienceTypeOther()) : null);
+        } else if (req.audienceTypeOther() != null && listing.getAudienceType() == AudienceType.OTHER) {
+            listing.setAudienceTypeOther(blankToNull(req.audienceTypeOther()));
+        }
+
         if (req.footfall() != null) listing.setFootfall(blankToNull(req.footfall()));
         if (req.startPrice() != null) listing.setStartPrice(req.startPrice());
-        if (req.minBooking() != null) listing.setMinBooking(req.minBooking().trim());
+
+        if (req.minBookingValue() != null || req.minBookingUnit() != null) {
+            Integer value = req.minBookingValue() != null ? req.minBookingValue() : listing.getMinBookingValue();
+            BookingDurationUnit unit = req.minBookingUnit() != null ? lovService.parseBookingDurationUnit(req.minBookingUnit()) : listing.getMinBookingUnit();
+            listing.setMinBookingValue(value);
+            listing.setMinBookingUnit(unit);
+            listing.setMinBookingDays(unit.toDays(value));
+        }
+
         if (req.discountNote() != null) listing.setDiscountNote(blankToNull(req.discountNote()));
 
         Address addr = listing.getAddress();

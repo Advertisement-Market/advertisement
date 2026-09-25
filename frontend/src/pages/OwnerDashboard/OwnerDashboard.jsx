@@ -2205,19 +2205,45 @@ function Modal({ title, onClose, children, footer }) {
   );
 }
 
+const parseMinBooking = (val) => {
+  if (!val) return { minBookingValue: 1, minBookingUnit: 'MONTHS' };
+  const str = String(val).toLowerCase().trim();
+  if (str.includes('day')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 15;
+    return { minBookingValue: num, minBookingUnit: 'DAYS' };
+  }
+  if (str.includes('week')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+    return { minBookingValue: num, minBookingUnit: 'WEEKS' };
+  }
+  if (str.includes('year')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+    return { minBookingValue: num * 12, minBookingUnit: 'MONTHS' };
+  }
+  const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+  return { minBookingValue: num, minBookingUnit: 'MONTHS' };
+};
+
 function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false }) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     type: initialData?.type || 'LED Digital',
+    typeOther: initialData?.typeOther || '',
     widthFt: initialData?.widthFt || '',
     heightFt: initialData?.heightFt || '',
     groundHeightFt: initialData?.groundHeightFt || '',
     facing: initialData?.facing || 'North',
-    trafficType: initialData?.trafficType || 'Vehicular & Pedestrian',
-    audienceType: initialData?.audienceType || 'Commuters & Shoppers',
+    trafficType: initialData?.trafficType || 'City / Urban',
+    trafficTypeOther: initialData?.trafficTypeOther || '',
+    audienceType: initialData?.audienceType || 'Commuters',
+    audienceTypeOther: initialData?.audienceTypeOther || '',
     footfall: initialData?.footfall || '',
     startPrice: initialData?.startPrice || '',
-    minBooking: initialData?.minBooking || '1 month',
+    minBooking:
+      initialData?.minBooking ||
+      (initialData?.minBookingValue
+        ? `${initialData.minBookingValue} ${initialData.minBookingUnit || 'months'}`
+        : '1 month'),
     discountNote: initialData?.discountNote || '',
     addressLine1: initialData?.addressLine1 || '',
     addressLine2: initialData?.addressLine2 || '',
@@ -2271,18 +2297,23 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
 
     setSubmitting(true);
     try {
+      const { minBookingValue, minBookingUnit } = parseMinBooking(formData.minBooking);
       const payload = {
         name: formData.name.trim(),
         type: formData.type.trim(),
+        typeOther: formData.typeOther?.trim() || null,
         widthFt: Number(formData.widthFt),
         heightFt: Number(formData.heightFt),
         groundHeightFt: formData.groundHeightFt ? Number(formData.groundHeightFt) : null,
         facing: formData.facing.trim(),
         trafficType: formData.trafficType.trim(),
+        trafficTypeOther: formData.trafficTypeOther?.trim() || null,
         audienceType: formData.audienceType.trim(),
+        audienceTypeOther: formData.audienceTypeOther?.trim() || null,
         footfall: formData.footfall?.trim() || null,
         startPrice: Number(formData.startPrice),
-        minBooking: formData.minBooking.trim(),
+        minBookingValue,
+        minBookingUnit,
         discountNote: formData.discountNote?.trim() || null,
         addressLine1: formData.addressLine1.trim(),
         addressLine2: formData.addressLine2?.trim() || null,
@@ -2292,9 +2323,9 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
         pincode: formData.pincode.trim(),
       };
       await onSave(payload);
+      onClose();
     } catch (err) {
       setError(apiErrorMessage(err, 'Failed to save billboard listing.'));
-    } finally {
       setSubmitting(false);
     }
   };
@@ -2557,7 +2588,8 @@ function DeleteListingModal({ listing, onClose, onConfirm }) {
     setSubmitting(true);
     try {
       await onConfirm(listing.id);
-    } finally {
+      onClose();
+    } catch {
       setSubmitting(false);
     }
   };
@@ -2644,7 +2676,6 @@ export function OwnerDashboard() {
     if (user) {
       await ownerListingApi.createListing(payload);
       showToast('Billboard listing added successfully!', 'success');
-      closeModal();
       refreshListings();
     } else {
       setListings((prev) => [
@@ -2659,7 +2690,6 @@ export function OwnerDashboard() {
         ...prev,
       ]);
       showToast('Billboard listing added successfully!', 'success');
-      closeModal();
     }
   };
 
@@ -2667,7 +2697,6 @@ export function OwnerDashboard() {
     if (user && modal?.listing?.id) {
       await ownerListingApi.updateListing(modal.listing.id, payload);
       showToast('Billboard listing updated successfully!', 'success');
-      closeModal();
       refreshListings();
     } else {
       setListings((prev) =>
@@ -2676,7 +2705,6 @@ export function OwnerDashboard() {
         ),
       );
       showToast('Billboard listing updated successfully!', 'success');
-      closeModal();
     }
   };
 
@@ -2685,15 +2713,14 @@ export function OwnerDashboard() {
       try {
         await ownerListingApi.deleteListing(id);
         showToast('Billboard listing deleted successfully.', 'success');
-        closeModal();
         refreshListings();
       } catch (err) {
         showToast(apiErrorMessage(err, 'Failed to delete listing.'), 'error');
+        throw err;
       }
     } else {
       setListings((prev) => prev.filter((l) => l.id !== id && l.name !== modal?.listing?.name));
       showToast('Billboard listing deleted successfully.', 'success');
-      closeModal();
     }
   };
 

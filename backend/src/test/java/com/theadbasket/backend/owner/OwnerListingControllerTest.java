@@ -23,6 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.address.AddressRepository;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
+import com.theadbasket.backend.lov.FacingDirection;
+import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
 import com.theadbasket.backend.security.JwtService;
@@ -77,14 +82,16 @@ class OwnerListingControllerTest {
         listing.setUser(user);
         listing.setName(name);
         listing.setAddress(address);
-        listing.setType("LED Digital");
+        listing.setType(BillboardType.LED_DIGITAL);
         listing.setWidthFt(new BigDecimal("40.00"));
         listing.setHeightFt(new BigDecimal("20.00"));
-        listing.setFacing("North");
-        listing.setTrafficType("Vehicular");
-        listing.setAudienceType("Commuters");
+        listing.setFacing(FacingDirection.NORTH);
+        listing.setTrafficType(TrafficType.CITY_URBAN);
+        listing.setAudienceType(AudienceType.COMMUTERS);
         listing.setStartPrice(new BigDecimal("350000.00"));
-        listing.setMinBooking("1 month");
+        listing.setMinBookingValue(1);
+        listing.setMinBookingUnit(BookingDurationUnit.MONTHS);
+        listing.setMinBookingDays(30);
         return billboardListingRepository.save(listing);
     }
 
@@ -116,7 +123,9 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").exists())
                 .andExpect(jsonPath("$[0].addressLine1").value("100 Bandra West"))
-                .andExpect(jsonPath("$[0].city").value("Mumbai"));
+                .andExpect(jsonPath("$[0].city").value("Mumbai"))
+                .andExpect(jsonPath("$[0].minBookingValue").value(1))
+                .andExpect(jsonPath("$[0].minBookingUnit").value("MONTHS"));
     }
 
     @Test
@@ -129,7 +138,8 @@ class OwnerListingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(listing.getId()))
                 .andExpect(jsonPath("$.name").value("Bandra Prime Screen"))
-                .andExpect(jsonPath("$.pincode").value("400050"));
+                .andExpect(jsonPath("$.pincode").value("400050"))
+                .andExpect(jsonPath("$.type").value("LED_DIGITAL"));
     }
 
     @Test
@@ -155,15 +165,19 @@ class OwnerListingControllerTest {
                 "Maharashtra",
                 "400076",
                 "LED Digital",
+                null,
                 new BigDecimal("35.00"),
                 new BigDecimal("18.00"),
                 new BigDecimal("8.00"),
                 "East",
-                "Vehicular",
-                "Corporate Employees",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
                 "40,000/day",
                 new BigDecimal("220000.00"),
-                "1 month",
+                1,
+                "Months",
                 "10% off for 3+ months"
         );
 
@@ -176,7 +190,11 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.name").value("Powai IT Park LED"))
                 .andExpect(jsonPath("$.addressLine1").value("Central Avenue"))
                 .andExpect(jsonPath("$.city").value("Mumbai"))
-                .andExpect(jsonPath("$.pincode").value("400076"));
+                .andExpect(jsonPath("$.pincode").value("400076"))
+                .andExpect(jsonPath("$.type").value("LED_DIGITAL"))
+                .andExpect(jsonPath("$.minBookingValue").value(1))
+                .andExpect(jsonPath("$.minBookingUnit").value("MONTHS"))
+                .andExpect(jsonPath("$.minBookingDays").value(30));
     }
 
     @Test
@@ -191,15 +209,19 @@ class OwnerListingControllerTest {
                 "Maharashtra",
                 "123", // invalid
                 "LED Digital",
+                null,
                 new BigDecimal("35.00"),
                 new BigDecimal("18.00"),
                 null,
                 "East",
-                "Vehicular",
-                "Corporate",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
                 null,
                 new BigDecimal("220000.00"),
-                "1 month",
+                1,
+                "Months",
                 null
         );
 
@@ -233,7 +255,11 @@ class OwnerListingControllerTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 new BigDecimal("500000.00"),
+                null,
                 null,
                 "Special festive discount"
         );
@@ -248,7 +274,7 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.startPrice").value(500000.00))
                 .andExpect(jsonPath("$.discountNote").value("Special festive discount"))
                 // Untouched fields unchanged:
-                .andExpect(jsonPath("$.type").value("LED Digital"))
+                .andExpect(jsonPath("$.type").value("LED_DIGITAL"))
                 .andExpect(jsonPath("$.addressLine1").value("100 Bandra West"));
     }
 
@@ -259,6 +285,10 @@ class OwnerListingControllerTest {
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
                 "   ",
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

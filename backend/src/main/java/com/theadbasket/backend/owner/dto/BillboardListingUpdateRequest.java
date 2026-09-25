@@ -47,6 +47,9 @@ public record BillboardListingUpdateRequest(
         @Pattern(regexp = "^(?!\\s*$).+", message = "Billboard type cannot be blank.")
         String type,
 
+        @Size(max = 120)
+        String typeOther,
+
         @Positive(message = "Width must be positive.")
         BigDecimal widthFt,
 
@@ -65,8 +68,14 @@ public record BillboardListingUpdateRequest(
         String trafficType,
 
         @Size(max = 120)
+        String trafficTypeOther,
+
+        @Size(max = 120)
         @Pattern(regexp = "^(?!\\s*$).+", message = "Audience type cannot be blank.")
         String audienceType,
+
+        @Size(max = 120)
+        String audienceTypeOther,
 
         @Size(max = 60)
         String footfall,
@@ -74,9 +83,12 @@ public record BillboardListingUpdateRequest(
         @Positive(message = "Starting price must be positive.")
         BigDecimal startPrice,
 
-        @Size(max = 50)
-        @Pattern(regexp = "^(?!\\s*$).+", message = "Minimum booking duration cannot be blank.")
-        String minBooking,
+        @Positive(message = "Minimum booking duration must be a positive number.")
+        Integer minBookingValue,
+
+        @Size(max = 20)
+        @Pattern(regexp = "^(?!\\s*$).+", message = "Minimum booking duration unit cannot be blank.")
+        String minBookingUnit,
 
         @Size(max = 500)
         String discountNote

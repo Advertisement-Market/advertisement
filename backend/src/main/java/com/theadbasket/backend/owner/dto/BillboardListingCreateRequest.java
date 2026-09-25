@@ -46,6 +46,9 @@ public record BillboardListingCreateRequest(
         @Size(max = 60)
         String type,
 
+        @Size(max = 120)
+        String typeOther,
+
         @NotNull(message = "Width is required.")
         @Positive(message = "Width must be positive.")
         BigDecimal widthFt,
@@ -65,9 +68,15 @@ public record BillboardListingCreateRequest(
         @Size(max = 80)
         String trafficType,
 
+        @Size(max = 120)
+        String trafficTypeOther,
+
         @NotBlank(message = "Audience type is required.")
         @Size(max = 120)
         String audienceType,
+
+        @Size(max = 120)
+        String audienceTypeOther,
 
         @Size(max = 60)
         String footfall,
@@ -76,9 +85,13 @@ public record BillboardListingCreateRequest(
         @Positive(message = "Starting price must be positive.")
         BigDecimal startPrice,
 
-        @NotBlank(message = "Minimum booking duration is required.")
-        @Size(max = 50)
-        String minBooking,
+        @NotNull(message = "Minimum booking duration is required.")
+        @Positive(message = "Minimum booking duration must be a positive number.")
+        Integer minBookingValue,
+
+        @NotBlank(message = "Minimum booking duration unit is required.")
+        @Size(max = 20)
+        String minBookingUnit,
 
         @Size(max = 500)
         String discountNote

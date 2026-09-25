@@ -275,3 +275,21 @@ Authorization: Bearer JWT (`hasRole('OWNER')`)
 ### Linting & Production Build
 - **ESLint:** `npm run lint` exited with **code 0 (0 errors, 0 warnings)**.
 - **Vite Build:** `npm run build` completed successfully with **code 0**.
+
+---
+
+## 7. Review Follow-ups (PR Review Alignment)
+
+### [P0] LOV Enum Alignment & Booking Duration Split
+- **Conflict Addressed:** Parallel PRs #29 (config-driven billboard LOVs), #30 (static facing direction LOV), and #33 (minimum booking duration split into value + unit + days) altered the `BillboardListing` schema and persistence models.
+- **Resolution:**
+  - Branch rebased onto `origin/Ashutosh/min-booking-duration` (PR-33 stack).
+  - Injected `LovService` into `OwnerListingService` for parsing `BillboardType`, `TrafficType`, `AudienceType`, `FacingDirection`, and `BookingDurationUnit`.
+  - Updated DTOs (`BillboardListingDto`, `BillboardListingCreateRequest`, `BillboardListingUpdateRequest`) and unit/integration tests (`OwnerListingServiceTest`, `OwnerListingControllerTest`) to validate enum parsing and duration calculations.
+
+### [P3] State Update on Unmounted Component Fix
+- **Issue Addressed:** Handlers in `OwnerDashboard.jsx` previously called `closeModal()` before modal promise `finally` blocks ran `setSubmitting(false)`.
+- **Resolution:**
+  - `ListingFormModal` and `DeleteListingModal` now invoke `onClose()` internally upon successful resolution of `onSave` / `onConfirm`.
+  - Removed `closeModal()` calls from `handleCreateListing`, `handleUpdateListing`, and `handleDeleteListing`.
+  - `setSubmitting(false)` only executes inside the `catch` block when error messages are rendered within the still-mounted modal.

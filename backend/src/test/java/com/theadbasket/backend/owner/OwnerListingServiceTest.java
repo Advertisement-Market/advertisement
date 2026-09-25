@@ -17,10 +17,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ResourceBundleMessageSource;
 
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
+import com.theadbasket.backend.lov.FacingDirection;
+import com.theadbasket.backend.lov.LovService;
+import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -37,13 +44,20 @@ class OwnerListingServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    private LovService lovService;
     private OwnerListingService ownerListingService;
 
     private User owner;
 
     @BeforeEach
     void setUp() {
-        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository);
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("messages");
+        messages.setDefaultEncoding("UTF-8");
+        messages.setUseCodeAsDefaultMessage(true);
+        lovService = new LovService(messages);
+
+        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, lovService);
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
     }
 
@@ -53,14 +67,16 @@ class OwnerListingServiceTest {
         listing.setUser(user);
         listing.setName(name);
         listing.setAddress(address);
-        listing.setType("LED Digital");
+        listing.setType(BillboardType.LED_DIGITAL);
         listing.setWidthFt(new BigDecimal("40.00"));
         listing.setHeightFt(new BigDecimal("20.00"));
-        listing.setFacing("North");
-        listing.setTrafficType("Vehicular");
-        listing.setAudienceType("Commuters");
+        listing.setFacing(FacingDirection.NORTH);
+        listing.setTrafficType(TrafficType.CITY_URBAN);
+        listing.setAudienceType(AudienceType.COMMUTERS);
         listing.setStartPrice(new BigDecimal("350000.00"));
-        listing.setMinBooking("1 month");
+        listing.setMinBookingValue(1);
+        listing.setMinBookingUnit(BookingDurationUnit.MONTHS);
+        listing.setMinBookingDays(30);
         return listing;
     }
 
@@ -78,6 +94,9 @@ class OwnerListingServiceTest {
         assertThat(result.get(0).name()).isEqualTo("Bandra Station LED");
         assertThat(result.get(0).city()).isEqualTo("Mumbai");
         assertThat(result.get(0).pincode()).isEqualTo("400050");
+        assertThat(result.get(0).type()).isEqualTo("LED_DIGITAL");
+        assertThat(result.get(0).minBookingValue()).isEqualTo(1);
+        assertThat(result.get(0).minBookingUnit()).isEqualTo("MONTHS");
         assertThat(result.get(1).name()).isEqualTo("Worli Sea Face Hoarding");
     }
 
@@ -91,6 +110,8 @@ class OwnerListingServiceTest {
 
         assertThat(dto.name()).isEqualTo("Andheri Flyover");
         assertThat(dto.startPrice()).isEqualByComparingTo(new BigDecimal("350000.00"));
+        assertThat(dto.type()).isEqualTo("LED_DIGITAL");
+        assertThat(dto.facing()).isEqualTo("NORTH");
     }
 
     @Test
@@ -115,15 +136,19 @@ class OwnerListingServiceTest {
                 "  Maharashtra  ",
                 "400076",
                 "LED Digital",
+                null,
                 new BigDecimal("30.00"),
                 new BigDecimal("15.00"),
                 new BigDecimal("10.00"),
                 "West",
-                "Pedestrian & Vehicular",
-                "Tech Professionals",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
                 "50,000/day",
                 new BigDecimal("250000.00"),
-                "3 months",
+                3,
+                "Months",
                 "  5% discount on 6-month booking  "
         );
 
@@ -139,6 +164,13 @@ class OwnerListingServiceTest {
         assertThat(result.city()).isEqualTo("Mumbai");
         assertThat(result.state()).isEqualTo("Maharashtra");
         assertThat(result.pincode()).isEqualTo("400076");
+        assertThat(result.type()).isEqualTo("LED_DIGITAL");
+        assertThat(result.facing()).isEqualTo("WEST");
+        assertThat(result.trafficType()).isEqualTo("CITY_URBAN");
+        assertThat(result.audienceType()).isEqualTo("COMMUTERS");
+        assertThat(result.minBookingValue()).isEqualTo(3);
+        assertThat(result.minBookingUnit()).isEqualTo("MONTHS");
+        assertThat(result.minBookingDays()).isEqualTo(90);
         assertThat(result.discountNote()).isEqualTo("5% discount on 6-month booking");
 
         ArgumentCaptor<BillboardListing> captor = ArgumentCaptor.forClass(BillboardListing.class);
@@ -146,6 +178,9 @@ class OwnerListingServiceTest {
         BillboardListing saved = captor.getValue();
         assertThat(saved.getUser()).isEqualTo(owner);
         assertThat(saved.getName()).isEqualTo("Powai Prime Screen");
+        assertThat(saved.getType()).isEqualTo(BillboardType.LED_DIGITAL);
+        assertThat(saved.getFacing()).isEqualTo(FacingDirection.WEST);
+        assertThat(saved.getMinBookingDays()).isEqualTo(90);
     }
 
     @Test
@@ -171,7 +206,11 @@ class OwnerListingServiceTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 new BigDecimal("450000.00"),
+                null,
                 null,
                 "New discount note"
         );
@@ -182,9 +221,11 @@ class OwnerListingServiceTest {
         assertThat(updated.startPrice()).isEqualByComparingTo(new BigDecimal("450000.00"));
         assertThat(updated.discountNote()).isEqualTo("New discount note");
         // Untouched fields preserved:
-        assertThat(updated.type()).isEqualTo("LED Digital");
+        assertThat(updated.type()).isEqualTo("LED_DIGITAL");
         assertThat(updated.city()).isEqualTo("Mumbai");
         assertThat(updated.pincode()).isEqualTo("400050");
+        assertThat(updated.minBookingValue()).isEqualTo(1);
+        assertThat(updated.minBookingUnit()).isEqualTo("MONTHS");
     }
 
     @Test
