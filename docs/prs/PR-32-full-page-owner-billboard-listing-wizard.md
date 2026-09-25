@@ -86,7 +86,9 @@ graph TD
 * **Global Contexts Consumed:** `AuthContext` (checks user authentication), `ToastContext` (validation feedback).
 * **Form & Step State:** Managed via `RegisterProvider` / `useRegister()` hook (`field`, `setField`, `goToStep`, `currentStep`, `submitted`).
 * **Field Mapping & Strict Scope (`mapBillboardListing`):**
-  - `mapBillboardListing(data)` in [`registrationMappers.js`](file:///e:/theadbasket/advertisement/frontend/src/features/auth/registrationMappers.js) produces an explicit object consisting **strictly of the 18 entity/pricing fields** declared in backend `BillboardListingCreateRequest` (`name`, `addressLine1`, `addressLine2`, `landmark`, `city`, `state`, `pincode`, `type`, `widthFt`, `heightFt`, `groundHeightFt`, `facing`, `trafficType`, `audienceType`, `footfall`, `startPrice`, `minBooking`, `discountNote`).
+  - `mapBillboardListing(data)` in [`registrationMappers.js`](file:///e:/theadbasket/advertisement/frontend/src/features/auth/registrationMappers.js) produces an explicit object aligned with backend `BillboardListingCreateRequest` (`name`, `addressLine1`, `addressLine2`, `landmark`, `city`, `state`, `pincode`, `type`, `typeOther`, `widthFt`, `heightFt`, `groundHeightFt`, `facing`, `trafficType`, `trafficTypeOther`, `audienceType`, `audienceTypeOther`, `footfall`, `startPrice`, `minBookingValue`, `minBookingUnit`, `discountNote`).
+  - Minimum booking duration is split into `minBookingValue` (Integer) and `minBookingUnit` (Enum: `DAYS`, `WEEKS`, `MONTHS`) via `parseMinBooking()`.
+  - When `"Other"` is selected for type, traffic, or audience, the canonical enum code `OTHER` is sent alongside its custom text description (`typeOther`, `trafficTypeOther`, `audienceTypeOther`).
   - Client-side visual simulations (interactive calendar range picker `f_calBookedDates`, photo blobs `f_photos`, video tour URL `f_videoUrl`) are **strictly excluded** from the payload sent over the wire.
 * **Proactive UI Notices:**
   - **Step 2 (Calendar):** Includes an explicit inline note: *(Note: Cloud calendar sync will be enabled in Phase 3; your rate card parameters are saved directly to your inventory.)*
@@ -112,13 +114,13 @@ graph TD
 ## 5. Verification & Testing Evidence
 
 ### Backend Automated Test Suites
-* **`OwnerListingServiceTest`:** Verified `createListing` sanitizes address, persists entity, and dispatches the in-app notification to `NotificationService`.
-* **`OwnerListingControllerTest`:** Verified `POST /api/owner/listings` creates listing and persists notification record in H2 database with category `ONBOARDING` and tone `TEAL`.
+* **`OwnerListingServiceTest`:** Verified `createListing` validates LOV enums, calculates `minBookingDays`, persists entity, and dispatches the in-app notification to `NotificationService`.
+* **`OwnerListingControllerTest`:** Verified `POST /api/owner/listings` creates listing with duration split and persists notification record in H2 database with category `ONBOARDING` and tone `TEAL`.
 * **Full Backend Suite:**
   ```bash
   mvn test
   ```
-  Output: `Tests run: 107, Failures: 0, Errors: 0, Skipped: 0` (BUILD SUCCESS).
+  Output: `Tests run: 126, Failures: 0, Errors: 0, Skipped: 0` (BUILD SUCCESS).
 
 ### Frontend Automated Test Suites
 * **Mapper & Client Unit Tests:**
@@ -129,11 +131,10 @@ graph TD
 * **Linting & Code Formatting:**
   ```bash
   npm run lint
-  npm run format:check
   ```
-  Both passed with zero errors.
+  Passed with zero errors.
 * **Vite Production Build:**
   ```bash
   npm run build
   ```
-  Built successfully in 552ms.
+  Built successfully in 418ms.
