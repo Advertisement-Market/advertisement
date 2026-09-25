@@ -81,7 +81,31 @@ export function mapAdvertiser(d, s) {
   };
 }
 
+export const parseMinBooking = (val) => {
+  if (!val) return { minBookingValue: 1, minBookingUnit: 'MONTHS' };
+  const str = String(val).toLowerCase().trim();
+  if (str.includes('day')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 15;
+    return { minBookingValue: num, minBookingUnit: 'DAYS' };
+  }
+  if (str.includes('week')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+    return { minBookingValue: num, minBookingUnit: 'WEEKS' };
+  }
+  if (str.includes('year')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+    return { minBookingValue: num * 12, minBookingUnit: 'MONTHS' };
+  }
+  const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+  return { minBookingValue: num, minBookingUnit: 'MONTHS' };
+};
+
 export function mapOwner(d) {
+  const { minBookingValue, minBookingUnit } = parseMinBooking(d.f_minBooking);
+  const isTypeOther = d.f_bbType === 'Other' || d.f_bbType === 'other';
+  const isTrafficOther = d.f_trafficType === 'other' || d.f_trafficType === 'Other';
+  const isAudienceOther = d.f_audience === 'other' || d.f_audience === 'Other';
+
   return {
     firstName: d.f_firstName,
     lastName: d.f_lastName,
@@ -109,16 +133,20 @@ export function mapOwner(d) {
       city: d.f_bbCity,
       state: d.f_bbState,
       pincode: d.f_bbPin,
-      type: d.f_bbType,
+      type: isTypeOther ? 'OTHER' : d.f_bbType,
+      typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
       widthFt: toNumber(d.f_bbWidth),
       heightFt: toNumber(d.f_bbHeight),
       groundHeightFt: toNumber(d.f_bbGroundHeight),
       facing: d.f_facing,
-      trafficType: trimOrNull(d.f_trafficOther) || d.f_trafficType,
-      audienceType: trimOrNull(d.f_audienceOther) || d.f_audience,
+      trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
+      trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
+      audienceType: isAudienceOther ? 'OTHER' : d.f_audience,
+      audienceTypeOther: isAudienceOther ? trimOrNull(d.f_audienceOther) : null,
       footfall: trimOrNull(d.f_footfall),
       startPrice: toNumber(d.f_startPrice),
-      minBooking: d.f_minBooking,
+      minBookingValue,
+      minBookingUnit,
       discountNote: trimOrNull(d.f_discountNote),
     },
     acceptedTerms: !!d.f_termsAccept,
@@ -167,6 +195,11 @@ export function mapAgency(d, s) {
 }
 
 export function mapBillboardListing(d) {
+  const { minBookingValue, minBookingUnit } = parseMinBooking(d.f_minBooking);
+  const isTypeOther = d.f_bbType === 'Other' || d.f_bbType === 'other';
+  const isTrafficOther = d.f_trafficType === 'other' || d.f_trafficType === 'Other';
+  const isAudienceOther = d.f_audience === 'other' || d.f_audience === 'Other';
+
   return {
     name: d.f_bbName,
     addressLine1: d.f_bbAddr,
@@ -175,16 +208,20 @@ export function mapBillboardListing(d) {
     city: d.f_bbCity,
     state: d.f_bbState,
     pincode: d.f_bbPin,
-    type: d.f_bbType,
+    type: isTypeOther ? 'OTHER' : d.f_bbType,
+    typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
     widthFt: toNumber(d.f_bbWidth),
     heightFt: toNumber(d.f_bbHeight),
     groundHeightFt: toNumber(d.f_bbGroundHeight),
     facing: d.f_facing,
-    trafficType: trimOrNull(d.f_trafficOther) || d.f_trafficType,
-    audienceType: trimOrNull(d.f_audienceOther) || d.f_audience,
+    trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
+    trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
+    audienceType: isAudienceOther ? 'OTHER' : d.f_audience,
+    audienceTypeOther: isAudienceOther ? trimOrNull(d.f_audienceOther) : null,
     footfall: trimOrNull(d.f_footfall),
     startPrice: toNumber(d.f_startPrice),
-    minBooking: d.f_minBooking,
+    minBookingValue,
+    minBookingUnit,
     discountNote: trimOrNull(d.f_discountNote),
   };
 }

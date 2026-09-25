@@ -166,10 +166,13 @@ describe('registrationMappers - Address and Payload Structure', () => {
         state: 'Gujarat',
         pincode: '380015',
         type: 'Unipole',
+        typeOther: null,
         widthFt: 40,
         heightFt: 20,
         groundHeightFt: 10,
         startPrice: 150000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
       });
     });
   });
@@ -268,15 +271,19 @@ describe('registrationMappers - Address and Payload Structure', () => {
         state: 'Gujarat',
         pincode: '380015',
         type: 'Unipole',
+        typeOther: null,
         widthFt: 40,
         heightFt: 20,
         groundHeightFt: 10,
         facing: 'North',
         trafficType: 'Vehicular',
+        trafficTypeOther: null,
         audienceType: 'Commuters',
+        audienceTypeOther: null,
         footfall: '50,000/day',
         startPrice: 150000,
-        minBooking: '1 month',
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
         discountNote: '10% discount on 3+ months',
       });
     });
@@ -302,8 +309,12 @@ describe('registrationMappers - Address and Payload Structure', () => {
 
       const result = mapBillboardListing(formData);
 
-      expect(result.trafficType).toBe('Metro Corridor');
-      expect(result.audienceType).toBe('IT Professionals');
+      expect(result.trafficType).toBe('OTHER');
+      expect(result.trafficTypeOther).toBe('Metro Corridor');
+      expect(result.audienceType).toBe('OTHER');
+      expect(result.audienceTypeOther).toBe('IT Professionals');
+      expect(result.minBookingValue).toBe(2);
+      expect(result.minBookingUnit).toBe('WEEKS');
       expect(result.addressLine2).toBeNull();
       expect(result.landmark).toBeNull();
       expect(result.groundHeightFt).toBeNull();
@@ -337,7 +348,7 @@ describe('registrationMappers - Address and Payload Structure', () => {
 
       const result = mapBillboardListing(formDataWithMediaAndCalendar);
 
-      // Verify exact 18 keys in output payload
+      // Verify exact 22 keys in output payload
       const expectedKeys = [
         'name',
         'addressLine1',
@@ -347,19 +358,23 @@ describe('registrationMappers - Address and Payload Structure', () => {
         'state',
         'pincode',
         'type',
+        'typeOther',
         'widthFt',
         'heightFt',
         'groundHeightFt',
         'facing',
         'trafficType',
+        'trafficTypeOther',
         'audienceType',
+        'audienceTypeOther',
         'footfall',
         'startPrice',
-        'minBooking',
+        'minBookingValue',
+        'minBookingUnit',
         'discountNote',
       ];
       expect(Object.keys(result).sort()).toEqual(expectedKeys.sort());
-      expect(Object.keys(result).length).toBe(18);
+      expect(Object.keys(result).length).toBe(22);
 
       // Explicitly assert UI-only fields are NOT present
       expect(result).not.toHaveProperty('photos');
