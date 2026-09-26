@@ -26,6 +26,10 @@ public class LovService {
     private static final List<LovOption> FACING_DIRECTIONS = buildStaticOptions(
             FacingDirection.values(), FacingDirection::code, FacingDirection::label);
 
+    /** Booking-duration units never change, so the option list is built once and shared. */
+    private static final List<LovOption> BOOKING_DURATION_UNITS = buildStaticOptions(
+            BookingDurationUnit.values(), BookingDurationUnit::code, BookingDurationUnit::label);
+
     private final MessageSource messageSource;
 
     public LovService(MessageSource messageSource) {
@@ -89,11 +93,7 @@ public class LovService {
      * baked into {@link BookingDurationUnit}.
      */
     public List<LovOption> bookingDurationUnits() {
-        List<LovOption> out = new ArrayList<>(BookingDurationUnit.values().length);
-        for (BookingDurationUnit unit : BookingDurationUnit.values()) {
-            out.add(new LovOption(unit.code(), unit.label()));
-        }
-        return out;
+        return BOOKING_DURATION_UNITS;
     }
 
     /**

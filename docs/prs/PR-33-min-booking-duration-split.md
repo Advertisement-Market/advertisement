@@ -101,9 +101,10 @@
 ---
 
 ## 5. Security & Validation
-- **Input Validation:** `minBookingValue` is `@NotNull` and `@Positive`; `minBookingUnit` is
-  `@NotBlank`/`@Size` at the DTO and then resolved against the enum by `LovService`, which throws
-  `BadRequestException(INVALID_BOOKING_DURATION_UNIT)` for unknown units.
+- **Input Validation:** `minBookingValue` is `@NotNull`, `@Positive` and `@Max(1000)` — the upper
+  bound prevents an absurd value from overflowing `int` when multiplied by the unit's day factor.
+  `minBookingUnit` is `@NotBlank`/`@Size` at the DTO and then resolved against the enum by
+  `LovService`, which throws `BadRequestException(INVALID_BOOKING_DURATION_UNIT)` for unknown units.
 - **Access Control:** The unit lookup is served under the already-public `/api/lov/**` paths; no
   security rule changes.
 - **Data Protection:** Booking durations are non-sensitive reference data; nothing new is logged.
@@ -111,8 +112,9 @@
 ---
 
 ## 6. Performance, Reliability & Failure Modes
-- **Caching Strategy:** None required — the three units come straight from the enum, and normalization
-  is a single multiplication.
+- **Caching Strategy:** The three units never change, so the option list is built once into a
+  `private static final` field in `LovService` and the same immutable instance is returned per request;
+  normalization to days is a single multiplication.
 - **Transactions & Concurrency:** Unit parsing and day computation happen inside the existing
   `@Transactional` owner registration; a rejected unit aborts the transaction before any row is
   written.

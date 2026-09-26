@@ -144,4 +144,16 @@ class LovEndpointIntegrationTest {
                 .andExpect(jsonPath("$.errorCode").value("INVALID_BOOKING_DURATION_UNIT"));
         assertThat(billboardListings.count()).isZero();
     }
+
+    @Test
+    void ownerRegistration_rejectsExcessiveBookingValue() throws Exception {
+        // A value that would overflow int once multiplied by the unit's day factor.
+        String payload = ownerPayload("Commuters", "").replace("\"minBookingValue\":3", "\"minBookingValue\":2000000000");
+        mockMvc.perform(post("/api/auth/register/owner")
+                .contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors['billboard.minBookingValue']").exists());
+        assertThat(billboardListings.count()).isZero();
+    }
 }
