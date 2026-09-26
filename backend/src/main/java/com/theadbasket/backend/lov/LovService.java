@@ -22,10 +22,23 @@ import com.theadbasket.backend.common.exception.BadRequestException;
 @Service
 public class LovService {
 
+    /** Facing directions never change, so the option list is built once and shared across requests. */
+    private static final List<LovOption> FACING_DIRECTIONS = buildStaticOptions(
+            FacingDirection.values(), FacingDirection::code, FacingDirection::label);
+
     private final MessageSource messageSource;
 
     public LovService(MessageSource messageSource) {
         this.messageSource = messageSource;
+    }
+
+    private static <E> List<LovOption> buildStaticOptions(E[] values,
+            java.util.function.Function<E, String> code, java.util.function.Function<E, String> label) {
+        List<LovOption> out = new ArrayList<>(values.length);
+        for (E value : values) {
+            out.add(new LovOption(code.apply(value), label.apply(value)));
+        }
+        return List.copyOf(out);
     }
 
     /** Billboard structure types for the owner form dropdown. */
@@ -41,6 +54,34 @@ public class LovService {
     /** Audience types for the owner form dropdown. */
     public List<LovOption> audienceTypes() {
         return options(AudienceType.values());
+    }
+
+    /**
+     * Facing directions for the owner form dropdown. This is a <b>static</b> LOV — labels are baked
+     * into {@link FacingDirection}, not resolved from config.
+     */
+    public List<LovOption> facingDirections() {
+        return FACING_DIRECTIONS;
+    }
+
+    /**
+     * Resolve a client-supplied facing to its {@link FacingDirection}, accepting either the code or
+     * the fixed label, case-insensitively.
+     *
+     * @throws BadRequestException {@code INVALID_FACING_DIRECTION} when blank or unknown
+     */
+    public FacingDirection parseFacing(String input) {
+        if (input != null) {
+            String trimmed = input.trim();
+            if (!trimmed.isEmpty()) {
+                for (FacingDirection direction : FacingDirection.values()) {
+                    if (direction.code().equalsIgnoreCase(trimmed) || direction.label().equalsIgnoreCase(trimmed)) {
+                        return direction;
+                    }
+                }
+            }
+        }
+        throw new BadRequestException(ErrorCode.INVALID_FACING_DIRECTION, input);
     }
 
     /**

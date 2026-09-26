@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.user.User;
 
@@ -68,8 +69,9 @@ public class BillboardListing {
     @Column(name = "ground_height_ft", precision = 8, scale = 2)
     private BigDecimal groundHeightFt;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 60)
-    private String facing;
+    private FacingDirection facing;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "traffic_type", nullable = false, length = 80)
@@ -171,11 +173,11 @@ public class BillboardListing {
         this.groundHeightFt = groundHeightFt;
     }
 
-    public String getFacing() {
+    public FacingDirection getFacing() {
         return facing;
     }
 
-    public void setFacing(String facing) {
+    public void setFacing(FacingDirection facing) {
         this.facing = facing;
     }
 
