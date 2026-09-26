@@ -16,6 +16,9 @@ import com.theadbasket.backend.lov.BookingDurationUnit;
 import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.LovService;
 import com.theadbasket.backend.lov.TrafficType;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationService;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -32,13 +35,16 @@ public class OwnerListingService {
 
     private final BillboardListingRepository billboardListingRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final LovService lovService;
 
     public OwnerListingService(BillboardListingRepository billboardListingRepository,
                                UserRepository userRepository,
+                               NotificationService notificationService,
                                LovService lovService) {
         this.billboardListingRepository = billboardListingRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
         this.lovService = lovService;
     }
 
@@ -100,6 +106,16 @@ public class OwnerListingService {
 
         BillboardListing saved = billboardListingRepository.save(listing);
         log.info("Created billboard listing id={} for user id={}", saved.getId(), userId);
+
+        notificationService.createNotification(
+                user,
+                "New Billboard Listed",
+                "Your listing \"" + saved.getName() + "\" has been created and submitted for verification.",
+                NotificationCategory.ONBOARDING,
+                NotificationTone.TEAL,
+                "/owners/dashboard?tab=listings"
+        );
+
         return BillboardListingDto.from(saved);
     }
 
