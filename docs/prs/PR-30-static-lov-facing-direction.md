@@ -91,8 +91,10 @@
   `VARCHAR(60)` but now stores the enum code.
 - **Index Additions & Query Impact:** None.
 - **Backward Compatibility:** The migration backfills existing rows, mapping each legacy label
-  (for example `North-East`) to its code (`NORTH_EAST`), so every pre-existing row validates against
-  the enum after upgrade.
+  (for example `North-East`) to its code (`NORTH_EAST`). Matching is done on a normalized value
+  (uppercased, separators stripped) so casing/separator variants map correctly, and any value that is
+  still not a valid code (a legacy typo or empty string) is defaulted to `NORTH` — so no row can fail
+  to parse into the enum and cause a `500` on read.
 
 ---
 
@@ -107,8 +109,9 @@
 ---
 
 ## 6. Performance, Reliability & Failure Modes
-- **Caching Strategy:** None required — the eight options come straight from the enum, so each call
-  is a trivial in-memory iteration with no database or resource-bundle lookup.
+- **Caching Strategy:** The eight options never change, so the list is built once into a
+  `private static final` field in `LovService` and the same immutable instance is returned on every
+  request (no per-request allocation).
 - **Transactions & Concurrency:** Parsing happens inside the existing `@Transactional` owner
   registration; a rejected facing aborts the transaction before any row is written.
 - **Failure Modes & Fallbacks:** Labels are baked into the enum, so there is no missing-translation

@@ -22,10 +22,23 @@ import com.theadbasket.backend.common.exception.BadRequestException;
 @Service
 public class LovService {
 
+    /** Facing directions never change, so the option list is built once and shared across requests. */
+    private static final List<LovOption> FACING_DIRECTIONS = buildStaticOptions(
+            FacingDirection.values(), FacingDirection::code, FacingDirection::label);
+
     private final MessageSource messageSource;
 
     public LovService(MessageSource messageSource) {
         this.messageSource = messageSource;
+    }
+
+    private static <E> List<LovOption> buildStaticOptions(E[] values,
+            java.util.function.Function<E, String> code, java.util.function.Function<E, String> label) {
+        List<LovOption> out = new ArrayList<>(values.length);
+        for (E value : values) {
+            out.add(new LovOption(code.apply(value), label.apply(value)));
+        }
+        return List.copyOf(out);
     }
 
     /** Billboard structure types for the owner form dropdown. */
@@ -48,11 +61,7 @@ public class LovService {
      * into {@link FacingDirection}, not resolved from config.
      */
     public List<LovOption> facingDirections() {
-        List<LovOption> out = new ArrayList<>(FacingDirection.values().length);
-        for (FacingDirection direction : FacingDirection.values()) {
-            out.add(new LovOption(direction.code(), direction.label()));
-        }
-        return out;
+        return FACING_DIRECTIONS;
     }
 
     /**
