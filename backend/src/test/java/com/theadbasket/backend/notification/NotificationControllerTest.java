@@ -1,9 +1,12 @@
 package com.theadbasket.backend.notification;
 
-import java.time.Instant;
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,11 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.theadbasket.backend.security.JwtService;
@@ -44,7 +42,6 @@ class NotificationControllerTest {
     private User owner1;
     private User owner2;
     private String token1;
-    private String token2;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +49,6 @@ class NotificationControllerTest {
         owner2 = userRepository.save(new User("Rajesh", "Sharma", "owner2@example.com", "pass", "9876543211", Role.OWNER));
 
         token1 = jwtService.generateAccessToken(owner1);
-        token2 = jwtService.generateAccessToken(owner2);
     }
 
     @Test
