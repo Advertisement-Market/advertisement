@@ -13,6 +13,7 @@ import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
 import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.LovService;
 import com.theadbasket.backend.lov.TrafficType;
@@ -124,6 +125,8 @@ public class OwnerRegistrationService {
         AudienceType audienceType = lovService.parse(AudienceType.class, req.audienceType(), ErrorCode.INVALID_AUDIENCE_TYPE);
         // Static LOV: facing must be one of the eight compass directions.
         FacingDirection facing = lovService.parseFacing(req.facing());
+        // Minimum booking: keep what the owner picked (value + unit) and the normalized day count.
+        BookingDurationUnit minBookingUnit = lovService.parseBookingDurationUnit(req.minBookingUnit());
 
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
@@ -141,7 +144,9 @@ public class OwnerRegistrationService {
         listing.setAudienceTypeOther(audienceType == AudienceType.OTHER ? blankToNull(req.audienceTypeOther()) : null);
         listing.setFootfall(blankToNull(req.footfall()));
         listing.setStartPrice(req.startPrice());
-        listing.setMinBooking(req.minBooking());
+        listing.setMinBookingValue(req.minBookingValue());
+        listing.setMinBookingUnit(minBookingUnit);
+        listing.setMinBookingDays(minBookingUnit.toDays(req.minBookingValue()));
         listing.setDiscountNote(blankToNull(req.discountNote()));
         return listing;
     }

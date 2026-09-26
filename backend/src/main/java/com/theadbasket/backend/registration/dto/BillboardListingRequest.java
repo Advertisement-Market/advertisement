@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -71,9 +72,13 @@ public record BillboardListingRequest(
         @NotNull(message = "Starting price is required.")
         @Positive
         BigDecimal startPrice,
-        @NotBlank(message = "Minimum booking duration is required.")
-        @Size(max = 50)
-        String minBooking,
+        @NotNull(message = "Minimum booking duration is required.")
+        @Positive(message = "Minimum booking duration must be a positive number.")
+        @Max(value = 1000, message = "Minimum booking duration is too large.")
+        Integer minBookingValue,
+        @NotBlank(message = "Minimum booking duration unit is required.")
+        @Size(max = 20)
+        String minBookingUnit,
         @Size(max = 500)
         String discountNote
         ) {

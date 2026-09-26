@@ -26,6 +26,10 @@ public class LovService {
     private static final List<LovOption> FACING_DIRECTIONS = buildStaticOptions(
             FacingDirection.values(), FacingDirection::code, FacingDirection::label);
 
+    /** Booking-duration units never change, so the option list is built once and shared. */
+    private static final List<LovOption> BOOKING_DURATION_UNITS = buildStaticOptions(
+            BookingDurationUnit.values(), BookingDurationUnit::code, BookingDurationUnit::label);
+
     private final MessageSource messageSource;
 
     public LovService(MessageSource messageSource) {
@@ -82,6 +86,34 @@ public class LovService {
             }
         }
         throw new BadRequestException(ErrorCode.INVALID_FACING_DIRECTION, input);
+    }
+
+    /**
+     * Minimum-booking duration units for the owner form dropdown. A <b>static</b> LOV — labels are
+     * baked into {@link BookingDurationUnit}.
+     */
+    public List<LovOption> bookingDurationUnits() {
+        return BOOKING_DURATION_UNITS;
+    }
+
+    /**
+     * Resolve a client-supplied booking-duration unit to its {@link BookingDurationUnit}, accepting
+     * either the code or the fixed label, case-insensitively.
+     *
+     * @throws BadRequestException {@code INVALID_BOOKING_DURATION_UNIT} when blank or unknown
+     */
+    public BookingDurationUnit parseBookingDurationUnit(String input) {
+        if (input != null) {
+            String trimmed = input.trim();
+            if (!trimmed.isEmpty()) {
+                for (BookingDurationUnit unit : BookingDurationUnit.values()) {
+                    if (unit.code().equalsIgnoreCase(trimmed) || unit.label().equalsIgnoreCase(trimmed)) {
+                        return unit;
+                    }
+                }
+            }
+        }
+        throw new BadRequestException(ErrorCode.INVALID_BOOKING_DURATION_UNIT, input);
     }
 
     /**
