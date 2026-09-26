@@ -2,6 +2,7 @@ package com.theadbasket.backend.registration.dto;
 
 import java.math.BigDecimal;
 
+import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
 import jakarta.validation.constraints.NotBlank;
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.Size;
 /**
  * The owner's first billboard listing, captured during registration.
  */
+@RequiredOtherText
 public record BillboardListingRequest(
         @NotBlank(message = "Billboard name is required.")
         @Size(max = 150)
@@ -38,6 +40,9 @@ public record BillboardListingRequest(
         @NotBlank(message = "Billboard type is required.")
         @Size(max = 60)
         String type,
+        // Free-text description, used only when `type` is OTHER.
+        @Size(max = 120)
+        String typeOther,
         @NotNull(message = "Width is required.")
         @Positive
         BigDecimal widthFt,
@@ -52,9 +57,15 @@ public record BillboardListingRequest(
         @NotBlank(message = "Traffic type is required.")
         @Size(max = 80)
         String trafficType,
+        // Free-text description, used only when `trafficType` is OTHER.
+        @Size(max = 120)
+        String trafficTypeOther,
         @NotBlank(message = "Audience type is required.")
         @Size(max = 120)
         String audienceType,
+        // Free-text description, used only when `audienceType` is OTHER.
+        @Size(max = 120)
+        String audienceTypeOther,
         @Size(max = 60)
         String footfall,
         @NotNull(message = "Starting price is required.")
