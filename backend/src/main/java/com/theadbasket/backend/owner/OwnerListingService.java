@@ -149,12 +149,16 @@ public class OwnerListingService {
             BookingDurationUnit unit = req.minBookingUnit() != null ? lovService.parseBookingDurationUnit(req.minBookingUnit()) : listing.getMinBookingUnit();
             listing.setMinBookingValue(value);
             listing.setMinBookingUnit(unit);
-            listing.setMinBookingDays(unit.toDays(value));
+            listing.setMinBookingDays(unit != null && value != null ? unit.toDays(value) : null);
         }
 
         if (req.discountNote() != null) listing.setDiscountNote(blankToNull(req.discountNote()));
 
         Address addr = listing.getAddress();
+        if (addr == null && (req.addressLine1() != null || req.city() != null || req.state() != null || req.pincode() != null)) {
+            addr = new Address();
+            listing.setAddress(addr);
+        }
         if (addr != null) {
             if (req.addressLine1() != null) addr.setLine1(req.addressLine1().trim());
             if (req.addressLine2() != null) addr.setLine2(blankToNull(req.addressLine2()));
