@@ -44,7 +44,7 @@ class NotificationControllerTest {
     private String token1;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         owner1 = userRepository.save(new User("Vikram", "Kumar", "owner1@example.com", "pass", "9876543210", Role.OWNER));
         owner2 = userRepository.save(new User("Rajesh", "Sharma", "owner2@example.com", "pass", "9876543211", Role.OWNER));
 
