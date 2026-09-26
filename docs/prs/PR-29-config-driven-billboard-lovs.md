@@ -104,7 +104,9 @@
 ## 5. Security & Validation
 - **Input Validation:** Bean validation still enforces `@NotBlank`/`@Size` on the raw strings;
   `LovService.parse` then enforces membership in the catalogue and throws `BadRequestException` with
-  a specific `ErrorCode` for unknown values. Companion `*Other` fields are `@Size(max = 120)`.
+  a specific `ErrorCode` for unknown values. Companion `*Other` fields are `@Size(max = 120)`, and a
+  class-level `@RequiredOtherText` constraint requires the matching companion to be non-blank whenever
+  a field is set to `OTHER` (reported as a `400` field error, so an "Other" cannot be saved blank).
 - **Access Control:** The lookup endpoints are added to `SecurityConfig` public paths
   (`/api/lov/**`); every other rule is unchanged.
 - **Data Protection:** The catalogue holds no sensitive data; nothing new is logged. Labels are

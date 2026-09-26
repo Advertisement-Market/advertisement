@@ -80,4 +80,14 @@ class LovEndpointIntegrationTest {
         assertThat(listing.getTrafficType()).isEqualTo(TrafficType.CITY_URBAN);
         assertThat(listing.getTrafficTypeOther()).isNull();
     }
+
+    @Test
+    void ownerRegistration_rejectsOtherWithoutCompanionText() throws Exception {
+        mockMvc.perform(post("/api/auth/register/owner")
+                .contentType(MediaType.APPLICATION_JSON).content(ownerPayload("OTHER", "")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors['billboard.audienceTypeOther']").exists());
+        assertThat(billboardListings.count()).isZero();
+    }
 }

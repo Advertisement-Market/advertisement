@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Integration Gaps · The AdBasket</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1a1d24; --ink-mid:#565d6b; --ink-soft:#8a91a0;
+    --line:#e5e8ee; --accent:#4f46e5; --red:#c0392b; --amber:#b7791f; --green:#2f855a;
+    --chip:#eef1f6; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:48px 24px 96px}
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:30px;margin:10px 0 6px;letter-spacing:-.5px}
+  .sub{color:var(--ink-mid);max-width:72ch}
+  .meta{margin-top:14px;font-size:12.5px;color:var(--ink-soft);display:flex;gap:18px;flex-wrap:wrap}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:26px 0 8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .stat .n{font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .stat .n.red{color:var(--red)} .stat .n.amber{color:var(--amber)}
+  .stat .l{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:18px;overflow:hidden}
+  .item-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfcfd)}
+  .item-head .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--chip);flex-shrink:0}
+  .item-head h2{font-size:17px;margin:0;flex:1}
+  .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.03em}
+  .pill.missing{background:#fbe7e5;color:var(--red)}
+  .pill.stub{background:#fdf1e0;color:var(--amber)}
+  .pill.partial{background:#eceafe;color:var(--accent)}
+  .body{padding:6px 20px 18px}
+  .row{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .k{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);font-weight:700;padding-top:2px}
+  .row .v{font-size:14px;color:var(--ink-mid)}
+  .row .v code, code{font-family:var(--mono);font-size:12.5px;background:var(--chip);padding:1px 6px;border-radius:5px;color:var(--ink)}
+  .impact-high{color:var(--red);font-weight:600}
+  .impact-med{color:var(--amber);font-weight:600}
+  h3.group{margin:38px 0 2px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  footer{margin-top:44px;font-size:12px;color:var(--ink-soft);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="kicker">The AdBasket · Integration Audit</div>
+    <h1>What's Not Wired or Linked</h1>
+    <p class="sub">External services and cross-cutting features that are stubbed, faked, or absent. Each entry notes where it surfaces, what exists today, and what real integration would require.</p>
+    <div class="meta">
+      <span>Branch <code>Ashutosh/integration</code></span>
+      <span>Generated 2026-08-17</span>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="stat"><div class="n red">6</div><div class="l">Missing entirely</div></div>
+    <div class="stat"><div class="n amber">5</div><div class="l">Stubbed / faked</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">Partially wired</div></div>
+  </div>
+
+  <h3 class="group">External services</h3>
+
+  <!-- OTP -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">🔑</div><h2>OTP / phone &amp; email verification</h2><span class="pill stub">Stubbed</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Registration wizards — <code>features/register/widgets/otp.jsx</code></div></div>
+      <div class="row"><div class="k">Today</div><div class="v">"Send OTP" shows a toast <code>(Demo: use 123456)</code>; verification passes only if the user types <code>123456</code>. Pure client-side theatre — no code is generated, sent, or checked server-side.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">An SMS provider (e.g. Twilio / MSG91 / AWS SNS) and email OTP delivery, a backend endpoint to generate + store + rate-limit + expire codes, and a verified-status flag persisted on the user.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-high">High</span> — verification is trivially bypassed; phone/email are effectively unverified.</div></div>
+    </div>
+  </div>
+
+  <!-- EMAIL -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">✉️</div><h2>Email service</h2><span class="pill missing">Missing</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Registration, password reset, notifications, quotes</div></div>
+      <div class="row"><div class="k">Today</div><div class="v">No mail dependency in the backend (no <code>spring-boot-starter-mail</code>), no SMTP config, no templates. No welcome, verification, receipt, or notification emails are ever sent.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">An SMTP/API provider (SendGrid / SES / Postmark), mail config per profile, and transactional templates. Frontend "Email + App" notification preferences point at nothing.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-high">High</span> — blocks verification, password reset, and all transactional comms.</div></div>
+    </div>
+  </div>
+
+  <!-- MAPS -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">🗺️</div><h2>Maps / geolocation</h2><span class="pill stub">Faked</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Browse billboards map view; owner/advertiser dashboards</div></div>
+      <div class="row"><div class="k">Today</div><div class="v">No mapping library is installed (no Leaflet, Mapbox, Google Maps, MapLibre — confirmed in <code>package.json</code>). The "map" is a decorative background with pins positioned by hard-coded <code>mapX/mapY</code> percentages in <code>browseData.js</code>. Listings carry no real latitude/longitude.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">A map SDK + API key, real geocoordinates on listings, geocoding of addresses, and radius/location search on the backend.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-med">Medium</span> — location is a core discovery axis for OOH inventory.</div></div>
+    </div>
+  </div>
+
+  <!-- FILE STORAGE -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">📎</div><h2>File uploads &amp; storage</h2><span class="pill stub">Stubbed</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Logo upload, KYC/verification docs, campaign creatives, portfolios — <code>features/register/widgets/uploads.jsx</code></div></div>
+      <div class="row"><div class="k">Today</div><div class="v">Every upload zone reads the file locally and shows a success toast. Nothing is transmitted; there is no multipart endpoint and no storage backend.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">Object storage (S3 / GCS / Azure Blob), a multipart upload endpoint, server-side type/size validation and virus scanning, and persisted file references on the profile entities.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-med">Medium</span> — KYC/verification cannot actually complete.</div></div>
+    </div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">💳</div><h2>Payments / booking</h2><span class="pill missing">Missing</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Browse "Book", dashboard quotes &amp; proposals, packages</div></div>
+      <div class="row"><div class="k">Today</div><div class="v">Prices and package tiers are display-only. No payment gateway (Razorpay / Stripe), no order/booking entity, no checkout flow.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">A payment provider integration, booking/order domain + endpoints, invoicing, and payout handling for owners.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-med">Medium</span> — the marketplace can't transact yet (may be intentionally out of current phase).</div></div>
+    </div>
+  </div>
+
+  <h3 class="group">Data &amp; backend endpoints</h3>
+
+  <!-- READ APIS -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">🔌</div><h2>Read/query APIs for dashboards &amp; browse</h2><span class="pill missing">Missing</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">All three dashboards, Browse, Browse Agencies</div></div>
+      <div class="row"><div class="k">Today</div><div class="v">Backend exposes only <code>AuthController</code>, <code>RegistrationController</code>, and <code>PingController</code>. Entities/repositories for listings, campaigns and portfolios exist but no controller serves them, so every screen falls back to <code>data.jsx</code> imports.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">GET endpoints for listings (with filter/sort/pagination), agencies, quotes, notifications, and dashboard aggregates — then a fetch layer on the frontend to replace the static imports.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-high">High</span> — this is the blocker behind the whole Dummy Data report.</div></div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">🔒</div><h2>Password reset ("Forgot password?")</h2><span class="pill missing">Missing</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Login modal — <code>features/auth/AuthModal/AuthModal.jsx</code></div></div>
+      <div class="row"><div class="k">Today</div><div class="v">The link is <code>href="#"</code> with <code>e.preventDefault()</code> — a dead no-op. No reset endpoint exists.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">A token-based reset flow (request → emailed link → set new password), which also depends on the email service above.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-med">Medium</span> — locked-out users have no recovery path.</div></div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">🔎</div><h2>Search &amp; filtering</h2><span class="pill partial">Client-only</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Where</div><div class="v">Browse, Browse Agencies, landing search bar</div></div>
+      <div class="row"><div class="k">Today</div><div class="v">Filters/sorts run in the browser over the 12 static listings. There is no server-side search, no pagination, and the results won't scale past the hard-coded array.</div></div>
+      <div class="row"><div class="k">Missing</div><div class="v">Backend query params (city/type/price/footfall/tags), pagination, and optionally full-text search.</div></div>
+      <div class="row"><div class="k">Impact</div><div class="v"><span class="impact-med">Medium</span></div></div>
+    </div>
+  </div>
+
+  <h3 class="group">Smaller / cosmetic</h3>
+
+  <!-- MISC -->
+  <div class="item">
+    <div class="item-head">
+      <div class="ic">🧩</div><h2>Dead links &amp; non-functional UI</h2><span class="pill stub">Stubbed</span>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">Terms &amp; Privacy</div><div class="v"><code>href="#"</code> no-op links in the register modal — no pages behind them.</div></div>
+      <div class="row"><div class="k">Notifications</div><div class="v">Static feed with fixed "unread" flags and nav badge counts (<code>3</code>, <code>5</code>); no realtime channel (WebSocket/SSE) and no persistence.</div></div>
+      <div class="row"><div class="k">Notification preferences</div><div class="v">The "Email + App / App only" preference table is display-only — choices aren't saved or honoured.</div></div>
+      <div class="row"><div class="k">Charts</div><div class="v">Dashboard analytics graphs are drawn from fixed arrays (<code>CHART_IMPRESSIONS</code>, <code>CHART_SPEND</code>).</div></div>
+      <div class="row"><div class="k">"Remember me"</div><div class="v">Checkbox in the login modal isn't wired to anything (session persistence is already unconditional via localStorage).</div></div>
+    </div>
+  </div>
+
+  <footer>The AdBasket — internal engineering audit · integration gaps</footer>
+</div>
+</body>
+</html>

@@ -172,7 +172,9 @@ recompile.
   Submissions may send either the code or the label (case-insensitive); the canonical code is stored.
 - **"Other":** each list includes an `OTHER` code. When selected, the caller's free text is sent in the
   companion field (`typeOther` / `trafficTypeOther` / `audienceTypeOther`) and persisted in the matching
-  `*_other` column; for any non-`OTHER` value the companion column stays null.
+  `*_other` column; for any non-`OTHER` value the companion column stays null. The companion text is
+  **required** when `OTHER` is selected — a class-level `@RequiredOtherText` bean-validation constraint
+  rejects an empty description with a `400` field error.
 - **Adding a value:** add a constant to the enum, add its `lov.<category>.<CODE>` label to
   `messages.properties` — the endpoint and validation pick it up automatically.
 

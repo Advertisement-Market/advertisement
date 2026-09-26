@@ -2,6 +2,7 @@ package com.theadbasket.backend.registration.dto;
 
 import java.math.BigDecimal;
 
+import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
 import jakarta.validation.constraints.NotBlank;
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.Size;
 /**
  * The owner's first billboard listing, captured during registration.
  */
+@RequiredOtherText
 public record BillboardListingRequest(
         @NotBlank(message = "Billboard name is required.")
         @Size(max = 150)

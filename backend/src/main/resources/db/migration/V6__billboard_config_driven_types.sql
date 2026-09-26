@@ -7,35 +7,36 @@ ALTER TABLE billboard_listings ADD COLUMN type_other          VARCHAR(120);
 ALTER TABLE billboard_listings ADD COLUMN traffic_type_other  VARCHAR(120);
 ALTER TABLE billboard_listings ADD COLUMN audience_type_other VARCHAR(120);
 
--- 2. Backfill existing rows: map the legacy display labels to their canonical codes.
-UPDATE billboard_listings SET type = CASE type
-    WHEN 'Static Hoarding' THEN 'STATIC_HOARDING'
-    WHEN 'LED Digital'     THEN 'LED_DIGITAL'
-    WHEN 'Unipole'         THEN 'UNIPOLE'
-    WHEN 'Gantry'          THEN 'GANTRY'
-    WHEN 'Bus Shelter'     THEN 'BUS_SHELTER'
-    WHEN 'Kiosk'           THEN 'KIOSK'
-    WHEN 'Digital Screen'  THEN 'DIGITAL_SCREEN'
+-- 2. Backfill existing rows: map the legacy display labels to their canonical codes. Matching is
+--    done on TRIM(LOWER(...)) so casing and stray surrounding whitespace do not cause a miss.
+UPDATE billboard_listings SET type = CASE TRIM(LOWER(type))
+    WHEN 'static hoarding' THEN 'STATIC_HOARDING'
+    WHEN 'led digital'     THEN 'LED_DIGITAL'
+    WHEN 'unipole'         THEN 'UNIPOLE'
+    WHEN 'gantry'          THEN 'GANTRY'
+    WHEN 'bus shelter'     THEN 'BUS_SHELTER'
+    WHEN 'kiosk'           THEN 'KIOSK'
+    WHEN 'digital screen'  THEN 'DIGITAL_SCREEN'
     ELSE type
 END;
 
-UPDATE billboard_listings SET traffic_type = CASE traffic_type
-    WHEN 'City / Urban'     THEN 'CITY_URBAN'
-    WHEN 'Highway'          THEN 'HIGHWAY'
-    WHEN 'Commercial Zone'  THEN 'COMMERCIAL_ZONE'
-    WHEN 'Residential Area' THEN 'RESIDENTIAL_AREA'
-    WHEN 'Industrial'       THEN 'INDUSTRIAL'
+UPDATE billboard_listings SET traffic_type = CASE TRIM(LOWER(traffic_type))
+    WHEN 'city / urban'     THEN 'CITY_URBAN'
+    WHEN 'highway'          THEN 'HIGHWAY'
+    WHEN 'commercial zone'  THEN 'COMMERCIAL_ZONE'
+    WHEN 'residential area' THEN 'RESIDENTIAL_AREA'
+    WHEN 'industrial'       THEN 'INDUSTRIAL'
     ELSE traffic_type
 END;
 
-UPDATE billboard_listings SET audience_type = CASE audience_type
-    WHEN 'IT Crowd / Tech Professionals' THEN 'IT_TECH_PROFESSIONALS'
-    WHEN 'Commuters'                     THEN 'COMMUTERS'
-    WHEN 'Highway Travelers'             THEN 'HIGHWAY_TRAVELERS'
-    WHEN 'Local Residents'               THEN 'LOCAL_RESIDENTS'
-    WHEN 'Shoppers'                      THEN 'SHOPPERS'
-    WHEN 'Students'                      THEN 'STUDENTS'
-    WHEN 'Mixed'                         THEN 'MIXED'
+UPDATE billboard_listings SET audience_type = CASE TRIM(LOWER(audience_type))
+    WHEN 'it crowd / tech professionals' THEN 'IT_TECH_PROFESSIONALS'
+    WHEN 'commuters'                     THEN 'COMMUTERS'
+    WHEN 'highway travelers'             THEN 'HIGHWAY_TRAVELERS'
+    WHEN 'local residents'               THEN 'LOCAL_RESIDENTS'
+    WHEN 'shoppers'                      THEN 'SHOPPERS'
+    WHEN 'students'                      THEN 'STUDENTS'
+    WHEN 'mixed'                         THEN 'MIXED'
     ELSE audience_type
 END;
 

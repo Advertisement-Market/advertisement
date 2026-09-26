@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Security Findings · The AdBasket</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1a1d24; --ink-mid:#565d6b; --ink-soft:#8a91a0;
+    --line:#e5e8ee; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --crit:#b3261e; --high:#c0392b; --med:#b7791f; --low:#5a6472; --chip:#eef1f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:48px 24px 96px}
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--high);font-weight:700}
+  h1{font-size:30px;margin:10px 0 6px;letter-spacing:-.5px}
+  .sub{color:var(--ink-mid);max-width:74ch}
+  .meta{margin-top:14px;font-size:12.5px;color:var(--ink-soft);display:flex;gap:18px;flex-wrap:wrap}
+  .disclaimer{background:#fffdf7;border:1px solid #f0e6cf;border-radius:12px;padding:12px 18px;margin-top:20px;font-size:12.5px;color:var(--ink-mid)}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:24px 0 8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .n{font-size:28px;font-weight:800;letter-spacing:-.5px}
+  .stat .l{font-size:11px;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+  .n.crit{color:var(--crit)} .n.high{color:var(--high)} .n.med{color:var(--med)} .n.low{color:var(--low)}
+  .finding{background:var(--card);border:1px solid var(--line);border-left-width:5px;border-radius:12px;margin-top:16px;overflow:hidden}
+  .finding.crit{border-left-color:var(--crit)} .finding.high{border-left-color:var(--high)}
+  .finding.med{border-left-color:var(--med)} .finding.low{border-left-color:var(--low)}
+  .f-head{display:flex;align-items:center;gap:12px;padding:15px 20px 12px}
+  .sev{font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:4px 9px;border-radius:6px;color:#fff;flex-shrink:0}
+  .sev.crit{background:var(--crit)} .sev.high{background:var(--high)} .sev.med{background:var(--med)} .sev.low{background:var(--low)}
+  .f-head h2{font-size:16.5px;margin:0;flex:1}
+  .id{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .f-body{padding:0 20px 16px}
+  .grid{display:grid;grid-template-columns:120px 1fr;gap:10px 14px;font-size:13.5px}
+  .grid .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);font-weight:700;padding-top:2px}
+  .grid .v{color:var(--ink-mid)}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--chip);padding:1px 6px;border-radius:5px;color:var(--ink);word-break:break-word}
+  .loc{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  h3.group{margin:36px 0 4px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .good{background:#e6f4ec;border:1px solid #c6e5d3;border-radius:12px;padding:14px 18px;margin-top:26px;font-size:13.5px;color:#2f5541}
+  .good b{color:#22463a}
+  footer{margin-top:44px;font-size:12px;color:var(--ink-soft);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="kicker">The AdBasket · Security Review</div>
+    <h1>Security Findings</h1>
+    <p class="sub">A static review of the current auth/JWT stack, Spring Security configuration, and frontend token handling on branch <code>Ashutosh/integration</code>. Findings are ranked by severity with concrete locations and fixes.</p>
+    <div class="meta">
+      <span>Generated 2026-08-17</span>
+      <span>Scope: <code>backend/</code> + <code>frontend/src</code></span>
+    </div>
+    <div class="disclaimer">This is a code-level review of an in-development project, not a penetration test or a compliance certification. Several items are acceptable for local dev but must be fixed before any public deployment — those are flagged as prod-blocking.</div>
+  </header>
+
+  <div class="summary">
+    <div class="stat"><div class="n crit">1</div><div class="l">Critical</div></div>
+    <div class="stat"><div class="n high">3</div><div class="l">High</div></div>
+    <div class="stat"><div class="n med">6</div><div class="l">Medium</div></div>
+    <div class="stat"><div class="n low">4</div><div class="l">Low</div></div>
+  </div>
+
+  <h3 class="group">Critical</h3>
+
+  <div class="finding crit">
+    <div class="f-head"><span class="sev crit">CRITICAL</span><h2>Weak, committed JWT signing secret with silent prod fallback</h2><span class="id">SEC-01</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">backend/src/main/resources/application.yml:42</div>
+      <div class="k">Issue</div><div class="v">The HS256 secret defaults to a known, source-committed string: <code>${JWT_SECRET:dev-only-secret-change-me-in-production-min-32-chars-please}</code>. If <code>JWT_SECRET</code> is not set in production, the app boots anyway using this public value. Anyone who reads the repo can forge valid access tokens for any user/role.</div>
+      <div class="k">Impact</div><div class="v">Full authentication bypass and privilege escalation — an attacker can mint a token with <code>role: OWNER/AGENCY/ADVERTISER</code> and any <code>uid</code>.</div>
+      <div class="k">Fix</div><div class="v">Fail fast: require <code>JWT_SECRET</code> in the prod profile (no default), inject a high-entropy 256-bit random secret from a secrets manager, and never commit a real key. Consider rotating to asymmetric (RS256/EdDSA) so only the auth service holds the private key.</div>
+    </div></div>
+  </div>
+
+  <h3 class="group">High</h3>
+
+  <div class="finding high">
+    <div class="f-head"><span class="sev high">HIGH</span><h2>JWTs (access + refresh) stored in localStorage</h2><span class="id">SEC-02</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">frontend/src/lib/authStorage.js</div>
+      <div class="k">Issue</div><div class="v">Both tokens live in <code>localStorage</code> (<code>ab_access_token</code>, <code>ab_refresh_token</code>). Any XSS on the site — including via a third-party script or a future <code>dangerouslySetInnerHTML</code> data path — can read and exfiltrate them.</div>
+      <div class="k">Impact</div><div class="v">Full session theft; the long-lived (7-day) refresh token is the worst to lose.</div>
+      <div class="k">Fix</div><div class="v">Store the refresh token in an <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite</code> cookie so JS can't read it; keep only the short-lived access token in memory. Add a strict Content-Security-Policy. If cookies are used, re-enable CSRF protection accordingly.</div>
+    </div></div>
+  </div>
+
+  <div class="finding high">
+    <div class="f-head"><span class="sev high">HIGH</span><h2>No rate limiting or brute-force protection on auth endpoints</h2><span class="id">SEC-03</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">AuthController /login, /register, /refresh</div>
+      <div class="k">Issue</div><div class="v">Login, registration, and refresh accept unlimited attempts. No lockout, throttling, CAPTCHA, or backoff.</div>
+      <div class="k">Impact</div><div class="v">Credential stuffing / password brute-forcing and registration spam are unimpeded.</div>
+      <div class="k">Fix</div><div class="v">Per-IP and per-account rate limiting (bucket4j, gateway, or Spring filter), exponential backoff, and account lockout after N failures. Add CAPTCHA on repeated failures.</div>
+    </div></div>
+  </div>
+
+  <div class="finding high">
+    <div class="f-head"><span class="sev high">HIGH</span><h2>Hard-coded OTP (123456) — verification is a client-side sham</h2><span class="id">SEC-04</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">frontend/src/features/register/widgets/otp.jsx:60,79</div>
+      <div class="k">Issue</div><div class="v">Email/phone "verification" passes whenever the user enters <code>123456</code>, entirely in the browser. There is no server-side generation or check, so any registrant is trivially "verified".</div>
+      <div class="k">Impact</div><div class="v">Ownership of a phone/email is never actually proven — undermines trust, enables fake accounts and impersonation of contact details.</div>
+      <div class="k">Fix</div><div class="v">Move OTP to the backend: generate, hash+store, expire, rate-limit, and verify server-side; deliver via a real SMS/email provider (see Integration Gaps). Persist a verified flag the server enforces.</div>
+    </div></div>
+  </div>
+
+  <h3 class="group">Medium</h3>
+
+  <div class="finding med">
+    <div class="f-head"><span class="sev med">MEDIUM</span><h2>Refresh tokens stored in plaintext</h2><span class="id">SEC-05</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">RefreshTokenService.java:27 · RefreshToken entity</div>
+      <div class="k">Issue</div><div class="v">The opaque refresh token (a raw <code>UUID</code>) is persisted and looked up by its literal value. A read-only DB leak (backup, SQLi, log) yields directly usable tokens.</div>
+      <div class="k">Fix</div><div class="v">Store only a SHA-256 hash of the token; compare hashes on verify. Add reuse-detection: if a already-rotated token is presented, revoke the whole family (likely theft).</div>
+    </div></div>
+  </div>
+
+  <div class="finding med">
+    <div class="f-head"><span class="sev med">MEDIUM</span><h2>Access tokens can't be revoked before expiry</h2><span class="id">SEC-06</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">JwtService.java · JwtAuthenticationFilter.java</div>
+      <div class="k">Issue</div><div class="v">Access tokens are validated purely by signature + expiry. Logout only revokes the refresh token; a stolen access token stays valid for its full 15-minute window even after logout, password change, or role change.</div>
+      <div class="k">Fix</div><div class="v">Accept the 15-min window as the trade-off, or add a token version / <code>jti</code> denylist checked in the filter for high-value actions and on password/role change.</div>
+    </div></div>
+  </div>
+
+  <div class="finding med">
+    <div class="f-head"><span class="sev med">MEDIUM</span><h2>Account/email enumeration on registration</h2><span class="id">SEC-07</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">AuthService.register → EmailAlreadyExistsException</div>
+      <div class="k">Issue</div><div class="v">Registration returns a distinct "email already exists" error, letting an attacker enumerate which emails hold accounts. (Login correctly uses a generic message — good.)</div>
+      <div class="k">Fix</div><div class="v">Return a generic response and, where a verification email exists, send an "account already exists" notice out-of-band instead of revealing it inline.</div>
+    </div></div>
+  </div>
+
+  <div class="finding med">
+    <div class="f-head"><span class="sev med">MEDIUM</span><h2>H2 console enabled with blank DB password (dev profile)</h2><span class="id">SEC-08</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">application-dev.yml · SecurityConfig.java:37 (/h2-console/**)</div>
+      <div class="k">Issue</div><div class="v">The dev profile runs H2 with <code>username: sa</code> / empty password and exposes <code>/h2-console/**</code> as a public path with <code>frameOptions: sameOrigin</code>. Fine locally, dangerous if the dev profile is ever the active profile on a reachable host.</div>
+      <div class="k">Fix</div><div class="v">Ensure <code>dev</code> never runs in deployed environments; gate the H2 console + its permitAll behind the dev profile only (not the shared <code>SecurityConfig</code>).</div>
+    </div></div>
+  </div>
+
+  <div class="finding med">
+    <div class="f-head"><span class="sev med">MEDIUM</span><h2>Production DB password defaults to empty</h2><span class="id">SEC-09</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">application-prod.yml:7</div>
+      <div class="k">Issue</div><div class="v"><code>password: ${DB_PASSWORD:}</code> — if the env var is unset, the app connects (or tries to) with an empty password rather than failing.</div>
+      <div class="k">Fix</div><div class="v">Remove the default so a missing <code>DB_PASSWORD</code> fails fast; source it from a secrets manager.</div>
+    </div></div>
+  </div>
+
+  <div class="finding med">
+    <div class="f-head"><span class="sev med">MEDIUM</span><h2>No JWT issuer/audience claims or validation</h2><span class="id">SEC-10</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">JwtService.java:28-38, 57-63</div>
+      <div class="k">Issue</div><div class="v">Tokens set only subject/uid/role/exp; no <code>iss</code>/<code>aud</code> is issued or verified. Reduces defence-in-depth against token reuse across environments/services.</div>
+      <div class="k">Fix</div><div class="v">Set and verify <code>issuer</code> and <code>audience</code>; keep a small allowed clock skew explicit.</div>
+    </div></div>
+  </div>
+
+  <h3 class="group">Low / hardening</h3>
+
+  <div class="finding low">
+    <div class="f-head"><span class="sev low">LOW</span><h2>Actuator prometheus endpoint publicly accessible</h2><span class="id">SEC-11</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">SecurityConfig.java:36 · application.yml:24-28</div>
+      <div class="k">Issue</div><div class="v"><code>/actuator/prometheus</code> is in <code>PUBLIC_PATHS</code>, exposing internal metrics (endpoints, memory, request counts) without auth.</div>
+      <div class="k">Fix</div><div class="v">Require auth for metrics, or restrict to an internal network / scrape credentials. Keep only <code>/actuator/health</code> public.</div>
+    </div></div>
+  </div>
+
+  <div class="finding low">
+    <div class="f-head"><span class="sev low">LOW</span><h2>CSRF disabled globally</h2><span class="id">SEC-12</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">SecurityConfig.java:62</div>
+      <div class="k">Issue</div><div class="v">Acceptable today because auth is bearer-token in a header (not cookies). Becomes a real CSRF hole the moment any cookie-based auth is introduced (see SEC-02's cookie recommendation).</div>
+      <div class="k">Fix</div><div class="v">If you move refresh tokens to cookies, re-enable CSRF protection (e.g. double-submit token) for state-changing requests.</div>
+    </div></div>
+  </div>
+
+  <div class="finding low">
+    <div class="f-head"><span class="sev low">LOW</span><h2>Permissive CORS headers with credentials</h2><span class="id">SEC-13</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">SecurityConfig.java:75-84</div>
+      <div class="k">Issue</div><div class="v"><code>allowCredentials(true)</code> with <code>allowedHeaders("*")</code>, and a single hard-coded origin. Origin is fine, but the wildcard headers are broader than needed and the allow-list isn't env-driven for prod.</div>
+      <div class="k">Fix</div><div class="v">Enumerate the headers actually required; drive allowed origins from configuration per environment.</div>
+    </div></div>
+  </div>
+
+  <div class="finding low">
+    <div class="f-head"><span class="sev low">LOW</span><h2>Trusted-HTML rendering pattern (future risk)</h2><span class="id">SEC-14</span></div>
+    <div class="f-body"><div class="grid">
+      <div class="k">Location</div><div class="v loc">Browse/browseData.js ICON_SVG → dangerouslySetInnerHTML</div>
+      <div class="k">Issue</div><div class="v">Icons render via <code>dangerouslySetInnerHTML</code>. Safe now (static, developer-authored), but if this rendering path is ever fed backend/user data it becomes stored XSS — which would also compromise the localStorage tokens (SEC-02).</div>
+      <div class="k">Fix</div><div class="v">Keep these paths strictly static, or render as React SVG components; sanitize if any dynamic HTML is ever introduced.</div>
+    </div></div>
+  </div>
+
+  <div class="good">
+    <b>Done well / not flagged:</b> passwords are BCrypt-hashed; login returns a generic error (no enumeration); refresh tokens are opaque, single-use, and rotated on refresh; sessions are stateless; the password max length (72) respects the BCrypt limit; bean/DTO validation is applied on registration; and <code>/api/auth/me</code> is correctly kept behind auth.
+  </div>
+
+  <footer>The AdBasket — internal security review · 14 findings</footer>
+</div>
+</body>
+</html>
