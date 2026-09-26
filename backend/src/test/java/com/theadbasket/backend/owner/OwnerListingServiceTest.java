@@ -61,7 +61,7 @@ class OwnerListingServiceTest {
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
     }
 
-    private BillboardListing createSampleListing(Long id, String name, User user) {
+    private BillboardListing createSampleListing(String name, User user) {
         Address address = Address.of("100 Bandra West", "Hill Road", "Near Station", "Mumbai", "Maharashtra", "400050");
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
@@ -83,8 +83,8 @@ class OwnerListingServiceTest {
     @Test
     @DisplayName("getOwnerListings returns list of owner listings mapped to DTO")
     void getOwnerListings_returnsMappedListings() {
-        BillboardListing l1 = createSampleListing(1L, "Bandra Station LED", owner);
-        BillboardListing l2 = createSampleListing(2L, "Worli Sea Face Hoarding", owner);
+        BillboardListing l1 = createSampleListing("Bandra Station LED", owner);
+        BillboardListing l2 = createSampleListing("Worli Sea Face Hoarding", owner);
 
         when(billboardListingRepository.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(l1, l2));
 
@@ -103,7 +103,7 @@ class OwnerListingServiceTest {
     @Test
     @DisplayName("getListingById returns DTO when listing belongs to owner")
     void getListingById_whenListingExists_returnsDto() {
-        BillboardListing listing = createSampleListing(10L, "Andheri Flyover", owner);
+        BillboardListing listing = createSampleListing("Andheri Flyover", owner);
         when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(listing));
 
         BillboardListingDto dto = ownerListingService.getListingById(10L, 1L);
@@ -186,7 +186,7 @@ class OwnerListingServiceTest {
     @Test
     @DisplayName("updateListing merges only non-null fields and persists changes")
     void updateListing_mergesNonNullFields() {
-        BillboardListing existing = createSampleListing(10L, "Old Name", owner);
+        BillboardListing existing = createSampleListing("Old Name", owner);
         when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -231,7 +231,7 @@ class OwnerListingServiceTest {
     @Test
     @DisplayName("deleteListing deletes entity when owned by caller")
     void deleteListing_whenOwned_deletesListing() {
-        BillboardListing listing = createSampleListing(15L, "Delete Me", owner);
+        BillboardListing listing = createSampleListing("Delete Me", owner);
         when(billboardListingRepository.findByIdAndUserId(15L, 1L)).thenReturn(Optional.of(listing));
 
         ownerListingService.deleteListing(15L, 1L);

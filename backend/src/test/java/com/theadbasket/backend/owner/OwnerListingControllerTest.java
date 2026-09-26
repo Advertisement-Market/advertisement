@@ -62,7 +62,6 @@ class OwnerListingControllerTest {
     private User owner2;
     private User advertiser;
     private String owner1Token;
-    private String owner2Token;
     private String advertiserToken;
 
     @BeforeEach
@@ -72,7 +71,6 @@ class OwnerListingControllerTest {
         advertiser = userRepository.save(new User("Amit", "Patel", "advertiser.listings@example.com", "pass", "9876543212", Role.ADVERTISER));
 
         owner1Token = jwtService.generateAccessToken(owner1);
-        owner2Token = jwtService.generateAccessToken(owner2);
         advertiserToken = jwtService.generateAccessToken(advertiser);
     }
 
