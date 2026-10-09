@@ -148,6 +148,8 @@ public class OwnerRegistrationService {
         listing.setMinBookingUnit(minBookingUnit);
         listing.setMinBookingDays(minBookingUnit.toDays(req.minBookingValue()));
         listing.setDiscountNote(blankToNull(req.discountNote()));
+        listing.setLatitude(req.latitude());
+        listing.setLongitude(req.longitude());
         return listing;
     }
 }

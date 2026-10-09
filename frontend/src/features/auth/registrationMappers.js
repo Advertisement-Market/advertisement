@@ -120,6 +120,8 @@ export function mapOwner(d) {
       startPrice: toNumber(d.f_startPrice),
       minBooking: d.f_minBooking,
       discountNote: trimOrNull(d.f_discountNote),
+      latitude: toNumber(d.f_bbLat),
+      longitude: toNumber(d.f_bbLng),
     },
     acceptedTerms: !!d.f_termsAccept,
   };

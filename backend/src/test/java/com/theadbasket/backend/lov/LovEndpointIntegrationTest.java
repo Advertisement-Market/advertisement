@@ -49,7 +49,8 @@ class LovEndpointIntegrationTest {
                     "city":"Mumbai","state":"Maharashtra","pincode":"400051",
                     "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"%s",
                     "trafficType":"City / Urban","audienceType":"%s","audienceTypeOther":"%s",
-                    "footfall":"150000","startPrice":580000,"minBookingValue":3,"minBookingUnit":"MONTHS","discountNote":""},
+                    "footfall":"150000","startPrice":580000,"minBookingValue":3,"minBookingUnit":"MONTHS","discountNote":"",
+                    "latitude":19.075984,"longitude":72.877656},
                   "acceptedTerms":true
                 }""".formatted(facing, audienceType, audienceTypeOther);
     }
@@ -133,6 +134,9 @@ class LovEndpointIntegrationTest {
         assertThat(listing.getMinBookingValue()).isEqualTo(3);
         assertThat(listing.getMinBookingUnit()).isEqualTo(BookingDurationUnit.MONTHS);
         assertThat(listing.getMinBookingDays()).isEqualTo(90);
+        // Map selector coordinates are persisted.
+        assertThat(listing.getLatitude()).isEqualByComparingTo("19.075984");
+        assertThat(listing.getLongitude()).isEqualByComparingTo("72.877656");
     }
 
     @Test

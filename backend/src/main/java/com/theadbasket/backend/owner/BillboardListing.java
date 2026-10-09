@@ -111,6 +111,13 @@ public class BillboardListing {
     @Column(name = "discount_note", length = 500)
     private String discountNote;
 
+    /** Geographic coordinates of the billboard, picked on the map selector (optional). */
+    @Column(precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(precision = 9, scale = 6)
+    private BigDecimal longitude;
+
     @CreatedDate
     @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
@@ -269,6 +276,22 @@ public class BillboardListing {
 
     public void setDiscountNote(String discountNote) {
         this.discountNote = discountNote;
+    }
+
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(BigDecimal latitude) {
+        this.latitude = latitude;
+    }
+
+    public BigDecimal getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(BigDecimal longitude) {
+        this.longitude = longitude;
     }
 
     public Instant getCreatedAt() {

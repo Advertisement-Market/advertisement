@@ -267,3 +267,6 @@ mvn wrapper:wrapper -Dmaven=3.9.11
 - Passwords are BCrypt-hashed and never returned; refresh tokens are rotated (single-use).
 - Login and other Spring authentication failures return a generic `INVALID_CREDENTIALS` error so
   the API never reveals whether an account exists for a given email.
+- A billboard listing can carry optional **coordinates** (`latitude` / `longitude`,
+  `DECIMAL(9,6)`) picked on the owner-form map selector; they are range-validated
+  (`[-90,90]` / `[-180,180]`) and persisted via the `V9` migration.

@@ -36,6 +36,7 @@ src/
   components/
     ui/                        # Button, Toast, Counter, Reveal, SearchSelect
     layout/                    # Logo, Navbar, Footer, PublicLayout
+    map/                       # LocationPicker (react-leaflet + CARTO tiles) — pin billboard lat/lng
   features/
     auth/                      # AuthModal, GoogleButton, GoogleOneTap, authApi, registration mappers
     register/                  # multi-step wizard framework + field widgets

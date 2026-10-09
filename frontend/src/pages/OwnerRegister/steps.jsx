@@ -26,6 +26,7 @@ import {
   UploadZone,
 } from './widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from './calendar';
+import LocationPicker from '@/components/map/LocationPicker';
 
 const TOTAL = 7;
 
@@ -475,6 +476,10 @@ export function Step3() {
   const stateErr = useFieldError('f_bbState', [v.required()]);
   const { field, setField } = useRegister();
 
+  const toNum = (x) => (x === '' || x == null ? null : Number(x));
+  const bbLat = toNum(field('f_bbLat'));
+  const bbLng = toNum(field('f_bbLng'));
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -551,6 +556,26 @@ export function Step3() {
             <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
         </FormRow>
+      </FormSection>
+
+      <FormSection title="Pin Location on Map">
+        <div className="form-group">
+          <label>
+            Exact Location <span className="opt">(optional)</span>
+          </label>
+          <div className="form-hint" style={{ marginBottom: 10 }}>
+            Drop a pin on the exact billboard spot — search an address, use your current location, or
+            click the map. We store the coordinates with your listing.
+          </div>
+          <LocationPicker
+            lat={bbLat}
+            lng={bbLng}
+            onChange={(a, b) => {
+              setField('f_bbLat', a);
+              setField('f_bbLng', b);
+            }}
+          />
+        </div>
       </FormSection>
 
       <FormSection title="Structure Type">
