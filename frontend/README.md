@@ -37,7 +37,8 @@ src/
     ui/                        # Button, Toast, Counter, Reveal, SearchSelect
     layout/                    # Logo, Navbar, Footer, PublicLayout
   features/
-    auth/                      # AuthModal, GoogleButton, GoogleOneTap, authApi, registration mappers
+    auth/                      # AuthModal, GoogleButton, GoogleOneTap, authApi, registration mappers,
+                               #   pincodeLookup (live India Post PIN → city/state + area/locality)
     register/                  # multi-step wizard framework + field widgets
   data/                        # sample content for marketing pages + dashboards
   pages/
