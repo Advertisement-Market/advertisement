@@ -1,6 +1,8 @@
+import { useCallback, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
+import { fetchPincode, sanitizePincode } from '@/features/auth/pincodeLookup';
 import {
   useRegister,
   useFieldError,
@@ -28,18 +30,6 @@ import {
 import { AvailabilityCalendar, PricingTable, MapPin } from './calendar';
 
 const TOTAL = 7;
-
-const PINCODE_MAP = {
-  400001: 'Mumbai, Maharashtra',
-  400053: 'Mumbai, Maharashtra',
-  411001: 'Pune, Maharashtra',
-  110001: 'New Delhi, Delhi',
-  560001: 'Bengaluru, Karnataka',
-  600001: 'Chennai, Tamil Nadu',
-  700001: 'Kolkata, West Bengal',
-  380001: 'Ahmedabad, Gujarat',
-  500001: 'Hyderabad, Telangana',
-};
 
 const typeIcon = (paths) => (
   <svg
@@ -213,22 +203,44 @@ const APPROVAL = [
 function usePincode(name, cityField, stateField) {
   const { field, setField } = useRegister();
   const val = field(name);
-  const city = val.length === 6 ? PINCODE_MAP[val] || 'India' : '';
   const err = useFieldError(name, [v.required(), v.pincode()]);
-  const set = (val2) => {
-    const digits = val2.replace(/\D/g, '').slice(0, 6);
-    setField(name, digits);
-  };
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const [areas, setAreas] = useState([]);
+  const abortRef = useRef(null);
+
+  const set = (val2) => setField(name, sanitizePincode(val2));
+
+  const lookup = useCallback(
+    async (pin) => {
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setLoading(true);
+      setStatus('Looking up…');
+      const r = await fetchPincode(pin, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      setLoading(false);
+      if (r.ok) {
+        setAreas(r.areas);
+        setStatus([r.city, r.state].filter(Boolean).join(', '));
+        if (cityField && !field(cityField).trim() && r.city) setField(cityField, r.city);
+        if (stateField && !field(stateField).trim() && r.state) setField(stateField, r.state);
+      } else {
+        setAreas([]);
+        setStatus('PIN not found — enter the area manually.');
+      }
+    },
+    [cityField, stateField, field, setField],
+  );
+
   const onBlur = (e) => {
     err.onBlur(e);
-    const match = PINCODE_MAP[val];
-    if (match && cityField && stateField) {
-      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
-      if (!field(cityField).trim() && autoCity) setField(cityField, autoCity);
-      if (!field(stateField).trim() && autoState) setField(stateField, autoState);
-    }
+    const pin = sanitizePincode(val);
+    if (pin.length === 6) lookup(pin);
   };
-  return { val, city, err, set, onBlur };
+
+  return { val, status, loading, areas, err, set, onBlur };
 }
 
 /* ── STEP 1 ── */
@@ -459,7 +471,7 @@ export function Step2() {
             onChange={(e) => biz.set(e.target.value)}
             onBlur={biz.onBlur}
           />
-          <div className={cn('pincode-autofill', biz.city && 'show')}>{biz.city}</div>
+          <div className={cn('pincode-autofill', biz.status && 'show')}>{biz.status}</div>
           <FieldError show={biz.err.show} error={biz.err.error} />
         </div>
       </FormSection>
@@ -547,10 +559,35 @@ export function Step3() {
               onChange={(e) => bb.set(e.target.value)}
               onBlur={bb.onBlur}
             />
-            <div className={cn('pincode-autofill', bb.city && 'show')}>{bb.city}</div>
+            <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
             <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
         </FormRow>
+        {bb.areas.length > 0 && (
+          <FormRow>
+            <div className="form-group">
+              <label>
+                Area / Locality <span className="opt">(optional)</span>
+              </label>
+              <select
+                className="form-control"
+                value={field('f_bbArea') || ''}
+                onChange={(e) => setField('f_bbArea', e.target.value)}
+              >
+                <option value="">Select area / locality…</option>
+                {bb.areas.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+              <div className="form-hint">
+                {bb.areas.length} localities found for PIN {bb.val} (India Post).
+              </div>
+            </div>
+            <div className="form-group" />
+          </FormRow>
+        )}
       </FormSection>
 
       <FormSection title="Structure Type">

@@ -104,7 +104,7 @@ export function mapOwner(d) {
     billboard: {
       name: d.f_bbName,
       addressLine1: d.f_bbAddr,
-      addressLine2: null,
+      addressLine2: trimOrNull(d.f_bbArea),
       landmark: trimOrNull(d.f_bbLandmark),
       city: d.f_bbCity,
       state: d.f_bbState,
