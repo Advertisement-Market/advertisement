@@ -24,5 +24,22 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: [
+        'src/main.jsx',
+        'src/**/*.test.{js,jsx}',
+        'src/pages/**',
+        'src/data/**',
+      ],
+      thresholds: {
+        lines: 5,
+        functions: 10,
+        branches: 20,
+        statements: 5,
+      },
+    },
   },
 });

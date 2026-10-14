@@ -58,8 +58,16 @@ jobs:
       - name: Lint check (ESLint)
         run: npm run lint
 
-      - name: Run Unit Tests (Vitest)
-        run: npm test
+      - name: Run Unit Tests with Coverage (Vitest)
+        run: npm run test:coverage
+
+      - name: Upload Frontend Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+          if-no-files-found: ignore
 
       - name: Build production bundle
         run: npm run build
@@ -83,8 +91,16 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build, test, and package application
+      - name: Build, test, and verify coverage (Maven & JaCoCo)
         run: mvn clean verify
+
+      - name: Upload Backend JaCoCo Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco-report
+          path: backend/target/site/jacoco/
+          if-no-files-found: ignore
 
   ci-status-check:
     name: CI / All Checks Passed
