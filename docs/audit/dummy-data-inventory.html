@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dummy Data Inventory · The AdBasket</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1a1d24; --ink-mid:#565d6b; --ink-soft:#8a91a0;
+    --line:#e5e8ee; --accent:#c9943a; --indigo:#4f46e5; --red:#c0392b; --amber:#b7791f;
+    --green:#2f855a; --chip:#eef1f6; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:48px 24px 96px}
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:8px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:30px;margin:10px 0 6px;letter-spacing:-.5px}
+  .sub{color:var(--ink-mid);max-width:70ch}
+  .meta{margin-top:14px;font-size:12.5px;color:var(--ink-soft);display:flex;gap:18px;flex-wrap:wrap}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin:28px 0 8px}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--chip);color:var(--ink-mid)}
+  .tag.static{background:#fdf1e0;color:var(--amber)}
+  .tag.wired{background:#e6f4ec;color:var(--green)}
+  .tag.partial{background:#eceafe;color:var(--indigo)}
+  section.page{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:20px;overflow:hidden}
+  .page-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfcfd)}
+  .page-head h2{font-size:17px;margin:0;flex:1}
+  .file{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:11px 20px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;background:#fafbfc}
+  tr:last-child td{border-bottom:none}
+  td.field{font-weight:600;white-space:nowrap}
+  td .ex{font-family:var(--mono);font-size:12px;color:var(--ink-mid);background:var(--chip);padding:1px 6px;border-radius:5px}
+  .note{background:#fffdf7;border:1px solid #f0e6cf;border-radius:12px;padding:16px 20px;margin-top:28px;font-size:13.5px;color:var(--ink-mid)}
+  .note b{color:var(--ink)}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:26px 0 4px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .stat .n{font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .stat .l{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  footer{margin-top:40px;font-size:12px;color:var(--ink-soft);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="kicker">The AdBasket · Frontend Audit</div>
+    <h1>Dummy Data Inventory</h1>
+    <p class="sub">Every screen that currently renders hard-coded placeholder content instead of data from the backend. The registration and login flows are the only paths wired to live APIs; everything a signed-in user <em>sees</em> is static.</p>
+    <div class="meta">
+      <span>Branch <code>Ashutosh/integration</code></span>
+      <span>Generated 2026-08-17</span>
+      <span>Scope: <code>frontend/src</code></span>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="stat"><div class="n">12</div><div class="l">Pages / routes</div></div>
+    <div class="stat"><div class="n">10</div><div class="l">Render static data</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">Wired to backend (auth)</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">Backend GET/read endpoints</div></div>
+  </div>
+
+  <div class="legend">
+    <span class="tag static">● Static / dummy</span>
+    <span class="tag wired">● Wired to API</span>
+    <span class="tag partial">● Partially wired</span>
+  </div>
+
+  <!-- LANDING -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Landing page</h2><span class="tag static">Static</span>
+      <span class="file">src/data/landing.js</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th><th>Example values (hard-coded)</th></tr></thead>
+      <tbody>
+        <tr><td class="field">Hero stats</td><td>Animated headline counters</td><td><span class="ex">12,000 listings · 180 cities · 3,400 owners · 840 agencies</span></td></tr>
+        <tr><td class="field">Stats band</td><td>Platform-wide numbers</td><td><span class="ex">12,000 listings · 5,000 campaigns/month</span></td></tr>
+        <tr><td class="field">Live ticker</td><td>"Live activity" marquee — presented as real-time, entirely fixed</td><td><span class="ex">BKC LED Screen · Mumbai · ₹5.8L/mo</span> etc. (8 items)</td></tr>
+        <tr><td class="field">Featured / how-it-works / portals</td><td>Marketing sections</td><td>Static copy + inline SVG icons</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ROLE HOME PAGES -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Advertiser / Owner / Agency home pages</h2><span class="tag static">Static</span>
+      <span class="file">pages/*Home/data.jsx · *Home.jsx</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="field">Advertiser Home</td><td>Feature blocks, testimonials, pricing/stat callouts, FAQ</td><td>~749 lines of hard-coded content in <span class="ex">AdvertiserHome/data.jsx</span></td></tr>
+        <tr><td class="field">Owner Home</td><td>Marketing sections + footer links</td><td><span class="ex">ownerFooter.js</span></td></tr>
+        <tr><td class="field">Agency Home</td><td>Marketing sections + footer links</td><td><span class="ex">agencyFooter.js</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- BROWSE -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Browse billboards</h2><span class="tag static">Static</span>
+      <span class="file">pages/Browse/browseData.js</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th><th>Example values</th></tr></thead>
+      <tbody>
+        <tr><td class="field">BILLBOARDS (12)</td><td>The entire listing catalogue</td><td><span class="ex">Bandra Kurla Complex Unipole · Mumbai · ₹4.5L</span></td></tr>
+        <tr><td class="field">footfall / footfallNum</td><td>Traffic figures shown as fact</td><td><span class="ex">1,50,000/day</span></td></tr>
+        <tr><td class="field">rating / reviews</td><td>Fake social proof</td><td><span class="ex">4.8 ★ · 24 reviews</span> (no review system exists)</td></tr>
+        <tr><td class="field">price / packages</td><td>Pricing tiers m1/m3/m6/m12</td><td><span class="ex">₹4.5L / ₹12.5L / ₹22L / ₹38L</span></td></tr>
+        <tr><td class="field">mapX / mapY</td><td>Pin positions on a <b>fake CSS map</b> (percentages, not real geo)</td><td><span class="ex">mapX:'20%', mapY:'48%'</span></td></tr>
+        <tr><td class="field">BOOKED_DAYS</td><td>Availability calendar</td><td><span class="ex">[3,7,8,9,14,15,16,17,18,21]</span></td></tr>
+        <tr><td class="field">CITIES / TYPES / TRAFFIC_ZONES / QUICK_TAGS</td><td>Filter options + sort orders</td><td>Client-side filtering over the static array only</td></tr>
+        <tr><td class="field">available</td><td>Availability flag</td><td>Boolean baked into each listing</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- BROWSE AGENCIES -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Browse agencies</h2><span class="tag static">Static</span>
+      <span class="file">pages/BrowseAgencies/agenciesData.js</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td class="field">Agency cards</td><td>Names, specialties, city coverage, ratings, portfolio counts — all hard-coded</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ADVERTISER DASHBOARD -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Advertiser dashboard</h2><span class="tag static">Static</span>
+      <span class="file">pages/AdvertiserDashboard/data.jsx</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th><th>Example values</th></tr></thead>
+      <tbody>
+        <tr><td class="field">NOTIFICATIONS</td><td>Notification feed</td><td><span class="ex">"New quote received from BKC LED Screen owner"</span></td></tr>
+        <tr><td class="field">QUOTES</td><td>Quotes &amp; proposals list + statuses</td><td><span class="ex">BKC LED · ₹5.2L · New</span></td></tr>
+        <tr><td class="field">MEDIA_PLAN_INIT / SAVED</td><td>Media plan builder + shortlist items</td><td><span class="ex">BKC LED Screen · ₹5.8L</span></td></tr>
+        <tr><td class="field">CHART_IMPRESSIONS / CHART_SPEND</td><td>Analytics chart series</td><td><span class="ex">impressions [1.1…4.2] · spend [1.8…8.4]</span></td></tr>
+        <tr><td class="field">ONBOARD_STEPS / badges</td><td>Onboarding checklist + nav badge counts ("3", "5")</td><td>Hard-coded completion + counts</td></tr>
+        <tr><td class="field">NOTIF_PREFS</td><td>Notification preference table</td><td>Static rows, not persisted</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- OWNER DASHBOARD -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Owner dashboard</h2><span class="tag static">Static</span>
+      <span class="file">pages/OwnerDashboard/data.jsx</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td class="field">Listings / inventory</td><td>The owner's billboards, occupancy, earnings</td></tr>
+        <tr><td class="field">Incoming quotes / bookings</td><td>Requests and their statuses</td></tr>
+        <tr><td class="field">Revenue &amp; chart data</td><td>Earnings figures and graphs</td></tr>
+        <tr><td class="field">Notifications</td><td>Static feed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- AGENCY DASHBOARD -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Agency dashboard</h2><span class="tag static">Static</span>
+      <span class="file">pages/AgencyDashboard/data.jsx</span>
+    </div>
+    <table>
+      <thead><tr><th>Dummy data</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td class="field">Client campaigns / tenders</td><td>Active work, bids, pipeline</td></tr>
+        <tr><td class="field">Portfolio / team</td><td>Agency profile content</td></tr>
+        <tr><td class="field">Metrics &amp; charts</td><td>Performance figures</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- REGISTER PAGES -->
+  <section class="page">
+    <div class="page-head">
+      <h2>Registration wizards (Advertiser / Owner / Agency)</h2><span class="tag partial">Partial</span>
+      <span class="file">pages/*Register/*</span>
+    </div>
+    <table>
+      <thead><tr><th>Element</th><th>Status</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td class="field">Final submit → account creation</td><td><span class="tag wired">Wired</span></td><td>Posts to <span class="ex">/api/auth/register/{role}</span>, stores JWT, routes to dashboard</td></tr>
+        <tr><td class="field">Dropdown options / categories / city lists</td><td><span class="tag static">Static</span></td><td>Hard-coded in <span class="ex">steps.jsx</span> / <span class="ex">widgets.jsx</span></td></tr>
+        <tr><td class="field">OTP verification</td><td><span class="tag static">Fake</span></td><td>Accepts only <span class="ex">123456</span> — no real OTP (see Integration Gaps report)</td></tr>
+        <tr><td class="field">File uploads (logo, KYC docs)</td><td><span class="tag static">Not persisted</span></td><td>Show a success toast; file is never sent to the server</td></tr>
+        <tr><td class="field">Owner calendar / availability</td><td><span class="tag static">Static</span></td><td><span class="ex">OwnerRegister/calendar.jsx</span> demo state</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="note">
+    <b>Root cause:</b> the backend currently exposes only <span class="ex">auth</span> and <span class="ex">registration</span> controllers. There is no read/query API (no listings, campaigns, quotes, notifications, or dashboard endpoints), even though the JPA entities and repositories exist (<span class="ex">BillboardListing</span>, <span class="ex">CampaignBrief</span>, <span class="ex">PortfolioItem</span>, …). Wiring the dashboards and browse pages requires building those controllers first, then replacing each <span class="ex">data.jsx</span> / <span class="ex">*Data.js</span> import with a fetch.
+  </div>
+
+  <footer>The AdBasket — internal engineering audit · dummy data inventory</footer>
+</div>
+</body>
+</html>

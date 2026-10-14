@@ -7,12 +7,17 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.user.User;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -46,8 +51,13 @@ public class BillboardListing {
     @JoinColumn(name = "address_id", nullable = false)
     private Address address;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 60)
-    private String type;
+    private BillboardType type;
+
+    /** Free-text description supplied when {@link #type} is {@link BillboardType#OTHER}. */
+    @Column(name = "type_other", length = 120)
+    private String typeOther;
 
     @Column(name = "width_ft", nullable = false, precision = 8, scale = 2)
     private BigDecimal widthFt;
@@ -61,11 +71,21 @@ public class BillboardListing {
     @Column(nullable = false, length = 60)
     private String facing;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "traffic_type", nullable = false, length = 80)
-    private String trafficType;
+    private TrafficType trafficType;
 
+    /** Free-text description supplied when {@link #trafficType} is {@link TrafficType#OTHER}. */
+    @Column(name = "traffic_type_other", length = 120)
+    private String trafficTypeOther;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "audience_type", nullable = false, length = 120)
-    private String audienceType;
+    private AudienceType audienceType;
+
+    /** Free-text description supplied when {@link #audienceType} is {@link AudienceType#OTHER}. */
+    @Column(name = "audience_type_other", length = 120)
+    private String audienceTypeOther;
 
     @Column(length = 60)
     private String footfall;
@@ -111,12 +131,20 @@ public class BillboardListing {
         this.address = address;
     }
 
-    public String getType() {
+    public BillboardType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(BillboardType type) {
         this.type = type;
+    }
+
+    public String getTypeOther() {
+        return typeOther;
+    }
+
+    public void setTypeOther(String typeOther) {
+        this.typeOther = typeOther;
     }
 
     public BigDecimal getWidthFt() {
@@ -151,20 +179,36 @@ public class BillboardListing {
         this.facing = facing;
     }
 
-    public String getTrafficType() {
+    public TrafficType getTrafficType() {
         return trafficType;
     }
 
-    public void setTrafficType(String trafficType) {
+    public void setTrafficType(TrafficType trafficType) {
         this.trafficType = trafficType;
     }
 
-    public String getAudienceType() {
+    public String getTrafficTypeOther() {
+        return trafficTypeOther;
+    }
+
+    public void setTrafficTypeOther(String trafficTypeOther) {
+        this.trafficTypeOther = trafficTypeOther;
+    }
+
+    public AudienceType getAudienceType() {
         return audienceType;
     }
 
-    public void setAudienceType(String audienceType) {
+    public void setAudienceType(AudienceType audienceType) {
         this.audienceType = audienceType;
+    }
+
+    public String getAudienceTypeOther() {
+        return audienceTypeOther;
+    }
+
+    public void setAudienceTypeOther(String audienceTypeOther) {
+        this.audienceTypeOther = audienceTypeOther;
     }
 
     public String getFootfall() {

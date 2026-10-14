@@ -48,6 +48,11 @@ public enum ErrorCode {
     OWNER_REGISTRATION_UNAVAILABLE("error.policy.ownerRegistrationUnavailable"),
     AGENCY_REGISTRATION_UNAVAILABLE("error.policy.agencyRegistrationUnavailable"),
 
+    // Billboard lookup values (config-driven LOVs)
+    INVALID_BILLBOARD_TYPE("error.billboard.invalidType"),
+    INVALID_TRAFFIC_TYPE("error.billboard.invalidTrafficType"),
+    INVALID_AUDIENCE_TYPE("error.billboard.invalidAudienceType"),
+
     // Generic
     VALIDATION_FAILED("error.validation.failed"),
     INTERNAL_ERROR("error.internal");

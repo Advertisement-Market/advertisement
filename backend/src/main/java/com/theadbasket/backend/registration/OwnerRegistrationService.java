@@ -11,6 +11,10 @@ import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.config.RolePolicyProperties;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.LovService;
+import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.notification.NotificationCategory;
 import com.theadbasket.backend.notification.NotificationService;
 import com.theadbasket.backend.notification.NotificationTone;
@@ -39,19 +43,22 @@ public class OwnerRegistrationService {
     private final BillboardListingRepository billboardListingRepository;
     private final RolePolicyProperties rolePolicyProperties;
     private final NotificationService notificationService;
+    private final LovService lovService;
 
     public OwnerRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
             OwnerProfileRepository ownerProfileRepository,
             BillboardListingRepository billboardListingRepository,
             RolePolicyProperties rolePolicyProperties,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            LovService lovService) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.ownerProfileRepository = ownerProfileRepository;
         this.billboardListingRepository = billboardListingRepository;
         this.rolePolicyProperties = rolePolicyProperties;
         this.notificationService = notificationService;
+        this.lovService = lovService;
     }
 
     @Transactional
@@ -110,17 +117,25 @@ public class OwnerRegistrationService {
                 req.pincode()
         );
 
+        // Config-driven LOVs: reject unknown values, keep the free text only for OTHER.
+        BillboardType type = lovService.parse(BillboardType.class, req.type(), ErrorCode.INVALID_BILLBOARD_TYPE);
+        TrafficType trafficType = lovService.parse(TrafficType.class, req.trafficType(), ErrorCode.INVALID_TRAFFIC_TYPE);
+        AudienceType audienceType = lovService.parse(AudienceType.class, req.audienceType(), ErrorCode.INVALID_AUDIENCE_TYPE);
+
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
         listing.setName(req.name().trim());
         listing.setAddress(address);
-        listing.setType(req.type());
+        listing.setType(type);
+        listing.setTypeOther(type == BillboardType.OTHER ? blankToNull(req.typeOther()) : null);
         listing.setWidthFt(req.widthFt());
         listing.setHeightFt(req.heightFt());
         listing.setGroundHeightFt(req.groundHeightFt());
         listing.setFacing(req.facing());
-        listing.setTrafficType(req.trafficType());
-        listing.setAudienceType(req.audienceType());
+        listing.setTrafficType(trafficType);
+        listing.setTrafficTypeOther(trafficType == TrafficType.OTHER ? blankToNull(req.trafficTypeOther()) : null);
+        listing.setAudienceType(audienceType);
+        listing.setAudienceTypeOther(audienceType == AudienceType.OTHER ? blankToNull(req.audienceTypeOther()) : null);
         listing.setFootfall(blankToNull(req.footfall()));
         listing.setStartPrice(req.startPrice());
         listing.setMinBooking(req.minBooking());
