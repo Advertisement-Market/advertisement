@@ -1,0 +1,6 @@
+@import '../OwnerRegister/OwnerRegister.css';
+
+.new-billboard-listing-page {
+  /* Inherits full OwnerRegister design system tokens and scoped layout */
+  min-height: 100vh;
+}
