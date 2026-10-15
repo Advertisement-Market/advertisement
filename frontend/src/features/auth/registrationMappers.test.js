@@ -386,5 +386,29 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(result).not.toHaveProperty('lat');
       expect(result).not.toHaveProperty('lng');
     });
+
+    it('maps controlled f_minBookingValue and f_minBookingUnit directly without parsing heuristics', () => {
+      const formData = {
+        f_bbName: 'Controlled Booking Billboard',
+        f_bbAddr: 'Highway Point',
+        f_bbCity: 'Mumbai',
+        f_bbState: 'Maharashtra',
+        f_bbPin: '400001',
+        f_bbType: 'LED Digital',
+        f_bbWidth: '40',
+        f_bbHeight: '20',
+        f_facing: 'North',
+        f_trafficType: 'Vehicular',
+        f_audience: 'Commuters',
+        f_startPrice: '350000',
+        f_minBookingValue: '15',
+        f_minBookingUnit: 'DAYS',
+      };
+
+      const result = mapBillboardListing(formData);
+
+      expect(result.minBookingValue).toBe(15);
+      expect(result.minBookingUnit).toBe('DAYS');
+    });
   });
 });

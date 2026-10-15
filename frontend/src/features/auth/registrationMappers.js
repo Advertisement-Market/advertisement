@@ -100,8 +100,20 @@ export const parseMinBooking = (val) => {
   return { minBookingValue: num, minBookingUnit: 'MONTHS' };
 };
 
+export const resolveBookingDuration = (d) => {
+  if (d.f_minBookingValue != null && d.f_minBookingValue !== '') {
+    const rawUnit = String(d.f_minBookingUnit || 'MONTHS').toUpperCase();
+    const unit = ['DAYS', 'WEEKS', 'MONTHS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    return {
+      minBookingValue: Math.max(1, Math.round(Number(d.f_minBookingValue)) || 1),
+      minBookingUnit: unit,
+    };
+  }
+  return parseMinBooking(d.f_minBooking);
+};
+
 export function mapOwner(d) {
-  const { minBookingValue, minBookingUnit } = parseMinBooking(d.f_minBooking);
+  const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
   const isTypeOther = d.f_bbType === 'Other' || d.f_bbType === 'other';
   const isTrafficOther = d.f_trafficType === 'other' || d.f_trafficType === 'Other';
   const isAudienceOther = d.f_audience === 'other' || d.f_audience === 'Other';
@@ -195,7 +207,7 @@ export function mapAgency(d, s) {
 }
 
 export function mapBillboardListing(d) {
-  const { minBookingValue, minBookingUnit } = parseMinBooking(d.f_minBooking);
+  const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
   const isTypeOther = d.f_bbType === 'Other' || d.f_bbType === 'other';
   const isTrafficOther = d.f_trafficType === 'other' || d.f_trafficType === 'Other';
   const isAudienceOther = d.f_audience === 'other' || d.f_audience === 'Other';

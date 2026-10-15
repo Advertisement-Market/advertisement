@@ -82,7 +82,12 @@ function validate(step, { data, showToast }) {
   if (step === 2) {
     if (!d('f_startPrice') || Number(d('f_startPrice')) <= 0)
       return fail('Please enter a starting price.');
-    if (!d('f_minBooking')) return fail('Please select a minimum booking duration.');
+    const minVal = d('f_minBookingValue') ?? (d('f_minBooking') ? 1 : null);
+    if (!minVal || Number(minVal) <= 0)
+      return fail('Please enter a valid minimum booking duration.');
+    const minUnit = d('f_minBookingUnit') || 'MONTHS';
+    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
+      return fail('Please select a valid booking duration unit.');
   }
   return true;
 }
@@ -119,7 +124,12 @@ export function NewBillboardListing() {
 
   return (
     <div className="owner-register-page new-billboard-listing-page">
-      <RegisterProvider totalSteps={3} validate={validate} initialData={{}} onSubmit={onSubmit}>
+      <RegisterProvider
+        totalSteps={3}
+        validate={validate}
+        initialData={{ f_minBookingValue: 1, f_minBookingUnit: 'MONTHS' }}
+        onSubmit={onSubmit}
+      >
         <RegisterShell
           tagline="Add New Billboard Listing"
           steps={STEPS}

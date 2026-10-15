@@ -5,6 +5,7 @@ import {
   useFieldError,
   FieldError,
   Field,
+  FieldLabel,
   FormSection,
   FormRow,
   StepHeader,
@@ -142,14 +143,57 @@ const AUDIENCE = [
   { value: 'other', label: 'Other' },
 ];
 
-const MIN_BOOKING = [
-  { value: '1week', label: '1 Week' },
-  { value: '2weeks', label: '2 Weeks' },
-  { value: '3weeks', label: '3 Weeks' },
-  { value: '1month', label: '1 Month (4 Weeks)' },
-  { value: '2months', label: '2 Months (8 Weeks)' },
-  { value: '3months', label: '3 Months' },
+const BOOKING_DURATION_UNITS = [
+  { value: 'DAYS', label: 'Days' },
+  { value: 'WEEKS', label: 'Weeks' },
+  { value: 'MONTHS', label: 'Months' },
 ];
+
+function MinBookingInput() {
+  const { field, setField } = useRegister();
+  const value = field('f_minBookingValue') ?? '';
+  const unit = field('f_minBookingUnit') || 'MONTHS';
+  const { error, show, invalidClass, onBlur } = useFieldError('f_minBookingValue', [
+    v.required('Please enter a minimum booking duration.'),
+    v.range(1, 1000, 'Must be at least 1.'),
+  ]);
+
+  return (
+    <div className="form-group">
+      <FieldLabel label="Minimum Booking Duration" required />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          className={cn('form-control', invalidClass)}
+          style={{ flex: 1, minWidth: 0 }}
+          placeholder="1"
+          value={value}
+          onChange={(e) => setField('f_minBookingValue', e.target.value)}
+          onBlur={onBlur}
+        />
+        <select
+          className="form-control"
+          style={{ flex: 1.2, minWidth: 0 }}
+          value={unit}
+          onChange={(e) => setField('f_minBookingUnit', e.target.value)}
+        >
+          {BOOKING_DURATION_UNITS.map((u) => (
+            <option key={u.value} value={u.value}>
+              {u.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {show ? (
+        <FieldError show={show} error={error} />
+      ) : (
+        <div className="form-hint">E.g., 15 Days, 2 Weeks, or 1 Month</div>
+      )}
+    </div>
+  );
+}
 
 function usePincode(name, cityField, stateField) {
   const { field, setField } = useRegister();
@@ -374,13 +418,7 @@ export function ListingStep2() {
             max="10000000"
             hint={'₹100 – ₹1,00,00,000 per day. This is the "from" price shown on listings'}
           />
-          <Field
-            name="f_minBooking"
-            type="select"
-            label="Minimum Booking Duration"
-            required
-            options={MIN_BOOKING}
-          />
+          <MinBookingInput />
         </FormRow>
         <div className="form-group">
           <label>Pricing Packages</label>
