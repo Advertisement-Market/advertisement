@@ -25,6 +25,7 @@ public enum ErrorCode {
     // Account / resources
     ACCOUNT_NOT_FOUND("error.account.notFound"),
     NOTIFICATION_NOT_FOUND("error.notification.notFound"),
+    BILLBOARD_NOT_FOUND("error.billboard.notFound"),
 
     // Google sign-in
     GOOGLE_NOT_CONFIGURED("error.google.notConfigured"),
