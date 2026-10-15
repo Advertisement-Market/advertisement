@@ -2205,23 +2205,9 @@ function Modal({ title, onClose, children, footer }) {
   );
 }
 
-const parseMinBooking = (val) => {
-  if (!val) return { minBookingValue: 1, minBookingUnit: 'MONTHS' };
-  const str = String(val).toLowerCase().trim();
-  if (str.includes('day')) {
-    const num = parseInt(str.replace(/\D/g, ''), 10) || 15;
-    return { minBookingValue: num, minBookingUnit: 'DAYS' };
-  }
-  if (str.includes('week')) {
-    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
-    return { minBookingValue: num, minBookingUnit: 'WEEKS' };
-  }
-  if (str.includes('year')) {
-    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
-    return { minBookingValue: num * 12, minBookingUnit: 'MONTHS' };
-  }
-  const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
-  return { minBookingValue: num, minBookingUnit: 'MONTHS' };
+const resolveInitialUnit = (unit) => {
+  const u = String(unit || '').toUpperCase();
+  return ['DAYS', 'WEEKS', 'MONTHS'].includes(u) ? u : 'MONTHS';
 };
 
 function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false }) {
@@ -2239,11 +2225,8 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
     audienceTypeOther: initialData?.audienceTypeOther || '',
     footfall: initialData?.footfall || '',
     startPrice: initialData?.startPrice || '',
-    minBooking:
-      initialData?.minBooking ||
-      (initialData?.minBookingValue
-        ? `${initialData.minBookingValue} ${initialData.minBookingUnit || 'months'}`
-        : '1 month'),
+    minBookingValue: initialData?.minBookingValue ?? 1,
+    minBookingUnit: resolveInitialUnit(initialData?.minBookingUnit),
     discountNote: initialData?.discountNote || '',
     addressLine1: initialData?.addressLine1 || '',
     addressLine2: initialData?.addressLine2 || '',
@@ -2294,10 +2277,17 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
       setError('Starting price must be a positive number.');
       return;
     }
+    if (!formData.minBookingValue || Number(formData.minBookingValue) <= 0) {
+      setError('Minimum booking duration must be a positive number.');
+      return;
+    }
+    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(formData.minBookingUnit)) {
+      setError('Please select a valid booking duration unit.');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      const { minBookingValue, minBookingUnit } = parseMinBooking(formData.minBooking);
       const payload = {
         name: formData.name.trim(),
         type: formData.type.trim(),
@@ -2312,8 +2302,8 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
         audienceTypeOther: formData.audienceTypeOther?.trim() || null,
         footfall: formData.footfall?.trim() || null,
         startPrice: Number(formData.startPrice),
-        minBookingValue,
-        minBookingUnit,
+        minBookingValue: Math.round(Number(formData.minBookingValue)),
+        minBookingUnit: formData.minBookingUnit,
         discountNote: formData.discountNote?.trim() || null,
         addressLine1: formData.addressLine1.trim(),
         addressLine2: formData.addressLine2?.trim() || null,
@@ -2483,17 +2473,29 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
           </div>
           <div className="form-group">
             <label>Min Booking Duration *</label>
-            <select
-              className="form-control"
-              value={formData.minBooking}
-              onChange={(e) => handleChange('minBooking', e.target.value)}
-            >
-              <option>15 days</option>
-              <option>1 month</option>
-              <option>3 months</option>
-              <option>6 months</option>
-              <option>1 year</option>
-            </select>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                className="form-control"
+                style={{ flex: 1, minWidth: 0 }}
+                value={formData.minBookingValue}
+                onChange={(e) => handleChange('minBookingValue', e.target.value)}
+                placeholder="1"
+                required
+              />
+              <select
+                className="form-control"
+                style={{ flex: 1.2, minWidth: 0 }}
+                value={formData.minBookingUnit}
+                onChange={(e) => handleChange('minBookingUnit', e.target.value)}
+              >
+                <option value="DAYS">Days</option>
+                <option value="WEEKS">Weeks</option>
+                <option value="MONTHS">Months</option>
+              </select>
+            </div>
           </div>
         </div>
         <div className="form-group">
@@ -2716,7 +2718,6 @@ export function OwnerDashboard() {
         refreshListings();
       } catch (err) {
         showToast(apiErrorMessage(err, 'Failed to delete listing.'), 'error');
-        throw err;
       }
     } else {
       setListings((prev) => prev.filter((l) => l.id !== id && l.name !== modal?.listing?.name));
