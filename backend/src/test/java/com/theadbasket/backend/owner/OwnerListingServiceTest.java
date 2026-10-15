@@ -28,6 +28,9 @@ import com.theadbasket.backend.lov.BookingDurationUnit;
 import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.LovService;
 import com.theadbasket.backend.lov.TrafficType;
+import com.theadbasket.backend.notification.NotificationCategory;
+import com.theadbasket.backend.notification.NotificationService;
+import com.theadbasket.backend.notification.NotificationTone;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -44,6 +47,9 @@ class OwnerListingServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private LovService lovService;
     private OwnerListingService ownerListingService;
 
@@ -57,7 +63,7 @@ class OwnerListingServiceTest {
         messages.setUseCodeAsDefaultMessage(true);
         lovService = new LovService(messages);
 
-        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, lovService);
+        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, notificationService, lovService);
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
     }
 
@@ -181,6 +187,15 @@ class OwnerListingServiceTest {
         assertThat(saved.getType()).isEqualTo(BillboardType.LED_DIGITAL);
         assertThat(saved.getFacing()).isEqualTo(FacingDirection.WEST);
         assertThat(saved.getMinBookingDays()).isEqualTo(90);
+
+        verify(notificationService).createNotification(
+                owner,
+                "New Billboard Listed",
+                "Your listing \"Powai Prime Screen\" has been created and submitted for verification.",
+                NotificationCategory.ONBOARDING,
+                NotificationTone.TEAL,
+                "/owners/dashboard?tab=listings"
+        );
     }
 
     @Test
