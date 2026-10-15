@@ -87,7 +87,7 @@ graph TD
 * **Form & Step State:** Managed via `RegisterProvider` / `useRegister()` hook (`field`, `setField`, `goToStep`, `currentStep`, `submitted`).
 * **Field Mapping & Strict Scope (`mapBillboardListing`):**
   - `mapBillboardListing(data)` in [`registrationMappers.js`](file:///e:/theadbasket/advertisement/frontend/src/features/auth/registrationMappers.js) produces an explicit object aligned with backend `BillboardListingCreateRequest` (`name`, `addressLine1`, `addressLine2`, `landmark`, `city`, `state`, `pincode`, `type`, `typeOther`, `widthFt`, `heightFt`, `groundHeightFt`, `facing`, `trafficType`, `trafficTypeOther`, `audienceType`, `audienceTypeOther`, `footfall`, `startPrice`, `minBookingValue`, `minBookingUnit`, `discountNote`).
-  - Minimum booking duration is split into `minBookingValue` (Integer) and `minBookingUnit` (Enum: `DAYS`, `WEEKS`, `MONTHS`) via `parseMinBooking()`.
+  - Minimum booking duration is captured via controlled inputs (`minBookingValue` number input and `minBookingUnit` select dropdown) and mapped via `resolveBookingDuration()` directly to `minBookingValue` (Integer) and `minBookingUnit` (Enum: `DAYS`, `WEEKS`, `MONTHS`).
   - When `"Other"` is selected for type, traffic, or audience, the canonical enum code `OTHER` is sent alongside its custom text description (`typeOther`, `trafficTypeOther`, `audienceTypeOther`).
   - Client-side visual simulations (interactive calendar range picker `f_calBookedDates`, photo blobs `f_photos`, video tour URL `f_videoUrl`) are **strictly excluded** from the payload sent over the wire.
 * **Proactive UI Notices:**
@@ -127,7 +127,7 @@ graph TD
   ```bash
   npm test
   ```
-  Output: `5 test files passed (28 tests passed)` across `registrationMappers.test.js`, `ownerListingApi.test.js`, `notificationApi.test.js`, `validators.test.js`, and `pincodeAutofill.test.js`.
+  Output: `5 test files passed (29 tests passed)` across `registrationMappers.test.js`, `ownerListingApi.test.js`, `notificationApi.test.js`, `validators.test.js`, and `pincodeAutofill.test.js`.
 * **Linting & Code Formatting:**
   ```bash
   npm run lint

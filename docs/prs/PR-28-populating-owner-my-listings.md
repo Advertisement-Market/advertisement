@@ -293,3 +293,14 @@ Authorization: Bearer JWT (`hasRole('OWNER')`)
   - `ListingFormModal` and `DeleteListingModal` now invoke `onClose()` internally upon successful resolution of `onSave` / `onConfirm`.
   - Removed `closeModal()` calls from `handleCreateListing`, `handleUpdateListing`, and `handleDeleteListing`.
   - `setSubmitting(false)` only executes inside the `catch` block when error messages are rendered within the still-mounted modal.
+
+### [P2] Controlled minBooking Inputs & Enum Contract Alignment
+- **Issue Addressed:** Free-text/single-select `minBooking` parsing heuristic was fragile, converted `"year"` incorrectly to `num * 12, 'MONTHS'`, and fell through to silent defaults.
+- **Resolution:**
+  - Removed `parseMinBooking` heuristic layer.
+  - Replaced with two controlled inputs in `ListingFormModal`: numeric `minBookingValue` input and `<select>` for `minBookingUnit` with explicit options matching the backend `BookingDurationUnit` enum (`DAYS`, `WEEKS`, `MONTHS`).
+  - Added submit validation for positive value and valid enum membership before sending the payload directly to the API.
+
+### [P3] Removed Redundant throw err in handleDeleteListing
+- **Issue Addressed:** Error was caught, a toast was shown, and `throw err` was re-thrown only to be swallowed downstream by `DeleteListingModal`.
+- **Resolution:** Removed `throw err` from `handleDeleteListing` catch block. The user toast feedback is fully sufficient.
