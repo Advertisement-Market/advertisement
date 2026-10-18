@@ -53,6 +53,8 @@ public class BillboardListing {
     @JoinColumn(name = "address_id", nullable = false)
     private Address address;
 
+    // type / trafficType / audienceType all store a LovType code (longest is IT_TECH_PROFESSIONALS,
+    // 20 chars). The three share length = 60 so an impossibly long future code can't slip in unnoticed.
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 60)
     private BillboardType type;
@@ -75,7 +77,7 @@ public class BillboardListing {
     private FacingDirection facing;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "traffic_type", nullable = false, length = 80)
+    @Column(name = "traffic_type", nullable = false, length = 60)
     private TrafficType trafficType;
 
     /** Free-text description supplied when {@link #trafficType} is {@link TrafficType#OTHER}. */
@@ -83,7 +85,7 @@ public class BillboardListing {
     private String trafficTypeOther;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "audience_type", nullable = false, length = 120)
+    @Column(name = "audience_type", nullable = false, length = 60)
     private AudienceType audienceType;
 
     /** Free-text description supplied when {@link #audienceType} is {@link AudienceType#OTHER}. */
