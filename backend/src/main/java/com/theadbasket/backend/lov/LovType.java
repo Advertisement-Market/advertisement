@@ -15,4 +15,13 @@ public interface LovType {
 
     /** Resource-bundle key for this value's display label in {@code messages.properties}. */
     String messageKey();
+
+    /**
+     * True for the catch-all value whose free-text description is captured in a companion column.
+     * The {@code OTHER} code lives here so the companion-required rule (see
+     * {@code RequiredOtherTextValidator}) stays driven by the enum rather than a literal.
+     */
+    default boolean isOther() {
+        return "OTHER".equals(code());
+    }
 }

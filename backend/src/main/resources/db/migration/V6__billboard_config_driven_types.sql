@@ -42,6 +42,10 @@ END;
 
 -- 3. Anything still not a known code was a free-text ("Other") entry: preserve it in the
 --    companion column and set the value to OTHER so the data validates against the enum.
+--    NOTE: the code lists below mirror the enum constants and must stay in sync with their source
+--    of truth -- lov/BillboardType.java, lov/TrafficType.java, lov/AudienceType.java. This is a
+--    one-off backfill for legacy rows; new rows are validated against the enums by the application,
+--    so the lists are not re-read after this migration runs.
 UPDATE billboard_listings
 SET type_other = type, type = 'OTHER'
 WHERE type NOT IN ('STATIC_HOARDING','LED_DIGITAL','UNIPOLE','GANTRY','BUS_SHELTER','KIOSK','DIGITAL_SCREEN','OTHER');
@@ -53,3 +57,12 @@ WHERE traffic_type NOT IN ('CITY_URBAN','HIGHWAY','COMMERCIAL_ZONE','RESIDENTIAL
 UPDATE billboard_listings
 SET audience_type_other = audience_type, audience_type = 'OTHER'
 WHERE audience_type NOT IN ('IT_TECH_PROFESSIONALS','COMMUTERS','HIGHWAY_TRAVELERS','LOCAL_RESIDENTS','SHOPPERS','STUDENTS','MIXED','OTHER');
+
+-- 4. Sanity check (run manually after the migration): each query should return 0 rows, confirming
+--    every listing now holds a valid catalogue code.
+--    SELECT COUNT(*) FROM billboard_listings
+--      WHERE type NOT IN ('STATIC_HOARDING','LED_DIGITAL','UNIPOLE','GANTRY','BUS_SHELTER','KIOSK','DIGITAL_SCREEN','OTHER');
+--    SELECT COUNT(*) FROM billboard_listings
+--      WHERE traffic_type NOT IN ('CITY_URBAN','HIGHWAY','COMMERCIAL_ZONE','RESIDENTIAL_AREA','INDUSTRIAL','OTHER');
+--    SELECT COUNT(*) FROM billboard_listings
+--      WHERE audience_type NOT IN ('IT_TECH_PROFESSIONALS','COMMUTERS','HIGHWAY_TRAVELERS','LOCAL_RESIDENTS','SHOPPERS','STUDENTS','MIXED','OTHER');
