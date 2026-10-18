@@ -15,12 +15,12 @@ Pull Request #34 is a **compiled release integration** merging the cumulative wo
 
 | PR # | Branch / Module | Key Capabilities Delivered |
 | :--- | :--- | :--- |
-| **[PR #28](file:///e:/theadbasket/advertisement/docs/prs/PR-28-populating-owner-my-listings.md)** | `feat/populating-my-listings` | Live database-backed inventory CRUD (`/api/owner/listings`), tenant isolation, dynamic dashboard counters/badges, edit/delete modals, and review alignments (controlled inputs & removed redundant `throw err`). |
-| **[PR #29](file:///e:/theadbasket/advertisement/docs/prs/PR-29-config-driven-billboard-lovs.md)** | `Ashutosh/billboard-config-driven` | Config-driven billboard LOVs for `type`, `trafficType`, and `audienceType` backed by `messages.properties` with fallback support for `OTHER`. |
-| **[PR #30](file:///e:/theadbasket/advertisement/docs/prs/PR-30-static-lov-facing-direction.md)** | `Ashutosh/facing-direction-lov` | Static `FacingDirection` enum supporting 8 compass points, degree angles, and public LOV endpoint (`/api/lov/facing-directions`). |
-| **[PR #31](file:///e:/theadbasket/advertisement/docs/prs/PR-31-automated-test-coverage-ci.md)** | `amjangde/test-coverage-ci` | Automated test coverage gating in GitHub Actions CI using JaCoCo (0.8.14) for Java 25 backend and Vitest (v8) for React frontend with artifact uploads. |
-| **[PR #32](file:///e:/theadbasket/advertisement/docs/prs/PR-32-full-page-owner-billboard-listing-wizard.md)** | `feat/owner-new-billboard-wizard` | Full-page 3-step listing creation wizard (`/owners/listings/new`), rate cards, availability calendar, media uploads, and in-app event notifications. |
-| **[PR #33](file:///e:/theadbasket/advertisement/docs/prs/PR-33-min-booking-duration-split.md)** | `Ashutosh/min-booking-duration` | Minimum booking duration model split into `minBookingValue` (Integer), `minBookingUnit` (Enum: `DAYS`, `WEEKS`, `MONTHS`), and normalized `minBookingDays`. |
+| **[PR #28](PR-28-populating-owner-my-listings.md)** | `feat/populating-my-listings` | Live database-backed inventory CRUD (`/api/owner/listings`), tenant isolation, dynamic dashboard counters/badges, edit/delete modals, and review alignments (controlled inputs & removed redundant `throw err`). |
+| **[PR #29](PR-29-config-driven-billboard-lovs.md)** | `Ashutosh/billboard-config-driven` | Config-driven billboard LOVs for `type`, `trafficType`, and `audienceType` backed by `messages.properties` with fallback support for `OTHER`. |
+| **[PR #30](PR-30-static-lov-facing-direction.md)** | `Ashutosh/facing-direction-lov` | Static `FacingDirection` enum supporting 8 compass points, degree angles, and public LOV endpoint (`/api/lov/facing-directions`). |
+| **[PR #31](PR-31-automated-test-coverage-ci.md)** | `amjangde/test-coverage-ci` | Automated test coverage gating in GitHub Actions CI using JaCoCo (0.8.14) for Java 25 backend and Vitest (v8) for React frontend with artifact uploads. |
+| **[PR #32](PR-32-full-page-owner-billboard-listing-wizard.md)** | `feat/owner-new-billboard-wizard` | Full-page 3-step listing creation wizard (`/owners/listings/new`), rate cards, availability calendar, media uploads, and in-app event notifications. |
+| **[PR #33](PR-33-min-booking-duration-split.md)** | `Ashutosh/min-booking-duration` | Minimum booking duration model split into `minBookingValue` (Integer), `minBookingUnit` (Enum: `DAYS`, `WEEKS`, `MONTHS`), and normalized `minBookingDays`. |
 
 ---
 
