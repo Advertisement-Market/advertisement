@@ -182,14 +182,14 @@ function formatTimeAgo(dateInput) {
 const getMockNotifs = () =>
   import.meta.env.DEV
     ? NOTIFICATIONS.map((n, i) => ({
-      id: i + 1,
-      title: '',
-      message: n.text,
-      tone: n.dot || 'teal',
-      read: !n.unread,
-      createdAt: null,
-      timeText: n.time,
-    }))
+        id: i + 1,
+        title: '',
+        message: n.text,
+        tone: n.dot || 'teal',
+        read: !n.unread,
+        createdAt: null,
+        timeText: n.time,
+      }))
     : [];
 
 const getMockUnreadCount = () =>
@@ -258,7 +258,7 @@ function Topbar({ title, onAddListing, onNav }) {
     if (!n.read && user) {
       setNotifs((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
       setUnreadCount((c) => Math.max(0, c - 1));
-      notificationApi.markAsRead(n.id).catch(() => { });
+      notificationApi.markAsRead(n.id).catch(() => {});
     }
     if (n.targetUrl) {
       setOpen(false);
@@ -275,7 +275,7 @@ function Topbar({ title, onAddListing, onNav }) {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     if (user) {
-      notificationApi.markAllAsRead().catch(() => { });
+      notificationApi.markAllAsRead().catch(() => {});
     }
     showToast('All notifications marked as read.');
   };
