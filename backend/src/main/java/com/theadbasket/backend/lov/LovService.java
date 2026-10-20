@@ -118,6 +118,14 @@ public class LovService {
 
     /**
      * Resolve a client-supplied value to its enum constant, accepting either the code or the
+     * (localized) label, case-insensitively, defaulting to {@link ErrorCode#VALIDATION_FAILED}.
+     */
+    public <E extends Enum<E> & LovType> E parse(Class<E> enumType, String input) {
+        return parse(enumType, input, ErrorCode.VALIDATION_FAILED);
+    }
+
+    /**
+     * Resolve a client-supplied value to its enum constant, accepting either the code or the
      * (localized) label, case-insensitively.
      *
      * @throws BadRequestException with {@code invalidCode} when the value is blank or unknown
