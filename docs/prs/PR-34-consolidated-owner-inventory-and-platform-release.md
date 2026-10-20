@@ -180,11 +180,11 @@ mvn clean verify
 - **Result:** `BUILD SUCCESS`
 - **Suites Executed:**
   - `OwnerListingServiceTest`: 7 tests passing (CRUD, tenant isolation, duration normalization, notification dispatch).
-  - `OwnerListingControllerTest`: 7 tests passing (Endpoint security, role enforcement, validation, HTTP 201/204 semantics).
+  - `OwnerListingControllerTest`: 11 tests passing (Endpoint security, role enforcement, validation, HTTP 201/204 semantics, minBookingValue @Max boundary checks).
   - `LovServiceTest` & `LovEndpointIntegrationTest`: 12 tests passing (LOV catalogues, code/label parsing, error handling).
   - `V8MigrationTest`: 1 test passing (H2 PG-mode verification of V8 min_booking split, data backfills, and SQLState 23502 NOT NULL constraint enforcement).
   - `V8MigrationPostgresTest`: 1 test passing (real PostgreSQL 16 Testcontainers verification matching production docker-compose).
-  - Total test count: 130 backend tests passed with 0 failures, 0 errors.
+  - Total test count: 134 backend tests passed with 0 failures, 0 errors.
 
 ### Frontend Automated Test Verification
 ```bash

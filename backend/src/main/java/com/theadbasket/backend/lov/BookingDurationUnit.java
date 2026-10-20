@@ -13,6 +13,9 @@ public enum BookingDurationUnit {
     WEEKS("Weeks", 7),
     MONTHS("Months", 30);
 
+    /** Maximum allowed minimum-booking value across the application. */
+    public static final int MAX_VALUE = 1000;
+
     private final String label;
     private final int daysPerUnit;
 
@@ -38,6 +41,6 @@ public enum BookingDurationUnit {
 
     /** Normalize {@code value} of this unit to a total number of days. */
     public int toDays(int value) {
-        return value * daysPerUnit;
+        return Math.multiplyExact(value, daysPerUnit);
     }
 }

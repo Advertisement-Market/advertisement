@@ -2265,6 +2265,10 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
       setError('Minimum booking duration must be a positive number.');
       return;
     }
+    if (Number(formData.minBookingValue) > 1000) {
+      setError('Minimum booking duration cannot exceed 1,000.');
+      return;
+    }
     if (!['DAYS', 'WEEKS', 'MONTHS'].includes(formData.minBookingUnit)) {
       setError('Please select a valid booking duration unit.');
       return;
@@ -2461,6 +2465,7 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
               <input
                 type="number"
                 min="1"
+                max="1000"
                 step="1"
                 className="form-control"
                 style={{ flex: 1, minWidth: 0 }}

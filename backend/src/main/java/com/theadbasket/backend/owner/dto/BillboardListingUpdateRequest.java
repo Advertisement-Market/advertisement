@@ -3,7 +3,9 @@ package com.theadbasket.backend.owner.dto;
 import java.math.BigDecimal;
 
 import com.theadbasket.backend.common.validation.ValidationPatterns;
+import com.theadbasket.backend.lov.BookingDurationUnit;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -84,6 +86,7 @@ public record BillboardListingUpdateRequest(
         BigDecimal startPrice,
 
         @Positive(message = "Minimum booking duration must be a positive number.")
+        @Max(value = BookingDurationUnit.MAX_VALUE, message = "Minimum booking duration is too large.")
         Integer minBookingValue,
 
         @Size(max = 20)

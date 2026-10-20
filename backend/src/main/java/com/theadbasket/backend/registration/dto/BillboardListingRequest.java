@@ -74,7 +74,7 @@ public record BillboardListingRequest(
         BigDecimal startPrice,
         @NotNull(message = "Minimum booking duration is required.")
         @Positive(message = "Minimum booking duration must be a positive number.")
-        @Max(value = 1000, message = "Minimum booking duration is too large.")
+        @Max(value = com.theadbasket.backend.lov.BookingDurationUnit.MAX_VALUE, message = "Minimum booking duration is too large.")
         Integer minBookingValue,
         @NotBlank(message = "Minimum booking duration unit is required.")
         @Size(max = 20)

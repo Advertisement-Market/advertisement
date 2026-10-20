@@ -251,6 +251,80 @@ class OwnerListingControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/owner/listings with minBookingValue = 1000 succeeds at upper boundary")
+    void createListing_minBookingValueBoundary1000_returns201() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Powai IT Park LED Boundary",
+                "Central Avenue",
+                "Building 4",
+                "Hiranandani",
+                "Mumbai",
+                "Maharashtra",
+                "400076",
+                "LED Digital",
+                null,
+                new BigDecimal("35.00"),
+                new BigDecimal("18.00"),
+                new BigDecimal("8.00"),
+                "East",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                "40,000/day",
+                new BigDecimal("220000.00"),
+                1000,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.minBookingValue").value(1000))
+                .andExpect(jsonPath("$.minBookingDays").value(30000));
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with minBookingValue = 1001 returns 400 VALIDATION_FAILED")
+    void createListing_minBookingValueExceeds1000_returns400() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Powai IT Park LED Too Large",
+                "Central Avenue",
+                "Building 4",
+                "Hiranandani",
+                "Mumbai",
+                "Maharashtra",
+                "400076",
+                "LED Digital",
+                null,
+                new BigDecimal("35.00"),
+                new BigDecimal("18.00"),
+                new BigDecimal("8.00"),
+                "East",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                "40,000/day",
+                new BigDecimal("220000.00"),
+                1001,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.minBookingValue").value("Minimum booking duration is too large."));
+    }
+
+    @Test
     @DisplayName("PATCH /api/owner/listings/{id} partially updates listing")
     void updateListing_validPartialUpdate_returns200() throws Exception {
         BillboardListing listing = createListing(owner1, "Initial Name");
@@ -331,6 +405,46 @@ class OwnerListingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.name").exists());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} with minBookingValue = 1000 succeeds at upper boundary")
+    void updateListing_minBookingValueBoundary1000_returns200() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Name");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                1000, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.minBookingValue").value(1000))
+                .andExpect(jsonPath("$.minBookingDays").value(30000));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} with minBookingValue = 1001 returns 400 VALIDATION_FAILED")
+    void updateListing_minBookingValueExceeds1000_returns400() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Name");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                1001, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.minBookingValue").value("Minimum booking duration is too large."));
     }
 
     @Test
