@@ -32,7 +32,61 @@ import {
 } from './data';
 import './OwnerDashboard.css';
 
-const html = (s) => ({ __html: s });
+function BillboardIcon({ type = '', name = '', meta = '', size = 24 }) {
+  const combined = `${type} ${name} ${meta}`.toLowerCase();
+  if (combined.includes('led')) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        width={size}
+        height={size}
+        aria-hidden="true"
+      >
+        <rect x="2" y="3" width="20" height="13" rx="2" />
+        <path d="M12 16v5M8 21h8" />
+      </svg>
+    );
+  }
+  if (combined.includes('static')) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        width={size}
+        height={size}
+        aria-hidden="true"
+      >
+        <path d="M3 17l3-10h12l3 10" />
+        <line x1="12" y1="7" x2="12" y2="17" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width={size}
+      height={size}
+      aria-hidden="true"
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
 const displayName = (user) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Owner';
 const initialsOf = (user) =>
@@ -128,14 +182,14 @@ function formatTimeAgo(dateInput) {
 const getMockNotifs = () =>
   import.meta.env.DEV
     ? NOTIFICATIONS.map((n, i) => ({
-        id: i + 1,
-        title: '',
-        message: n.text,
-        tone: n.dot || 'teal',
-        read: !n.unread,
-        createdAt: null,
-        timeText: n.time,
-      }))
+      id: i + 1,
+      title: '',
+      message: n.text,
+      tone: n.dot || 'teal',
+      read: !n.unread,
+      createdAt: null,
+      timeText: n.time,
+    }))
     : [];
 
 const getMockUnreadCount = () =>
@@ -204,7 +258,7 @@ function Topbar({ title, onAddListing, onNav }) {
     if (!n.read && user) {
       setNotifs((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
       setUnreadCount((c) => Math.max(0, c - 1));
-      notificationApi.markAsRead(n.id).catch(() => {});
+      notificationApi.markAsRead(n.id).catch(() => { });
     }
     if (n.targetUrl) {
       setOpen(false);
@@ -221,7 +275,7 @@ function Topbar({ title, onAddListing, onNav }) {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     if (user) {
-      notificationApi.markAllAsRead().catch(() => {});
+      notificationApi.markAllAsRead().catch(() => { });
     }
     showToast('All notifications marked as read.');
   };
@@ -827,13 +881,9 @@ function Overview({ onNav, calData, listingsCount }) {
             </div>
             {LISTINGS.map((l) => (
               <div className="listing-row" key={l.name} onClick={() => onNav('listings')}>
-                <div
-                  className="lr-icon"
-                  style={{ background: l.color }}
-                  dangerouslySetInnerHTML={html(
-                    `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">${l.svgInner}</svg>`,
-                  )}
-                />
+                <div className="lr-icon" style={{ background: l.color }}>
+                  <BillboardIcon type={l.type} name={l.name} meta={l.meta} size={22} />
+                </div>
                 <div className="lr-info">
                   <div className="lr-name">{l.name}</div>
                   <div className="lr-meta">{l.meta}</div>
@@ -1048,13 +1098,6 @@ function Listings({
                 : isStatic
                   ? 'linear-gradient(135deg,#1a3320,#2e5e32)'
                   : 'linear-gradient(135deg,#0c2340,#0a70c0)');
-            const cardSvg =
-              l.svgInner ||
-              (isLed
-                ? '<rect x="2" y="3" width="20" height="13" rx="2"/><path d="M12 16v5M8 21h8"/>'
-                : isStatic
-                  ? '<path d="M3 17l3-10h12l3 10"/><line x1="12" y1="7" x2="12" y2="17"/>'
-                  : '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>');
 
             const meta =
               l.meta ||
@@ -1082,13 +1125,9 @@ function Listings({
             return (
               <div className="listing-card-full" key={l.id || l.name}>
                 <div className="lcf-header">
-                  <div
-                    className="lcf-img"
-                    style={{ background: cardColor }}
-                    dangerouslySetInnerHTML={html(
-                      `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">${cardSvg}</svg>`,
-                    )}
-                  />
+                  <div className="lcf-img" style={{ background: cardColor }}>
+                    <BillboardIcon type={l.type} name={l.name} meta={meta} size={24} />
+                  </div>
                   <div className="lcf-info">
                     <div className="lcf-name">{l.name}</div>
                     <div className="lcf-meta">{meta}</div>
