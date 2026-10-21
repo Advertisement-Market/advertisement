@@ -829,4 +829,25 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.message").exists())
                 .andExpect(jsonPath("$.fieldErrors").doesNotExist());
     }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} with typeOther exceeding 120 characters returns 400 VALIDATION_FAILED via @Size")
+    void updateListing_oversizedCompanionText_returns400ValidationFailed() throws Exception {
+        BillboardListing listing = createListing(owner1, "Listing");
+        String oversized = "A".repeat(121);
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "OTHER", oversized,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.typeOther").exists());
+    }
 }

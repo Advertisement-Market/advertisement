@@ -70,6 +70,14 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       expect(showToast).toHaveBeenCalledWith('Please describe the billboard type.', 'error');
     });
 
+    it('blocks step 1 advance when f_bbTypeOther contains only zero-width or whitespace characters', () => {
+      const showToast = vi.fn();
+      const data = { ...validBaseData, f_bbType: 'OTHER', f_bbTypeOther: ' \u200B  ' };
+      const isValid = validate(1, { data, showToast });
+      expect(isValid).toBe(false);
+      expect(showToast).toHaveBeenCalledWith('Please describe the billboard type.', 'error');
+    });
+
     it('allows step 1 advance when f_bbType is OTHER and f_bbTypeOther is provided', () => {
       const showToast = vi.fn();
       const data = { ...validBaseData, f_bbType: 'OTHER', f_bbTypeOther: 'Skywalk Hoarding' };

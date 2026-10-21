@@ -89,13 +89,13 @@ public class OwnerListingService {
         BookingDurationUnit minBookingUnit = lovService.parseBookingDurationUnit(req.minBookingUnit());
 
         Map<String, String> fieldErrors = new LinkedHashMap<>();
-        if (type == BillboardType.OTHER && TextUtil.isBlank(req.typeOther())) {
+        if (type.isOther() && TextUtil.isBlank(req.typeOther())) {
             fieldErrors.put("typeOther", RequiredOtherText.DEFAULT_MESSAGE);
         }
-        if (trafficType == TrafficType.OTHER && TextUtil.isBlank(req.trafficTypeOther())) {
+        if (trafficType.isOther() && TextUtil.isBlank(req.trafficTypeOther())) {
             fieldErrors.put("trafficTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
         }
-        if (audienceType == AudienceType.OTHER && TextUtil.isBlank(req.audienceTypeOther())) {
+        if (audienceType.isOther() && TextUtil.isBlank(req.audienceTypeOther())) {
             fieldErrors.put("audienceTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
         }
         if (!fieldErrors.isEmpty()) {
@@ -107,15 +107,15 @@ public class OwnerListingService {
         listing.setName(req.name().trim());
         listing.setAddress(address);
         listing.setType(type);
-        listing.setTypeOther(type == BillboardType.OTHER ? TextUtil.blankToNull(req.typeOther()) : null);
+        listing.setTypeOther(type.isOther() ? TextUtil.blankToNull(req.typeOther()) : null);
         listing.setWidthFt(req.widthFt());
         listing.setHeightFt(req.heightFt());
         listing.setGroundHeightFt(req.groundHeightFt());
         listing.setFacing(facing);
         listing.setTrafficType(trafficType);
-        listing.setTrafficTypeOther(trafficType == TrafficType.OTHER ? TextUtil.blankToNull(req.trafficTypeOther()) : null);
+        listing.setTrafficTypeOther(trafficType.isOther() ? TextUtil.blankToNull(req.trafficTypeOther()) : null);
         listing.setAudienceType(audienceType);
-        listing.setAudienceTypeOther(audienceType == AudienceType.OTHER ? TextUtil.blankToNull(req.audienceTypeOther()) : null);
+        listing.setAudienceTypeOther(audienceType.isOther() ? TextUtil.blankToNull(req.audienceTypeOther()) : null);
         listing.setFootfall(TextUtil.blankToNull(req.footfall()));
         listing.setStartPrice(req.startPrice());
         listing.setMinBookingValue(req.minBookingValue());
@@ -160,7 +160,7 @@ public class OwnerListingService {
             effTypeOther = req.typeOther() != null
                     ? req.typeOther()
                     : (effType == listing.getType() ? listing.getTypeOther() : null);
-            if (effType == BillboardType.OTHER && TextUtil.isBlank(effTypeOther)) {
+            if (effType.isOther() && TextUtil.isBlank(effTypeOther)) {
                 fieldErrors.put("typeOther", RequiredOtherText.DEFAULT_MESSAGE);
             }
         }
@@ -175,7 +175,7 @@ public class OwnerListingService {
             effTrafficTypeOther = req.trafficTypeOther() != null
                     ? req.trafficTypeOther()
                     : (effTrafficType == listing.getTrafficType() ? listing.getTrafficTypeOther() : null);
-            if (effTrafficType == TrafficType.OTHER && TextUtil.isBlank(effTrafficTypeOther)) {
+            if (effTrafficType.isOther() && TextUtil.isBlank(effTrafficTypeOther)) {
                 fieldErrors.put("trafficTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
             }
         }
@@ -190,7 +190,7 @@ public class OwnerListingService {
             effAudienceTypeOther = req.audienceTypeOther() != null
                     ? req.audienceTypeOther()
                     : (effAudienceType == listing.getAudienceType() ? listing.getAudienceTypeOther() : null);
-            if (effAudienceType == AudienceType.OTHER && TextUtil.isBlank(effAudienceTypeOther)) {
+            if (effAudienceType.isOther() && TextUtil.isBlank(effAudienceTypeOther)) {
                 fieldErrors.put("audienceTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
             }
         }
@@ -202,7 +202,7 @@ public class OwnerListingService {
         if (req.name() != null) listing.setName(req.name().trim());
         if (typeTouched) {
             listing.setType(effType);
-            listing.setTypeOther(effType == BillboardType.OTHER ? TextUtil.blankToNull(effTypeOther) : null);
+            listing.setTypeOther(effType.isOther() ? TextUtil.blankToNull(effTypeOther) : null);
         }
         if (req.widthFt() != null) listing.setWidthFt(req.widthFt());
         if (req.heightFt() != null) listing.setHeightFt(req.heightFt());
@@ -211,12 +211,12 @@ public class OwnerListingService {
 
         if (trafficTypeTouched) {
             listing.setTrafficType(effTrafficType);
-            listing.setTrafficTypeOther(effTrafficType == TrafficType.OTHER ? TextUtil.blankToNull(effTrafficTypeOther) : null);
+            listing.setTrafficTypeOther(effTrafficType.isOther() ? TextUtil.blankToNull(effTrafficTypeOther) : null);
         }
 
         if (audienceTypeTouched) {
             listing.setAudienceType(effAudienceType);
-            listing.setAudienceTypeOther(effAudienceType == AudienceType.OTHER ? TextUtil.blankToNull(effAudienceTypeOther) : null);
+            listing.setAudienceTypeOther(effAudienceType.isOther() ? TextUtil.blankToNull(effAudienceTypeOther) : null);
         }
 
         if (req.footfall() != null) listing.setFootfall(TextUtil.blankToNull(req.footfall()));

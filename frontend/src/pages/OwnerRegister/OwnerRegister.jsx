@@ -4,6 +4,7 @@ import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
 import { useAuth } from '@/context/AuthContext';
 import { mapOwner } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
+import { isOther, isBlank } from '@/lib/validators';
 import './OwnerRegister.css';
 
 const STEPS = [
@@ -94,10 +95,16 @@ function validate(step, { data, showToast, user }) {
     if (!d('f_bbState')) return fail('Please enter the billboard state.');
     if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
+    if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
+      return fail('Please describe the billboard type.');
     if (!d('f_bbWidth') || !d('f_bbHeight')) return fail('Please enter the billboard dimensions.');
     if (!d('f_facing')) return fail('Please select a facing direction.');
     if (!d('f_trafficType')) return fail('Please select a traffic type.');
+    if (isOther(d('f_trafficType')) && isBlank(d('f_trafficOther')))
+      return fail('Please describe the traffic type.');
     if (!d('f_audience')) return fail('Please select an audience type.');
+    if (isOther(d('f_audience')) && isBlank(d('f_audienceOther')))
+      return fail('Please describe the audience type.');
   }
   if (step === 4) {
     if (!d('f_startPrice')) return fail('Please enter a starting price.');

@@ -8,6 +8,8 @@ import {
   minLength,
   runValidators,
   isOther,
+  isBlank,
+  isNotBlank,
 } from './validators';
 
 describe('Frontend Field Validators', () => {
@@ -52,5 +54,25 @@ describe('Frontend Field Validators', () => {
     expect(isOther(null)).toBe(false);
     expect(isOther(undefined)).toBe(false);
     expect(isOther('')).toBe(false);
+  });
+
+  it('detects blank, whitespace-only, and zero-width invisible characters with isBlank', () => {
+    expect(isBlank(null)).toBe(true);
+    expect(isBlank(undefined)).toBe(true);
+    expect(isBlank('')).toBe(true);
+    expect(isBlank('   ')).toBe(true);
+    expect(isBlank('\t\n\r')).toBe(true);
+    expect(isBlank('\u00A0')).toBe(true); // NBSP
+    expect(isBlank('\u200B')).toBe(true); // Zero-width space
+    expect(isBlank('\u200C')).toBe(true); // ZWNJ
+    expect(isBlank('\u200D')).toBe(true); // ZWJ
+    expect(isBlank('\u2060')).toBe(true); // Word joiner
+    expect(isBlank('\uFEFF')).toBe(true); // BOM
+    expect(isBlank(' \u200B \u00A0 ')).toBe(true);
+
+    expect(isBlank('Skywalk')).toBe(false);
+    expect(isBlank('  Skywalk \u200B ')).toBe(false);
+    expect(isNotBlank('Skywalk')).toBe(true);
+    expect(isNotBlank('\u200B')).toBe(false);
   });
 });

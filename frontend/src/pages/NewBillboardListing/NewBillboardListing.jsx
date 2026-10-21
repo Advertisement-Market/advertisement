@@ -4,7 +4,7 @@ import { ListingStep1, ListingStep2, ListingStep3 } from './steps';
 import { mapBillboardListing } from '@/features/auth/registrationMappers';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther } from '@/lib/validators';
+import { isOther, isBlank } from '@/lib/validators';
 import './NewBillboardListing.css';
 
 const STEPS = [
@@ -73,7 +73,7 @@ export function validate(step, { data, showToast }) {
     if (!d('f_bbPin') || !/^\d{6}$/.test(d('f_bbPin')))
       return fail('Please enter a valid 6-digit billboard pincode.');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
-    if (isOther(d('f_bbType')) && !d('f_bbTypeOther'))
+    if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
       return fail('Please describe the billboard type.');
     if (!d('f_bbWidth') || Number(d('f_bbWidth')) <= 0)
       return fail('Please enter a valid width in feet.');
@@ -81,10 +81,10 @@ export function validate(step, { data, showToast }) {
       return fail('Please enter a valid height in feet.');
     if (!d('f_facing')) return fail('Please select a facing direction.');
     if (!d('f_trafficType')) return fail('Please select a traffic type.');
-    if (isOther(d('f_trafficType')) && !d('f_trafficOther'))
+    if (isOther(d('f_trafficType')) && isBlank(d('f_trafficOther')))
       return fail('Please describe the traffic type.');
     if (!d('f_audience')) return fail('Please select an audience type.');
-    if (isOther(d('f_audience')) && !d('f_audienceOther'))
+    if (isOther(d('f_audience')) && isBlank(d('f_audienceOther')))
       return fail('Please describe the audience type.');
   }
   if (step === 2) {
