@@ -79,6 +79,24 @@ describe('apiErrorMessage helper', () => {
     expect(apiErrorMessage(error)).toBe('An explicit top-level error occurred.');
   });
 
+  it('prefers fieldErrors over generic top-level message when both are present', () => {
+    const error = {
+      response: {
+        status: 400,
+        data: {
+          errorCode: 'VALIDATION_FAILED',
+          message: 'Validation failed.',
+          fieldErrors: {
+            typeOther: "A description is required when the selection is 'Other'.",
+          },
+        },
+      },
+    };
+    expect(apiErrorMessage(error)).toBe(
+      "Billboard Type: A description is required when the selection is 'Other'.",
+    );
+  });
+
   it('handles network errors gracefully', () => {
     const error = { code: 'ERR_NETWORK' };
     expect(apiErrorMessage(error)).toBe(

@@ -5,6 +5,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.theadbasket.backend.common.exception.BadRequestException;
+import com.theadbasket.backend.common.util.TextUtil;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.LovService;
@@ -49,7 +50,7 @@ public class RequiredOtherTextValidator
 
     private <E extends Enum<E> & LovType> boolean check(Class<E> enumType, String mainValue, String otherText,
             String otherField, ConstraintValidatorContext context) {
-        if (selectedIsOther(enumType, mainValue) && isBlank(otherText)) {
+        if (selectedIsOther(enumType, mainValue) && TextUtil.isBlank(otherText)) {
             context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate())
                     .addPropertyNode(otherField)
                     .addConstraintViolation();
@@ -74,18 +75,5 @@ public class RequiredOtherTextValidator
         } catch (BadRequestException ignored) {
             return false;
         }
-    }
-
-    private boolean isBlank(String value) {
-        if (value == null) {
-            return true;
-        }
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (!Character.isWhitespace(c) && !Character.isSpaceChar(c)) {
-                return false;
-            }
-        }
-        return true;
     }
 }

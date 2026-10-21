@@ -20,7 +20,9 @@ import jakarta.validation.Payload;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequiredOtherText {
 
-    String message() default "A description is required when the selection is 'Other'.";
+    String DEFAULT_MESSAGE = "A description is required when the selection is 'Other'.";
+
+    String message() default DEFAULT_MESSAGE;
 
     Class<?>[] groups() default {};
 

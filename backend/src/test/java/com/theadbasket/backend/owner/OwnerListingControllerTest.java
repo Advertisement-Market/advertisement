@@ -2,6 +2,7 @@ package com.theadbasket.backend.owner;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
@@ -586,5 +587,246 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.errorCode").value("BILLBOARD_NOT_FOUND"));
 
         assertThat(billboardListingRepository.findById(listing.getId())).isPresent();
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} resending type=OTHER preserves existing typeOther (wipe bug guard)")
+    void updateListing_resendingOtherType_preservesExistingCompanionText() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Name");
+        listing.setType(BillboardType.OTHER);
+        listing.setTypeOther("Skywalk");
+        listing = billboardListingRepository.save(listing);
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "OTHER", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("OTHER"))
+                .andExpect(jsonPath("$.typeOther").value("Skywalk"));
+
+        BillboardListing reloaded = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(reloaded.getType()).isEqualTo(BillboardType.OTHER);
+        assertThat(reloaded.getTypeOther()).isEqualTo("Skywalk");
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} transitioning to OTHER without text returns 400 VALIDATION_FAILED")
+    void updateListing_transitionToOtherWithoutText_returns400() throws Exception {
+        BillboardListing listing = createListing(owner1, "Standard Listing"); // LED_DIGITAL
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "OTHER", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.typeOther").value("A description is required when the selection is 'Other'."));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} transitioning from OTHER to standard nulls typeOther")
+    void updateListing_transitionFromOtherToStandard_nullsCompanionText() throws Exception {
+        BillboardListing listing = createListing(owner1, "Other Listing");
+        listing.setType(BillboardType.OTHER);
+        listing.setTypeOther("Skywalk");
+        listing = billboardListingRepository.save(listing);
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "STATIC_HOARDING", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("STATIC_HOARDING"))
+                .andExpect(jsonPath("$.typeOther").doesNotExist());
+
+        BillboardListing reloaded = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(reloaded.getType()).isEqualTo(BillboardType.STATIC_HOARDING);
+        assertThat(reloaded.getTypeOther()).isNull();
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} with typeOther on non-OTHER listing returns 200 and leaves typeOther null (intentional discard)")
+    void updateListing_typeOtherOnNonOtherListing_discardsText() throws Exception {
+        BillboardListing listing = createListing(owner1, "Standard Listing"); // LED_DIGITAL
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, "Spurious Text",
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("LED_DIGITAL"))
+                .andExpect(jsonPath("$.typeOther").doesNotExist());
+
+        BillboardListing reloaded = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(reloaded.getTypeOther()).isNull();
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} on legacy OTHER row with null text succeeds on unrelated field update")
+    void updateListing_legacyOtherRow_succeedsOnUnrelatedUpdate() throws Exception {
+        BillboardListing listing = createListing(owner1, "Legacy Row");
+        listing.setType(BillboardType.OTHER);
+        listing.setTypeOther(null); // legacy row with missing text
+        listing = billboardListingRepository.save(listing);
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null,
+                null, null, null, null, null, null, null, null, null,
+                new BigDecimal("420000.00"),
+                null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.startPrice").value(420000.00))
+                .andExpect(jsonPath("$.type").value("OTHER"))
+                .andExpect(jsonPath("$.typeOther").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} on legacy OTHER row resending type=OTHER returns 400 VALIDATION_FAILED")
+    void updateListing_legacyOtherRow_resendingTypeRequiresDescription() throws Exception {
+        BillboardListing listing = createListing(owner1, "Legacy Row");
+        listing.setType(BillboardType.OTHER);
+        listing.setTypeOther(null);
+        listing = billboardListingRepository.save(listing);
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "OTHER", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.typeOther").value("A description is required when the selection is 'Other'."));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} with zero-width space companion text returns 400 VALIDATION_FAILED")
+    void updateListing_zeroWidthSpaceText_returns400() throws Exception {
+        BillboardListing listing = createListing(owner1, "Standard Listing");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "OTHER", "\u200B",
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.typeOther").exists());
+    }
+
+    @Test
+    @DisplayName("Rejected PATCH leaves persisted entity completely unchanged in database (including name)")
+    void updateListing_whenValidationFails_leavesEntityUnchanged() throws Exception {
+        BillboardListing listing = createListing(owner1, "Original Untouched Name");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "Mutated Name Should Roll Back", null, null, null, null, null, null,
+                "OTHER", "   ",
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+
+        BillboardListing reloaded = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(reloaded.getName()).isEqualTo("Original Untouched Name");
+        assertThat(reloaded.getType()).isEqualTo(BillboardType.LED_DIGITAL);
+        assertThat(reloaded.getTypeOther()).isNull();
+    }
+
+    @Test
+    @DisplayName("Simultaneous multi-field failures on PATCH return stable, deterministically ordered fieldErrors")
+    void updateListing_multiFieldFailures_returnsStableOrderedFieldErrors() throws Exception {
+        BillboardListing listing = createListing(owner1, "Listing");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "OTHER", null,
+                null, null, null, null,
+                "OTHER", null,
+                "OTHER", null,
+                null, null, null, null, null
+        );
+
+        String responseBody = mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andReturn().getResponse().getContentAsString();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = objectMapper.readValue(responseBody, Map.class);
+        @SuppressWarnings("unchecked")
+        Map<String, String> fieldErrors = (Map<String, String>) map.get("fieldErrors");
+        assertThat(fieldErrors).isNotNull();
+        assertThat(fieldErrors.keySet()).containsExactly("typeOther", "trafficTypeOther", "audienceTypeOther");
+    }
+
+    @Test
+    @DisplayName("Varargs BadRequestException returns original response shape without fieldErrors")
+    void updateListing_unparseableLovCode_returnsOriginalShapeWithoutFieldErrors() throws Exception {
+        BillboardListing listing = createListing(owner1, "Listing");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                "INVALID_TYPE_CODE", null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_BILLBOARD_TYPE"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.fieldErrors").doesNotExist());
     }
 }

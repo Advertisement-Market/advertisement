@@ -229,6 +229,13 @@ class RequiredOtherTextValidatorTest {
         assertThat(validator.isValid(whitespaceReq, context)).isFalse();
     }
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"", "   ", "\u00A0", "\u200B", "\u200C", "\u200D", "\u2060", "\uFEFF", " \u00A0 \u200B "})
+    void companionText_whitespaceAndInvisibleChars_areInvalid(String blankText) {
+        BillboardListingCreateRequest req = createRequest("OTHER", blankText, "CITY_URBAN", null, "COMMUTERS", null);
+        assertThat(validator.isValid(req, context)).isFalse();
+    }
+
     @Test
     void trafficTypeOther_reportedOnItsOwnPropertyPath() {
         BillboardListingCreateRequest req = createRequest("STATIC_HOARDING", null, "OTHER", "", "COMMUTERS", null);

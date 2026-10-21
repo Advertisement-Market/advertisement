@@ -21,7 +21,9 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
+import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.BookingDurationUnit;
@@ -264,5 +266,77 @@ class OwnerListingServiceTest {
                 .satisfies(ex -> assertThat(((ResourceNotFoundException) ex).getErrorCode()).isEqualTo(ErrorCode.BILLBOARD_NOT_FOUND));
 
         verify(billboardListingRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("BadRequestException varargs constructor binds properly and retains arguments without fieldErrors")
+    void badRequestException_varargsOverloadRetainsArgsWithoutFieldErrors() {
+        BadRequestException ex = new BadRequestException(ErrorCode.INVALID_BILLBOARD_TYPE, "foo", "bar");
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_BILLBOARD_TYPE);
+        assertThat(ex.getArgs()).containsExactly("foo", "bar");
+        assertThat(ex.getFieldErrors()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("createListing rejects OTHER type with zero-width space companion text via defense-in-depth")
+    void createListing_whenOtherWithZeroWidthSpace_throwsValidationFailedWithFieldError() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Name", "Line 1", null, null, "Mumbai", "Maharashtra", "400050",
+                "OTHER", "\u200B", new BigDecimal("40.00"), new BigDecimal("20.00"), BigDecimal.ZERO,
+                "NORTH", "CITY_URBAN", null, "COMMUTERS", null, "High",
+                new BigDecimal("300000.00"), 1, "MONTHS", null
+        );
+
+        assertThatThrownBy(() -> ownerListingService.createListing(1L, req))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> {
+                    BadRequestException bre = (BadRequestException) ex;
+                    assertThat(bre.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+                    assertThat(bre.getFieldErrors()).containsEntry("typeOther", RequiredOtherText.DEFAULT_MESSAGE);
+                });
+    }
+
+    @Test
+    @DisplayName("createListing aggregates multiple missing OTHER companion descriptions into ordered fieldErrors")
+    void createListing_multipleMissingOtherTexts_aggregatesInFieldErrors() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Name", "Line 1", null, null, "Mumbai", "Maharashtra", "400050",
+                "OTHER", "   ", new BigDecimal("40.00"), new BigDecimal("20.00"), BigDecimal.ZERO,
+                "NORTH", "OTHER", "\u00A0", "OTHER", "\u200B", "High",
+                new BigDecimal("300000.00"), 1, "MONTHS", null
+        );
+
+        assertThatThrownBy(() -> ownerListingService.createListing(1L, req))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> {
+                    BadRequestException bre = (BadRequestException) ex;
+                    assertThat(bre.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+                    assertThat(bre.getFieldErrors().keySet()).containsExactly("typeOther", "trafficTypeOther", "audienceTypeOther");
+                });
+    }
+
+    @Test
+    @DisplayName("createListing trims companion descriptions for type, traffic, and audience")
+    void createListing_trimsCompanionDescriptionsForTypeTrafficAndAudience() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Name", "Line 1", null, null, "Mumbai", "Maharashtra", "400050",
+                "OTHER", "  Skywalk  ", new BigDecimal("40.00"), new BigDecimal("20.00"), BigDecimal.ZERO,
+                "NORTH", "OTHER", "  Airport Runway  ", "OTHER", "  Tourists  ", "High",
+                new BigDecimal("300000.00"), 1, "MONTHS", null
+        );
+
+        ownerListingService.createListing(1L, req);
+
+        ArgumentCaptor<BillboardListing> captor = ArgumentCaptor.forClass(BillboardListing.class);
+        verify(billboardListingRepository).save(captor.capture());
+        BillboardListing saved = captor.getValue();
+        assertThat(saved.getTypeOther()).isEqualTo("Skywalk");
+        assertThat(saved.getTrafficTypeOther()).isEqualTo("Airport Runway");
+        assertThat(saved.getAudienceTypeOther()).isEqualTo("Tourists");
     }
 }

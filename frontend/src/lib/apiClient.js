@@ -69,7 +69,6 @@ const FIELD_LABELS = {
 /** Turn an axios error into a user-facing message using the backend's ApiError body. */
 export function apiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
   const data = error?.response?.data;
-  if (data?.message) return data.message;
   if (data?.fieldErrors) {
     const entries = Object.entries(data.fieldErrors);
     if (entries.length > 0) {
@@ -78,6 +77,7 @@ export function apiErrorMessage(error, fallback = 'Something went wrong. Please 
       return label ? `${label}: ${msg}` : msg;
     }
   }
+  if (data?.message) return data.message;
   if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
     return 'Cannot reach the server. Make sure the backend is running.';
   }
