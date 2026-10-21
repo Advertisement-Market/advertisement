@@ -10,4 +10,5 @@ export const ownerListingApi = {
   updateListing: (id, payload) =>
     api.patch(`/api/owner/listings/${id}`, payload).then((r) => r.data),
   deleteListing: (id) => api.delete(`/api/owner/listings/${id}`),
+  getBillboardTypes: () => api.get('/api/lov/billboard-types').then((r) => r.data),
 };

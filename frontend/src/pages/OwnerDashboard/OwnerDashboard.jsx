@@ -29,6 +29,9 @@ import {
   DAY_NAMES,
   initCalData,
   dayKey,
+  DEFAULT_BILLBOARD_TYPES,
+  resolveInitialType,
+  formatBillboardType,
 } from './data';
 import './OwnerDashboard.css';
 
@@ -1012,7 +1015,7 @@ function Listings({
   const filtered = listings.filter((l) => {
     const nameMatch = (l.name || '').toLowerCase().includes(q.toLowerCase());
     const metaText =
-      `${l.addressLine1 || ''} ${l.city || ''} ${l.type || ''} ${l.meta || ''}`.toLowerCase();
+      `${l.addressLine1 || ''} ${l.city || ''} ${l.type || ''} ${formatBillboardType(l.type, l.typeOther)} ${l.meta || ''}`.toLowerCase();
     const queryMatch = !q || nameMatch || metaText.includes(q.toLowerCase());
     const currentStatus = (l.status || 'Available').toLowerCase();
     const statusMatch = status === 'all' || currentStatus === status;
@@ -1105,7 +1108,7 @@ function Listings({
                 l.addressLine1,
                 l.city,
                 l.widthFt && l.heightFt ? `${l.widthFt}×${l.heightFt} ft` : null,
-                l.type,
+                formatBillboardType(l.type, l.typeOther),
               ]
                 .filter(Boolean)
                 .join(' · ');
@@ -2234,10 +2237,34 @@ const resolveInitialUnit = (unit) => {
 };
 
 function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false }) {
+  const [typeOptions, setTypeOptions] = useState(DEFAULT_BILLBOARD_TYPES);
+
+  useEffect(() => {
+    let isMounted = true;
+    ownerListingApi
+      .getBillboardTypes()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setTypeOptions(data);
+        }
+      })
+      .catch(() => {
+        // Fallback silently to DEFAULT_BILLBOARD_TYPES
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const initialType = resolveInitialType(initialData?.type);
+  const initialTypeOther =
+    initialData?.typeOther ||
+    (String(initialData?.type || '').toLowerCase() === 'skywalk' ? 'Skywalk' : '');
+
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    type: initialData?.type || 'LED Digital',
-    typeOther: initialData?.typeOther || '',
+    type: initialType,
+    typeOther: initialTypeOther,
     widthFt: initialData?.widthFt || '',
     heightFt: initialData?.heightFt || '',
     groundHeightFt: initialData?.groundHeightFt || '',
@@ -2270,6 +2297,14 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
     if (e) e.preventDefault();
     if (!formData.name?.trim()) {
       setError('Billboard name is required.');
+      return;
+    }
+    if (!formData.type?.trim()) {
+      setError('Billboard format / type is required.');
+      return;
+    }
+    if (formData.type === 'OTHER' && !formData.typeOther?.trim()) {
+      setError('Please specify the billboard type when "Other" is selected.');
       return;
     }
     if (!formData.addressLine1?.trim()) {
@@ -2318,7 +2353,7 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
       const payload = {
         name: formData.name.trim(),
         type: formData.type.trim(),
-        typeOther: formData.typeOther?.trim() || null,
+        typeOther: formData.type === 'OTHER' ? formData.typeOther?.trim() || null : null,
         widthFt: Number(formData.widthFt),
         heightFt: Number(formData.heightFt),
         groundHeightFt: formData.groundHeightFt ? Number(formData.groundHeightFt) : null,
@@ -2387,15 +2422,29 @@ function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false 
               value={formData.type}
               onChange={(e) => handleChange('type', e.target.value)}
             >
-              <option>LED Digital</option>
-              <option>Static Hoarding</option>
-              <option>Unipole</option>
-              <option>Bus Shelter</option>
-              <option>Skywalk</option>
-              <option>Gantry</option>
+              {typeOptions.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
+        {formData.type === 'OTHER' && (
+          <div className="form-row">
+            <div className="form-group">
+              <label>Specify Billboard Type *</label>
+              <input
+                type="text"
+                className="form-control"
+                value={formData.typeOther}
+                onChange={(e) => handleChange('typeOther', e.target.value)}
+                placeholder="e.g. Bridge Panel, Skywalk, Pillar"
+                required
+              />
+            </div>
+          </div>
+        )}
         <div className="form-row">
           <div className="form-group">
             <label>Width (ft) *</label>

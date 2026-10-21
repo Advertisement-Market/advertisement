@@ -82,4 +82,17 @@ describe('ownerListingApi client', () => {
 
     expect(api.delete).toHaveBeenCalledWith('/api/owner/listings/99');
   });
+
+  it('getBillboardTypes calls GET /api/lov/billboard-types and unwraps data', async () => {
+    const mockTypes = [
+      { code: 'STATIC_HOARDING', label: 'Static Hoarding' },
+      { code: 'LED_DIGITAL', label: 'LED Digital' },
+    ];
+    api.get.mockResolvedValueOnce({ data: mockTypes });
+
+    const result = await ownerListingApi.getBillboardTypes();
+
+    expect(api.get).toHaveBeenCalledWith('/api/lov/billboard-types');
+    expect(result).toEqual(mockTypes);
+  });
 });
