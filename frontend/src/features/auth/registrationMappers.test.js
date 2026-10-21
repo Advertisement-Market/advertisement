@@ -322,6 +322,68 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(result.discountNote).toBeNull();
     });
 
+    it('maps uppercase OTHER codes and trims companion strings', () => {
+      const formData = {
+        f_bbName: 'Custom Type Billboard',
+        f_bbAddr: 'Ring Road',
+        f_bbCity: 'Pune',
+        f_bbState: 'Maharashtra',
+        f_bbPin: '411001',
+        f_bbType: 'OTHER',
+        f_bbTypeOther: '  Skywalk Gantries  ',
+        f_bbWidth: '30',
+        f_bbHeight: '15',
+        f_facing: 'East',
+        f_trafficType: 'OTHER',
+        f_trafficOther: '  Expressway Corridor  ',
+        f_audience: 'OTHER',
+        f_audienceOther: '  Highway Travelers  ',
+        f_startPrice: '200000',
+        f_minBookingValue: 1,
+        f_minBookingUnit: 'MONTHS',
+      };
+
+      const result = mapBillboardListing(formData);
+
+      expect(result.type).toBe('OTHER');
+      expect(result.typeOther).toBe('Skywalk Gantries');
+      expect(result.trafficType).toBe('OTHER');
+      expect(result.trafficTypeOther).toBe('Expressway Corridor');
+      expect(result.audienceType).toBe('OTHER');
+      expect(result.audienceTypeOther).toBe('Highway Travelers');
+    });
+
+    it('nulls out companion texts when selection is switched away from OTHER', () => {
+      const formData = {
+        f_bbName: 'Switched Billboard',
+        f_bbAddr: 'Ring Road',
+        f_bbCity: 'Pune',
+        f_bbState: 'Maharashtra',
+        f_bbPin: '411001',
+        f_bbType: 'STATIC_HOARDING',
+        f_bbTypeOther: 'Stale Custom Type',
+        f_bbWidth: '30',
+        f_bbHeight: '15',
+        f_facing: 'East',
+        f_trafficType: 'Vehicular',
+        f_trafficOther: 'Stale Traffic',
+        f_audience: 'Commuters',
+        f_audienceOther: 'Stale Audience',
+        f_startPrice: '200000',
+        f_minBookingValue: 1,
+        f_minBookingUnit: 'MONTHS',
+      };
+
+      const result = mapBillboardListing(formData);
+
+      expect(result.type).toBe('STATIC_HOARDING');
+      expect(result.typeOther).toBeNull();
+      expect(result.trafficType).toBe('Vehicular');
+      expect(result.trafficTypeOther).toBeNull();
+      expect(result.audienceType).toBe('Commuters');
+      expect(result.audienceTypeOther).toBeNull();
+    });
+
     it('strictly excludes UI-only calendar and media upload fields from the API payload', () => {
       const formDataWithMediaAndCalendar = {
         f_bbName: 'Prime LED Hoarding',

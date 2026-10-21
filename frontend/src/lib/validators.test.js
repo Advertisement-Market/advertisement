@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { required, email, phone, pincode, gst, minLength, runValidators } from './validators';
+import {
+  required,
+  email,
+  phone,
+  pincode,
+  gst,
+  minLength,
+  runValidators,
+  isOther,
+} from './validators';
 
 describe('Frontend Field Validators', () => {
   it('validates required fields', () => {
@@ -33,5 +42,15 @@ describe('Frontend Field Validators', () => {
     expect(runValidators('', rules)).toBe('This field is required.');
     expect(runValidators('ab', rules)).toBe('Must be at least 3 characters.');
     expect(runValidators('abc', rules)).toBeNull();
+  });
+
+  it('correctly detects other values with isOther case-insensitively', () => {
+    expect(isOther('OTHER')).toBe(true);
+    expect(isOther('other')).toBe(true);
+    expect(isOther('  Other  ')).toBe(true);
+    expect(isOther('STATIC_HOARDING')).toBe(false);
+    expect(isOther(null)).toBe(false);
+    expect(isOther(undefined)).toBe(false);
+    expect(isOther('')).toBe(false);
   });
 });

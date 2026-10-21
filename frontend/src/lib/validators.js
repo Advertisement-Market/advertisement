@@ -102,3 +102,10 @@ export function validatorsForType(type, { min, max } = {}) {
       return [];
   }
 }
+
+// Exact LOV-code check, case-insensitive. Lowercase 'other' is what TRAFFIC/AUDIENCE
+// option values use today; remove the tolerance if those are ever migrated.
+export const isOther = (v) =>
+  String(v ?? '')
+    .trim()
+    .toUpperCase() === 'OTHER';

@@ -325,6 +325,119 @@ class OwnerListingControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/owner/listings with all three OTHER fields lacking companion text returns 400 with all three fieldErrors")
+    void createListing_allThreeOtherFieldsMissingCompanionText_returns400WithAllFieldErrors() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Triple Other Billboard",
+                "Central Avenue",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "400076",
+                "OTHER",
+                null,
+                new BigDecimal("35.00"),
+                new BigDecimal("18.00"),
+                null,
+                "East",
+                "OTHER",
+                "   ", // whitespace only
+                "OTHER",
+                "",    // empty string
+                null,
+                new BigDecimal("220000.00"),
+                1,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.typeOther").exists())
+                .andExpect(jsonPath("$.fieldErrors.trafficTypeOther").exists())
+                .andExpect(jsonPath("$.fieldErrors.audienceTypeOther").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with type=OTHER and valid companion text succeeds (201)")
+    void createListing_typeOtherWithValidCompanionText_returns201() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Skywalk Prime",
+                "Western Express Highway",
+                null,
+                "Near Airport Junction",
+                "Mumbai",
+                "Maharashtra",
+                "400099",
+                "OTHER",
+                "Skywalk Gantry",
+                new BigDecimal("40.00"),
+                new BigDecimal("20.00"),
+                new BigDecimal("15.00"),
+                "North",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                "80,000/day",
+                new BigDecimal("350000.00"),
+                1,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("OTHER"))
+                .andExpect(jsonPath("$.typeOther").value("Skywalk Gantry"));
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with unparseable type returns 400 INVALID_BILLBOARD_TYPE rather than companion text error")
+    void createListing_unparseableType_returnsInvalidBillboardTypeError() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Invalid Type Billboard",
+                "Central Avenue",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "400076",
+                "GARBAGE_TYPE",
+                null,
+                new BigDecimal("35.00"),
+                new BigDecimal("18.00"),
+                null,
+                "East",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                null,
+                new BigDecimal("220000.00"),
+                1,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_BILLBOARD_TYPE"))
+                .andExpect(jsonPath("$.fieldErrors.typeOther").doesNotExist());
+    }
+
+    @Test
     @DisplayName("PATCH /api/owner/listings/{id} partially updates listing")
     void updateListing_validPartialUpdate_returns200() throws Exception {
         BillboardListing listing = createListing(owner1, "Initial Name");

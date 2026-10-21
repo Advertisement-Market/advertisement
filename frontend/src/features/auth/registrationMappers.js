@@ -3,6 +3,8 @@
  * into the backend registration DTOs. Field names mirror the frontend wizard fields.
  */
 
+import { isOther } from '@/lib/validators';
+
 const trimOrNull = (v) => {
   const s = v == null ? '' : String(v).trim();
   return s === '' ? null : s;
@@ -114,9 +116,9 @@ export const resolveBookingDuration = (d) => {
 
 export function mapOwner(d) {
   const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
-  const isTypeOther = d.f_bbType === 'Other' || d.f_bbType === 'other';
-  const isTrafficOther = d.f_trafficType === 'other' || d.f_trafficType === 'Other';
-  const isAudienceOther = d.f_audience === 'other' || d.f_audience === 'Other';
+  const isTypeOther = isOther(d.f_bbType);
+  const isTrafficOther = isOther(d.f_trafficType);
+  const isAudienceOther = isOther(d.f_audience);
 
   return {
     firstName: d.f_firstName,
@@ -208,9 +210,9 @@ export function mapAgency(d, s) {
 
 export function mapBillboardListing(d) {
   const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
-  const isTypeOther = d.f_bbType === 'Other' || d.f_bbType === 'other';
-  const isTrafficOther = d.f_trafficType === 'other' || d.f_trafficType === 'Other';
-  const isAudienceOther = d.f_audience === 'other' || d.f_audience === 'Other';
+  const isTypeOther = isOther(d.f_bbType);
+  const isTrafficOther = isOther(d.f_trafficType);
+  const isAudienceOther = isOther(d.f_audience);
 
   return {
     name: d.f_bbName,

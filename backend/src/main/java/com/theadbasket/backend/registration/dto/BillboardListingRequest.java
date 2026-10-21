@@ -2,6 +2,7 @@ package com.theadbasket.backend.registration.dto;
 
 import java.math.BigDecimal;
 
+import com.theadbasket.backend.common.validation.BillboardLovPayload;
 import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
@@ -81,6 +82,5 @@ public record BillboardListingRequest(
         String minBookingUnit,
         @Size(max = 500)
         String discountNote
-        ) {
-
+) implements BillboardLovPayload {
 }

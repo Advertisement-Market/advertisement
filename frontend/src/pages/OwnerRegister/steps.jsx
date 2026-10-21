@@ -56,8 +56,10 @@ const typeIcon = (paths) => (
   </svg>
 );
 
-const TYPE_OPTIONS = [
+// eslint-disable-next-line react-refresh/only-export-components
+export const TYPE_OPTIONS = [
   {
+    code: 'STATIC_HOARDING',
     label: 'Static Hoarding',
     icon: typeIcon(
       <>
@@ -67,6 +69,7 @@ const TYPE_OPTIONS = [
     ),
   },
   {
+    code: 'LED_DIGITAL',
     label: 'LED Digital',
     icon: typeIcon(
       <>
@@ -77,6 +80,7 @@ const TYPE_OPTIONS = [
     ),
   },
   {
+    code: 'UNIPOLE',
     label: 'Unipole',
     icon: typeIcon(
       <>
@@ -85,8 +89,13 @@ const TYPE_OPTIONS = [
       </>,
     ),
   },
-  { label: 'Gantry', icon: typeIcon(<path d="M3 6h18M3 12h18M3 18h18" />) },
   {
+    code: 'GANTRY',
+    label: 'Gantry',
+    icon: typeIcon(<path d="M3 6h18M3 12h18M3 18h18" />),
+  },
+  {
+    code: 'BUS_SHELTER',
     label: 'Bus Shelter',
     icon: typeIcon(
       <>
@@ -96,6 +105,7 @@ const TYPE_OPTIONS = [
     ),
   },
   {
+    code: 'KIOSK',
     label: 'Kiosk',
     icon: typeIcon(
       <>
@@ -105,6 +115,7 @@ const TYPE_OPTIONS = [
     ),
   },
   {
+    code: 'DIGITAL_SCREEN',
     label: 'Digital Screen',
     icon: typeIcon(
       <>
@@ -114,6 +125,7 @@ const TYPE_OPTIONS = [
     ),
   },
   {
+    code: 'OTHER',
     label: 'Other',
     icon: typeIcon(
       <>
@@ -560,6 +572,21 @@ export function Step3() {
           </label>
         </div>
         <TypeGrid name="f_bbType" options={TYPE_OPTIONS} />
+        {v.isOther(field('f_bbType')) && (
+          <div className="form-group" style={{ marginTop: 12 }}>
+            <label>
+              Specify Billboard Type <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g., Bridge Panel, Skywalk, Pillar"
+              maxLength={120}
+              value={field('f_bbTypeOther')}
+              onChange={(e) => setField('f_bbTypeOther', e.target.value)}
+            />
+          </div>
+        )}
       </FormSection>
 
       <FormSection last title="Dimensions & Traffic">
@@ -1128,7 +1155,7 @@ export function Step7() {
           body={join([
             v('f_bbName'),
             [v('f_bbAddr'), v('f_bbCity'), v('f_bbState')].filter(Boolean).join(', '),
-            v('f_bbType'),
+            TYPE_OPTIONS.find((o) => o.code === v('f_bbType'))?.label || v('f_bbType'),
             v('f_bbWidth') && v('f_bbHeight') && `${v('f_bbWidth')} × ${v('f_bbHeight')} ft`,
             v('f_facing'),
           ])}

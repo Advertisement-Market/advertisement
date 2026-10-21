@@ -2,6 +2,8 @@ package com.theadbasket.backend.owner.dto;
 
 import java.math.BigDecimal;
 
+import com.theadbasket.backend.common.validation.BillboardLovPayload;
+import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 import com.theadbasket.backend.lov.BookingDurationUnit;
 
@@ -16,6 +18,7 @@ import jakarta.validation.constraints.Size;
 /**
  * Request payload for creating a new billboard inventory listing.
  */
+@RequiredOtherText
 public record BillboardListingCreateRequest(
         @NotBlank(message = "Billboard name is required.")
         @Size(max = 150)
@@ -98,5 +101,5 @@ public record BillboardListingCreateRequest(
 
         @Size(max = 500)
         String discountNote
-) {
+) implements BillboardLovPayload {
 }

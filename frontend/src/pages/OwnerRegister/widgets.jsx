@@ -254,9 +254,9 @@ export function TypeGrid({ name, options }) {
     <div className="type-grid">
       {options.map((opt) => (
         <div
-          key={opt.label}
-          className={cn('type-option', value === opt.label && 'selected')}
-          onClick={() => setField(name, opt.label)}
+          key={opt.code}
+          className={cn('type-option', value === opt.code && 'selected')}
+          onClick={() => setField(name, opt.code)}
         >
           <div className="type-option-icon">{opt.icon}</div>
           <div className="type-option-label">{opt.label}</div>
@@ -288,11 +288,12 @@ export function SelectWithOther({ name, otherName, options, placeholder = 'Selec
           ),
         )}
       </select>
-      {value === 'other' && (
+      {v.isOther(value) && (
         <input
           type="text"
           className="form-control"
           placeholder="Describe"
+          maxLength={120}
           style={{ marginTop: 8 }}
           value={field(otherName)}
           onChange={(e) => setField(otherName, e.target.value.replace(/[0-9]/g, ''))}

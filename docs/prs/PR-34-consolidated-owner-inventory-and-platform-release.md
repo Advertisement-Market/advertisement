@@ -152,6 +152,16 @@ The consolidated persistence model utilizes normalized tables in PostgreSQL / H2
   - **Step 2:** Rate Card & Availability (Starting price, `MinBookingInput`, Pricing packages, Calendar).
   - **Step 3:** Media Uploads & Tour (Photos, Video URL, Coordinates).
 - **`MinBookingInput` Widget:** Controlled numeric input alongside duration unit dropdown directly mapped via `resolveBookingDuration(d)` in `registrationMappers.js`.
+- **Canonical LOV Enum Codes & Grid Strictness:**
+  - `TYPE_OPTIONS` in both `NewBillboardListing` and `OwnerRegister` strictly declare canonical backend enum codes (`STATIC_HOARDING`, `LED_DIGITAL`, `UNIPOLE`, `GANTRY`, `BUS_SHELTER`, `KIOSK`, `DIGITAL_SCREEN`, `OTHER`).
+  - `TypeGrid` strictly keys and sets `opt.code` with label fallback removed.
+  - Bidirectional parity is verified by client assertions and a dedicated backend test executing `BillboardType.valueOf(code)`.
+- **`OTHER` Selection & Companion Inputs:**
+  - When `isOther(field('f_bbType'))` evaluates to true, an alphanumeric companion input (`f_bbTypeOther`) is rendered with `maxLength={120}`. Unlike traffic/audience companion text which strips digits, billboard type intentionally preserves digits to permit designations such as "Gate 2" or "NH 48".
+  - Step 1 client validation blocks advancing if any of `f_bbType`, `f_trafficType`, or `f_audience` is `OTHER` without description.
+  - Server validation on `BillboardListingCreateRequest` enforces `@RequiredOtherText` via `BillboardLovPayload`. If bypassed, `apiErrorMessage` extracts the first message from `fieldErrors` and displays it in a toast.
+  - **Draft Persistence Note:** Wizard state is purely in-memory React state (`RegisterProvider`); drafts are not persisted to `localStorage`, `sessionStorage`, or backend database.
+  - **Whitespace Safety:** Backend character loop enforces `Character.isSpaceChar` catching non-breaking spaces (`\u00A0`), matching JS `trim()` behavior (zero-width spaces `\u200B` are intentionally tolerated).
 
 ---
 

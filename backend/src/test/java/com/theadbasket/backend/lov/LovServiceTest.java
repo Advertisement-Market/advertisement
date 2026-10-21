@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
+import java.util.List;
+
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 
@@ -25,6 +27,37 @@ class LovServiceTest {
         messages.setDefaultEncoding("UTF-8");
         messages.setUseCodeAsDefaultMessage(true);
         lovService = new LovService(messages);
+    }
+
+    /**
+     * Cross-stack canonical parity test.
+     * Mirrors the frontend canonical code list in:
+     * frontend/src/pages/NewBillboardListing/NewBillboardListing.test.jsx
+     * (and TYPE_OPTIONS in NewBillboardListing/steps.jsx and OwnerRegister/steps.jsx).
+     * Any change or typo here must match BillboardType enum exactly via valueOf().
+     */
+    @Test
+    void frontendCanonicalCodes_matchBillboardTypeEnumExactValueOf() {
+        List<String> frontendCodes = List.of(
+                "STATIC_HOARDING",
+                "LED_DIGITAL",
+                "UNIPOLE",
+                "GANTRY",
+                "BUS_SHELTER",
+                "KIOSK",
+                "DIGITAL_SCREEN",
+                "OTHER"
+        );
+
+        // Every code must resolve strictly via BillboardType.valueOf(code) (exact enum constant match, not parse())
+        for (String code : frontendCodes) {
+            BillboardType type = BillboardType.valueOf(code);
+            assertThat(type).isNotNull();
+            assertThat(type.name()).isEqualTo(code);
+        }
+
+        // Strict bidirectional parity: enum must not have more or fewer constants than frontend options
+        assertThat(BillboardType.values()).hasSize(frontendCodes.size());
     }
 
     @Test

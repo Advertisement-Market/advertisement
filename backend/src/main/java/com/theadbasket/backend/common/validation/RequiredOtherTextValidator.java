@@ -10,7 +10,6 @@ import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.LovService;
 import com.theadbasket.backend.lov.LovType;
 import com.theadbasket.backend.lov.TrafficType;
-import com.theadbasket.backend.registration.dto.BillboardListingRequest;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
@@ -24,7 +23,7 @@ import jakarta.validation.ConstraintValidatorContext;
  * the companion field so it surfaces in the {@code fieldErrors} map.
  */
 public class RequiredOtherTextValidator
-        implements ConstraintValidator<RequiredOtherText, BillboardListingRequest> {
+        implements ConstraintValidator<RequiredOtherText, BillboardLovPayload> {
 
     private final LovService lovService;
 
@@ -34,7 +33,7 @@ public class RequiredOtherTextValidator
     }
 
     @Override
-    public boolean isValid(BillboardListingRequest req, ConstraintValidatorContext context) {
+    public boolean isValid(BillboardLovPayload req, ConstraintValidatorContext context) {
         if (req == null) {
             return true; // Nothing to validate; @NotNull elsewhere covers a null body.
         }
@@ -78,6 +77,15 @@ public class RequiredOtherTextValidator
     }
 
     private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+        if (value == null) {
+            return true;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (!Character.isWhitespace(c) && !Character.isSpaceChar(c)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
