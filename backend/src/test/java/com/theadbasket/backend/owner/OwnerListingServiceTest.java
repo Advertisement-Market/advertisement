@@ -58,6 +58,7 @@ class OwnerListingServiceTest {
     private User owner;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
         messages.setBasename("messages");
@@ -338,5 +339,24 @@ class OwnerListingServiceTest {
         assertThat(saved.getTypeOther()).isEqualTo("Skywalk");
         assertThat(saved.getTrafficTypeOther()).isEqualTo("Airport Runway");
         assertThat(saved.getAudienceTypeOther()).isEqualTo("Tourists");
+    }
+
+    @Test
+    @DisplayName("updateListing with typeOther on a row with null type does not throw NPE and leaves typeOther null")
+    void updateListing_whenExistingRowHasNullType_handlesDefensivelyWithoutNpe() {
+        BillboardListing existing = createSampleListing("Null Type Listing", owner);
+        existing.setType(null);
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, "Some Description",
+                null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.type()).isNull();
+        assertThat(updated.typeOther()).isNull();
     }
 }

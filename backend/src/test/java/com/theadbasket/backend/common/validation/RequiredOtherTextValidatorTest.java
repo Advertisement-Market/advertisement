@@ -21,10 +21,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.StaticMessageSource;
 
-import com.theadbasket.backend.lov.AudienceType;
-import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.LovService;
-import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.registration.dto.BillboardListingRequest;
 
@@ -43,6 +40,7 @@ class RequiredOtherTextValidatorTest {
     private ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext nodeBuilder;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         LocaleContextHolder.setLocale(Locale.ENGLISH);
 
@@ -303,6 +301,7 @@ class RequiredOtherTextValidatorTest {
         verify(builder).addPropertyNode(expectedViolatingField);
     }
 
+    @SuppressWarnings("unused")
     static Stream<Arguments> otherResolutionCases() {
         return Stream.of(
                 Arguments.of(

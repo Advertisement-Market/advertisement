@@ -3,6 +3,7 @@ package com.theadbasket.backend.owner;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,13 +90,13 @@ public class OwnerListingService {
         BookingDurationUnit minBookingUnit = lovService.parseBookingDurationUnit(req.minBookingUnit());
 
         Map<String, String> fieldErrors = new LinkedHashMap<>();
-        if (type.isOther() && TextUtil.isBlank(req.typeOther())) {
+        if (type != null && type.isOther() && TextUtil.isBlank(req.typeOther())) {
             fieldErrors.put("typeOther", RequiredOtherText.DEFAULT_MESSAGE);
         }
-        if (trafficType.isOther() && TextUtil.isBlank(req.trafficTypeOther())) {
+        if (trafficType != null && trafficType.isOther() && TextUtil.isBlank(req.trafficTypeOther())) {
             fieldErrors.put("trafficTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
         }
-        if (audienceType.isOther() && TextUtil.isBlank(req.audienceTypeOther())) {
+        if (audienceType != null && audienceType.isOther() && TextUtil.isBlank(req.audienceTypeOther())) {
             fieldErrors.put("audienceTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
         }
         if (!fieldErrors.isEmpty()) {
@@ -107,15 +108,15 @@ public class OwnerListingService {
         listing.setName(req.name().trim());
         listing.setAddress(address);
         listing.setType(type);
-        listing.setTypeOther(type.isOther() ? TextUtil.blankToNull(req.typeOther()) : null);
+        listing.setTypeOther(type != null && type.isOther() ? TextUtil.blankToNull(req.typeOther()) : null);
         listing.setWidthFt(req.widthFt());
         listing.setHeightFt(req.heightFt());
         listing.setGroundHeightFt(req.groundHeightFt());
         listing.setFacing(facing);
         listing.setTrafficType(trafficType);
-        listing.setTrafficTypeOther(trafficType.isOther() ? TextUtil.blankToNull(req.trafficTypeOther()) : null);
+        listing.setTrafficTypeOther(trafficType != null && trafficType.isOther() ? TextUtil.blankToNull(req.trafficTypeOther()) : null);
         listing.setAudienceType(audienceType);
-        listing.setAudienceTypeOther(audienceType.isOther() ? TextUtil.blankToNull(req.audienceTypeOther()) : null);
+        listing.setAudienceTypeOther(audienceType != null && audienceType.isOther() ? TextUtil.blankToNull(req.audienceTypeOther()) : null);
         listing.setFootfall(TextUtil.blankToNull(req.footfall()));
         listing.setStartPrice(req.startPrice());
         listing.setMinBookingValue(req.minBookingValue());
@@ -159,8 +160,8 @@ public class OwnerListingService {
                     : listing.getType();
             effTypeOther = req.typeOther() != null
                     ? req.typeOther()
-                    : (effType == listing.getType() ? listing.getTypeOther() : null);
-            if (effType.isOther() && TextUtil.isBlank(effTypeOther)) {
+                    : (Objects.equals(effType, listing.getType()) ? listing.getTypeOther() : null);
+            if (effType != null && effType.isOther() && TextUtil.isBlank(effTypeOther)) {
                 fieldErrors.put("typeOther", RequiredOtherText.DEFAULT_MESSAGE);
             }
         }
@@ -174,8 +175,8 @@ public class OwnerListingService {
                     : listing.getTrafficType();
             effTrafficTypeOther = req.trafficTypeOther() != null
                     ? req.trafficTypeOther()
-                    : (effTrafficType == listing.getTrafficType() ? listing.getTrafficTypeOther() : null);
-            if (effTrafficType.isOther() && TextUtil.isBlank(effTrafficTypeOther)) {
+                    : (Objects.equals(effTrafficType, listing.getTrafficType()) ? listing.getTrafficTypeOther() : null);
+            if (effTrafficType != null && effTrafficType.isOther() && TextUtil.isBlank(effTrafficTypeOther)) {
                 fieldErrors.put("trafficTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
             }
         }
@@ -189,8 +190,8 @@ public class OwnerListingService {
                     : listing.getAudienceType();
             effAudienceTypeOther = req.audienceTypeOther() != null
                     ? req.audienceTypeOther()
-                    : (effAudienceType == listing.getAudienceType() ? listing.getAudienceTypeOther() : null);
-            if (effAudienceType.isOther() && TextUtil.isBlank(effAudienceTypeOther)) {
+                    : (Objects.equals(effAudienceType, listing.getAudienceType()) ? listing.getAudienceTypeOther() : null);
+            if (effAudienceType != null && effAudienceType.isOther() && TextUtil.isBlank(effAudienceTypeOther)) {
                 fieldErrors.put("audienceTypeOther", RequiredOtherText.DEFAULT_MESSAGE);
             }
         }
@@ -202,7 +203,7 @@ public class OwnerListingService {
         if (req.name() != null) listing.setName(req.name().trim());
         if (typeTouched) {
             listing.setType(effType);
-            listing.setTypeOther(effType.isOther() ? TextUtil.blankToNull(effTypeOther) : null);
+            listing.setTypeOther(effType != null && effType.isOther() ? TextUtil.blankToNull(effTypeOther) : null);
         }
         if (req.widthFt() != null) listing.setWidthFt(req.widthFt());
         if (req.heightFt() != null) listing.setHeightFt(req.heightFt());
@@ -211,12 +212,12 @@ public class OwnerListingService {
 
         if (trafficTypeTouched) {
             listing.setTrafficType(effTrafficType);
-            listing.setTrafficTypeOther(effTrafficType.isOther() ? TextUtil.blankToNull(effTrafficTypeOther) : null);
+            listing.setTrafficTypeOther(effTrafficType != null && effTrafficType.isOther() ? TextUtil.blankToNull(effTrafficTypeOther) : null);
         }
 
         if (audienceTypeTouched) {
             listing.setAudienceType(effAudienceType);
-            listing.setAudienceTypeOther(effAudienceType.isOther() ? TextUtil.blankToNull(effAudienceTypeOther) : null);
+            listing.setAudienceTypeOther(effAudienceType != null && effAudienceType.isOther() ? TextUtil.blankToNull(effAudienceTypeOther) : null);
         }
 
         if (req.footfall() != null) listing.setFootfall(TextUtil.blankToNull(req.footfall()));
