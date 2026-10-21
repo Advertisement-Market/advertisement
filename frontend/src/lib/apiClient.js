@@ -53,14 +53,31 @@ api.interceptors.response.use(
   },
 );
 
+const FIELD_LABELS = {
+  typeOther: 'Billboard Type',
+  trafficTypeOther: 'Traffic Type',
+  audienceTypeOther: 'Audience Type',
+  type: 'Billboard Type',
+  trafficType: 'Traffic Type',
+  audienceType: 'Audience Type',
+  minBookingValue: 'Minimum Booking',
+  startPrice: 'Starting Price',
+  pincode: 'PIN Code',
+  name: 'Billboard Name',
+};
+
 /** Turn an axios error into a user-facing message using the backend's ApiError body. */
 export function apiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
   const data = error?.response?.data;
-  if (data?.message) return data.message;
   if (data?.fieldErrors) {
-    const first = Object.values(data.fieldErrors)[0];
-    if (first) return first;
+    const entries = Object.entries(data.fieldErrors);
+    if (entries.length > 0) {
+      const [field, msg] = entries[0];
+      const label = FIELD_LABELS[field];
+      return label ? `${label}: ${msg}` : msg;
+    }
   }
+  if (data?.message) return data.message;
   if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
     return 'Cannot reach the server. Make sure the backend is running.';
   }

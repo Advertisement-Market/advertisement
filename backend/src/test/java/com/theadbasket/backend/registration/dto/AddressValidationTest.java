@@ -12,6 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import org.springframework.context.support.ResourceBundleMessageSource;
+
+import com.theadbasket.backend.common.validation.RequiredOtherTextValidator;
+import com.theadbasket.backend.lov.LovService;
+
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorFactory;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -23,7 +30,33 @@ class AddressValidationTest {
 
     @BeforeAll
     static void setUpValidator() {
-        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("messages");
+        messages.setDefaultEncoding("UTF-8");
+        messages.setUseCodeAsDefaultMessage(true);
+        LovService lovService = new LovService(messages);
+
+        try (ValidatorFactory factory = Validation.byDefaultProvider()
+                .configure()
+                .constraintValidatorFactory(new ConstraintValidatorFactory() {
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public <T extends ConstraintValidator<?, ?>> T getInstance(Class<T> key) {
+                        if (key.equals(RequiredOtherTextValidator.class)) {
+                            return (T) new RequiredOtherTextValidator(lovService);
+                        }
+                        try {
+                            return key.getDeclaredConstructor().newInstance();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public void releaseInstance(ConstraintValidator<?, ?> instance) {
+                    }
+                })
+                .buildValidatorFactory()) {
             validator = factory.getValidator();
         }
     }
@@ -48,8 +81,8 @@ class AddressValidationTest {
             String line1, String line2, String landmark, String city, String state, String pincode) {
         return new BillboardListingRequest(
                 "Prime Unipole", line1, line2, landmark, city, state, pincode,
-                "Unipole", BigDecimal.valueOf(40), BigDecimal.valueOf(20), BigDecimal.valueOf(10),
-                "North", "Vehicular", "Commuters", "50k/day", BigDecimal.valueOf(100000), "1 month", "10% off"
+                "Unipole", null, BigDecimal.valueOf(40), BigDecimal.valueOf(20), BigDecimal.valueOf(10),
+                "North", "Highway", null, "Commuters", null, "50k/day", BigDecimal.valueOf(100000), 1, "MONTHS", "10% off"
         );
     }
 

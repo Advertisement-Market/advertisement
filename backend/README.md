@@ -55,6 +55,8 @@ backend/
     │   │   │                 #   CustomUserDetailsService, RestAuthenticationEntryPoint
     │   │   ├── common/       # web/ (ApiError, GlobalExceptionHandler) + exception/ (AppException +
     │   │   │                 #   typed subclasses) + error/ (ErrorCode catalog) + logging/ (LoggingAspect)
+    │   │   ├── lov/          # Billboard lists-of-values: config-driven BillboardType/TrafficType/
+    │   │   │                 #   AudienceType (+ static FacingDirection), LovService, LovController
     │   │   ├── user/         # User (entity), Role (enum), UserRepository
     │   │   ├── auth/         # AuthController/Service, RefreshToken(+repo/service), dto/
     │   │   ├── advertiser/   # AdvertiserProfile + CampaignBrief (+repos)
@@ -104,6 +106,11 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar
 | POST   | `/api/auth/register/owner`      | —    | Full owner wizard → account + profile + listing    |
 | POST   | `/api/auth/register/agency`     | —    | Full agency wizard → account + profile             |
 | POST   | `/api/auth/login`               | —    | Authenticate → tokens + user                       |
+| GET    | `/api/lov/billboard-types`      | —    | Config-driven billboard-type options (`{code,label}`) |
+| GET    | `/api/lov/traffic-types`        | —    | Config-driven traffic-type options                 |
+| GET    | `/api/lov/audience-types`       | —    | Config-driven audience-type options                |
+| GET    | `/api/lov/facing-directions`    | —    | Static facing-direction options (8 compass points) |
+| GET    | `/api/lov/booking-duration-units` | — | Static min-booking units (Days / Weeks / Months)   |
 | POST   | `/api/auth/refresh`    | —    | Exchange refresh token for a new pair (rotates)    |
 | POST   | `/api/auth/logout`     | —    | Revoke a refresh token → `204`                     |
 | GET    | `/api/auth/me`         | ✅   | Current user (Bearer access token)                 |
@@ -151,6 +158,42 @@ resolved from `messages.properties` via Spring's `MessageSource`.
 `ResourceNotFoundException`, `TokenRefreshException`, `InvalidGoogleTokenException`, …) with the
 code plus any args. **Localization:** drop in a `messages_<lang>.properties` (e.g.
 `messages_hi.properties`) — no code change needed.
+
+## Config-driven lookups (LOVs)
+
+Billboard **type**, **traffic type** and **audience type** are config-driven lists-of-values rather
+than free text. Each is a `LovType` enum in `lov/` whose constants are the stable **codes** stored on
+`billboard_listings` (e.g. `STATIC_HOARDING`); the human-readable **labels** live in
+`messages.properties` under `lov.<category>.<CODE>`, so wording and locale variants change without a
+recompile.
+
+**Facing direction** is a **static** LOV: the eight compass points never change, so `FacingDirection`
+bakes its labels into the enum (no config lookup). It is served the same way at
+`GET /api/lov/facing-directions` and validated the same way (`INVALID_FACING_DIRECTION`), but has no
+`OTHER`/companion column.
+
+**Minimum booking duration** is captured as a **value + unit** (two dropdowns): the owner picks a
+number and a `BookingDurationUnit` (`DAYS` / `WEEKS` / `MONTHS`, a static LOV served at
+`GET /api/lov/booking-duration-units`). The backend stores what the owner chose (`min_booking_value`,
+`min_booking_unit`) **and** the duration normalized to days (`min_booking_days = value × unit`, where
+a month is a flat **30 days**) so availability/pricing can compare listings on one scale. An unknown
+unit is rejected with `INVALID_BOOKING_DURATION_UNIT`; the value must be a positive integer.
+
+- **Dropdown data:** `GET /api/lov/{billboard-types,traffic-types,audience-types}` returns
+  `[{ "code": "STATIC_HOARDING", "label": "Static Hoarding" }, …]` (public, no auth) for the owner form.
+- **Validation:** owner registration rejects any value outside the configured list with `400` and a
+  specific `errorCode` (`INVALID_BILLBOARD_TYPE` / `INVALID_TRAFFIC_TYPE` / `INVALID_AUDIENCE_TYPE`).
+  Submissions may send either the code or the label (case-insensitive); the canonical code is stored.
+- **"Other":** each list includes an `OTHER` code. When selected, the caller's free text is sent in the
+  companion field (`typeOther` / `trafficTypeOther` / `audienceTypeOther`) and persisted in the matching
+  `*_other` column; for any non-`OTHER` value the companion column stays null. The companion text is
+  **required** when `OTHER` is selected — a class-level `@RequiredOtherText` bean-validation constraint
+  rejects an empty description with a `400` field error.
+- **Adding a value:** add a constant to the enum, add its `lov.<category>.<CODE>` label to
+  `messages.properties` — the endpoint and validation pick it up automatically.
+
+> **Frontend contract:** to use `OTHER`, the client must send `type=OTHER` (or traffic/audience) plus
+> the free text in the `*Other` field. Predefined selections keep working by sending the label as today.
 
 ## Logging
 

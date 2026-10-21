@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Project Overview · The AdBasket</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1a1d24; --ink-mid:#565d6b; --ink-soft:#8a91a0;
+    --line:#e5e8ee; --accent:#c9943a; --indigo:#4f46e5; --teal:#0f766e; --green:#2f855a;
+    --chip:#eef1f6; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --fe:#4f46e5; --be:#0f766e; --db:#b7791f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:48px 24px 96px}
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:24px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:32px;margin:10px 0 8px;letter-spacing:-.6px}
+  .sub{color:var(--ink-mid);max-width:74ch;font-size:16px}
+  .meta{margin-top:16px;font-size:12.5px;color:var(--ink-soft);display:flex;gap:18px;flex-wrap:wrap}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--chip);padding:1px 6px;border-radius:5px;color:var(--ink)}
+  h2.sec{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin:46px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  p{color:var(--ink-mid)}
+  /* roles */
+  .roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .role{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .role .em{font-size:24px}
+  .role h3{margin:8px 0 4px;font-size:16px}
+  .role p{margin:0;font-size:13.5px}
+  .role .tag{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:11px;background:var(--chip);color:var(--ink-mid);padding:2px 8px;border-radius:6px}
+  /* stack grid */
+  .stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .layer{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .layer .lh{padding:12px 18px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line)}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .dot.fe{background:var(--fe)} .dot.be{background:var(--be)} .dot.db{background:var(--db)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  td{padding:9px 18px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.t{font-weight:600;white-space:nowrap;width:42%}
+  td.v{color:var(--ink-mid);font-family:var(--mono);font-size:12.5px}
+  /* architecture diagram */
+  .arch{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 22px;overflow-x:auto}
+  .arch-row{display:flex;align-items:stretch;justify-content:center;gap:0;min-width:760px}
+  .box{flex:1;border-radius:12px;padding:16px 16px;text-align:center;border:1.5px solid}
+  .box.fe{border-color:var(--fe);background:#f4f3ff}
+  .box.be{border-color:var(--be);background:#eefaf7}
+  .box.db{border-color:var(--db);background:#fdf6e9}
+  .box h4{margin:0 0 6px;font-size:14px}
+  .box .lst{font-size:11.5px;color:var(--ink-mid);line-height:1.7;font-family:var(--mono)}
+  .conn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;min-width:120px}
+  .conn .lbl{font-size:10.5px;color:var(--ink-soft);font-family:var(--mono);text-align:center;margin-bottom:3px}
+  .conn .arrow{font-size:20px;color:var(--ink-soft);line-height:1}
+  .conn .lbl2{font-size:10px;color:var(--ink-soft);margin-top:3px}
+  /* auth flow */
+  .flow{counter-reset:step;display:grid;gap:10px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px 14px 54px;position:relative}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;left:16px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--indigo);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .step b{font-size:14px}
+  .step p{margin:3px 0 0;font-size:13px}
+  /* token cards */
+  .tokens{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .tok{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tok h4{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .tok .kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .tok .kv:last-child{border-bottom:none}
+  .tok .kv span:first-child{color:var(--ink-soft)}
+  .tok .kv span:last-child{font-family:var(--mono);color:var(--ink);text-align:right}
+  .callout{background:#f4f3ff;border:1px solid #ddd9fb;border-radius:12px;padding:14px 18px;margin-top:14px;font-size:13px;color:#3f3a70}
+  .callout b{color:var(--indigo)}
+  /* status */
+  .status{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.status{grid-template-columns:1fr}}
+  .col{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px}
+  .col h4{margin:0 0 10px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .col ul{margin:0;padding-left:18px}
+  .col li{font-size:13.5px;color:var(--ink-mid);margin:5px 0}
+  .col.done{border-top:3px solid var(--green)}
+  .col.todo{border-top:3px solid var(--accent)}
+  footer{margin-top:48px;font-size:12px;color:var(--ink-soft);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="kicker">The AdBasket · Project Brief</div>
+    <h1>Project Overview &amp; Tech Stack</h1>
+    <p class="sub">A one-page primer for explaining the project — what it is, how it's built, and how authentication works. The AdBasket is a three-sided marketplace for out-of-home (OOH) advertising in India: it connects brands, billboard owners, and agencies.</p>
+    <div class="meta">
+      <span>React 19 SPA + Spring Boot 4.1 REST API</span>
+      <span>Branch <code>Ashutosh/integration</code></span>
+      <span>Generated 2026-08-17</span>
+    </div>
+  </header>
+
+  <!-- WHAT IT IS -->
+  <h2 class="sec">What it is — a three-sided marketplace</h2>
+  <div class="roles">
+    <div class="role">
+      <div class="em">📢</div>
+      <h3>Advertisers</h3>
+      <p>Brands &amp; businesses. Search verified billboards, build media plans, compare ROI, and post campaign tenders for owners/agencies to bid on.</p>
+      <span class="tag">role: ADVERTISER</span>
+    </div>
+    <div class="role">
+      <div class="em">🏗️</div>
+      <h3>Owners</h3>
+      <p>Billboard &amp; hoarding owners. List inventory (unipoles, LED, gantries…), manage availability, and receive booking requests.</p>
+      <span class="tag">role: OWNER</span>
+    </div>
+    <div class="role">
+      <div class="em">🎯</div>
+      <h3>Agencies</h3>
+      <p>Ad agencies / service providers. Showcase a portfolio, manage client campaigns, and bid on advertiser tenders.</p>
+      <span class="tag">role: AGENCY</span>
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <h2 class="sec">Technology stack</h2>
+  <div class="stack">
+    <div class="layer">
+      <div class="lh"><span class="dot fe"></span> Frontend — SPA</div>
+      <table>
+        <tr><td class="t">Framework</td><td class="v">React 19</td></tr>
+        <tr><td class="t">Build tool / dev server</td><td class="v">Vite 8</td></tr>
+        <tr><td class="t">Routing</td><td class="v">React Router 7</td></tr>
+        <tr><td class="t">HTTP client</td><td class="v">Axios (interceptors)</td></tr>
+        <tr><td class="t">Styling</td><td class="v">Tailwind CSS 4 + scoped CSS</td></tr>
+        <tr><td class="t">Quality</td><td class="v">ESLint 10 · Prettier</td></tr>
+      </table>
+    </div>
+    <div class="layer">
+      <div class="lh"><span class="dot be"></span> Backend — REST API</div>
+      <table>
+        <tr><td class="t">Language / runtime</td><td class="v">Java 25</td></tr>
+        <tr><td class="t">Framework</td><td class="v">Spring Boot 4.1</td></tr>
+        <tr><td class="t">Modules</td><td class="v">Web · Data JPA · Security · Validation · Actuator</td></tr>
+        <tr><td class="t">Auth / tokens</td><td class="v">JJWT 0.12 (HS256)</td></tr>
+        <tr><td class="t">Password hashing</td><td class="v">BCrypt</td></tr>
+        <tr><td class="t">Build</td><td class="v">Maven</td></tr>
+      </table>
+    </div>
+    <div class="layer">
+      <div class="lh"><span class="dot db"></span> Data &amp; persistence</div>
+      <table>
+        <tr><td class="t">ORM</td><td class="v">Hibernate / Spring Data JPA</td></tr>
+        <tr><td class="t">Dev database</td><td class="v">H2 (in-memory, PG mode)</td></tr>
+        <tr><td class="t">Prod database</td><td class="v">PostgreSQL 42.7</td></tr>
+        <tr><td class="t">Migrations</td><td class="v">Flyway 12 (V1, V2)</td></tr>
+        <tr><td class="t">Schema policy</td><td class="v">ddl-auto: validate</td></tr>
+        <tr><td class="t">Testing</td><td class="v">JUnit 5 · Testcontainers</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ARCHITECTURE -->
+  <h2 class="sec">How the pieces talk</h2>
+  <div class="arch">
+    <div class="arch-row">
+      <div class="box fe">
+        <h4>React SPA</h4>
+        <div class="lst">Vite dev :5173<br/>Axios client<br/>JWT in localStorage<br/>role-based routing</div>
+      </div>
+      <div class="conn">
+        <div class="lbl">HTTPS / JSON</div>
+        <div class="arrow">⇄</div>
+        <div class="lbl2">Bearer &lt;JWT&gt;</div>
+      </div>
+      <div class="box be">
+        <h4>Spring Boot API</h4>
+        <div class="lst">:8080 · /api/**<br/>Security filter chain<br/>stateless (no session)<br/>CORS allow :5173</div>
+      </div>
+      <div class="conn">
+        <div class="lbl">JPA / SQL</div>
+        <div class="arrow">⇄</div>
+        <div class="lbl2">Flyway schema</div>
+      </div>
+      <div class="box db">
+        <h4>Database</h4>
+        <div class="lst">H2 (dev)<br/>PostgreSQL (prod)<br/>users · profiles<br/>listings · tokens</div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:13.5px;margin-top:12px">The frontend is a decoupled single-page app: it never renders on the server or talks to the database directly. Every interaction goes through the REST API over JSON, with the JWT attached as an <code>Authorization: Bearer</code> header. The two run as independent processes (Vite on <code>:5173</code>, Spring Boot on <code>:8080</code>), connected via a configured CORS allow-list.</p>
+
+  <!-- AUTH DEEP DIVE -->
+  <h2 class="sec">Authentication — JWT, in depth</h2>
+  <p>Auth is <b>stateless and token-based</b>. There are no server-side HTTP sessions; instead the server issues signed tokens the client presents on each request. Two token types work together — a short-lived access token and a longer-lived, revocable refresh token.</p>
+
+  <div class="tokens">
+    <div class="tok">
+      <h4>🎫 Access token</h4>
+      <div class="kv"><span>Type</span><span>JWT (self-contained)</span></div>
+      <div class="kv"><span>Algorithm</span><span>HS256 signed</span></div>
+      <div class="kv"><span>Lifetime</span><span>15 minutes</span></div>
+      <div class="kv"><span>Claims</span><span>sub, uid, role, exp</span></div>
+      <div class="kv"><span>Verified by</span><span>signature only</span></div>
+      <div class="kv"><span>Stored in DB?</span><span>No</span></div>
+    </div>
+    <div class="tok">
+      <h4>🔁 Refresh token</h4>
+      <div class="kv"><span>Type</span><span>Opaque UUID</span></div>
+      <div class="kv"><span>Lifetime</span><span>7 days</span></div>
+      <div class="kv"><span>Stored in DB?</span><span>Yes (row per token)</span></div>
+      <div class="kv"><span>Single-use?</span><span>Yes — rotated</span></div>
+      <div class="kv"><span>Revocable?</span><span>Yes (on logout)</span></div>
+      <div class="kv"><span>Purpose</span><span>mint new access token</span></div>
+    </div>
+  </div>
+
+  <p style="margin-top:22px"><b>What happens on a request:</b></p>
+  <div class="flow">
+    <div class="step"><b>Register or log in</b><p>Client POSTs to <code>/api/auth/login</code> or <code>/api/auth/register/{role}</code>. The server verifies the BCrypt-hashed password (via Spring Security's <code>AuthenticationManager</code>) and, on success, issues an access + refresh token pair.</p></div>
+    <div class="step"><b>Store the session</b><p>The frontend saves both tokens and the user object in <code>localStorage</code> (<code>authStorage.js</code>) so the session survives reloads.</p></div>
+    <div class="step"><b>Call a protected endpoint</b><p>An Axios request interceptor attaches <code>Authorization: Bearer &lt;accessToken&gt;</code> to every call automatically.</p></div>
+    <div class="step"><b>Server validates the token</b><p><code>JwtAuthenticationFilter</code> parses and signature-checks the JWT, loads the user, and populates the Spring Security context. Public paths (auth, ping, health) skip this; everything else requires a valid token.</p></div>
+    <div class="step"><b>Access token expires → silent refresh</b><p>On a <code>401</code>, a response interceptor calls <code>/api/auth/refresh</code> once with the refresh token, gets a fresh pair, and replays the original request — transparent to the user.</p></div>
+    <div class="step"><b>Rotation &amp; logout</b><p>Each refresh <i>revokes</i> the presented token and issues a new one (single-use rotation). Logout revokes the refresh token server-side and clears localStorage.</p></div>
+  </div>
+
+  <div class="callout">
+    <b>Why two tokens?</b> The access token is fast to verify (no DB lookup) but can't be revoked before it expires — so it's kept short (15 min). The refresh token lives in the database, so it <i>can</i> be revoked and rotated, letting sessions last days without keeping a long-lived, un-revocable credential in play. Roles (<code>ADVERTISER</code> / <code>OWNER</code> / <code>AGENCY</code>) are embedded in the token and drive both backend authorization and which dashboard the frontend routes to.
+  </div>
+
+  <!-- BUILD STATUS -->
+  <h2 class="sec">Where the project stands</h2>
+  <div class="status">
+    <div class="col done">
+      <h4>✅ Built &amp; wired</h4>
+      <ul>
+        <li>All 12 frontend pages (landing, 3 role homes, 3 register wizards, 2 browse, 3 dashboards)</li>
+        <li>JWT auth end-to-end: register, login, refresh, logout, <code>/me</code></li>
+        <li>Role-specific registration (advertiser / owner / agency) creating account + profile</li>
+        <li>Spring Security filter chain, BCrypt, refresh-token rotation</li>
+        <li>Flyway schema, JPA entities &amp; repositories, integration tests</li>
+      </ul>
+    </div>
+    <div class="col todo">
+      <h4>🚧 Not yet wired</h4>
+      <ul>
+        <li>Read APIs for dashboards &amp; browse — pages still render static <code>data.jsx</code></li>
+        <li>Real OTP, email, maps, file storage, and payments (all stubbed/absent)</li>
+        <li>Password reset flow</li>
+        <li>Server-side search / pagination</li>
+        <li>Production secrets &amp; hardening (see the security review)</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--ink-soft);margin-top:14px">Companion documents: <b>Dummy Data Inventory</b>, <b>Integration Gaps</b>, and <b>Security Findings</b> in the same folder.</p>
+
+  <footer>The AdBasket — project overview &amp; tech stack brief</footer>
+</div>
+</body>
+</html>

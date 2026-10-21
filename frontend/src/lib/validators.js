@@ -102,3 +102,36 @@ export function validatorsForType(type, { min, max } = {}) {
       return [];
   }
 }
+
+// Exact LOV-code check, case-insensitive. Lowercase 'other' is what TRAFFIC/AUDIENCE
+// option values use today; remove the tolerance if those are ever migrated.
+export const isOther = (v) =>
+  String(v ?? '')
+    .trim()
+    .toUpperCase() === 'OTHER';
+
+// Unicode invisible code points (ZWSP, ZWNJ, ZWJ, Word Joiner, BOM)
+const INVISIBLE_CODE_POINTS = new Set([
+  0x200b, // ZERO WIDTH SPACE
+  0x200c, // ZERO WIDTH NON-JOINER
+  0x200d, // ZERO WIDTH JOINER
+  0x2060, // WORD JOINER
+  0xfeff, // ZERO WIDTH NO-BREAK SPACE / BOM
+]);
+
+/** Returns true if string is null, undefined, empty, or whitespace/invisible-only. */
+export const isBlank = (v) => {
+  if (v == null) return true;
+  const str = String(v);
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    // Standard ASCII whitespace (\t, \n, \r, space) or NBSP (\u00A0 = 160)
+    if (code <= 32 || code === 160) continue;
+    if (INVISIBLE_CODE_POINTS.has(code)) continue;
+    return false;
+  }
+  return true;
+};
+
+/** Inverse of isBlank. */
+export const isNotBlank = (v) => !isBlank(v);

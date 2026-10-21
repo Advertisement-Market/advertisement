@@ -25,6 +25,7 @@ public enum ErrorCode {
     // Account / resources
     ACCOUNT_NOT_FOUND("error.account.notFound"),
     NOTIFICATION_NOT_FOUND("error.notification.notFound"),
+    BILLBOARD_NOT_FOUND("error.billboard.notFound"),
 
     // Google sign-in
     GOOGLE_NOT_CONFIGURED("error.google.notConfigured"),
@@ -47,6 +48,13 @@ public enum ErrorCode {
     ADVERTISER_REGISTRATION_UNAVAILABLE("error.policy.advertiserRegistrationUnavailable"),
     OWNER_REGISTRATION_UNAVAILABLE("error.policy.ownerRegistrationUnavailable"),
     AGENCY_REGISTRATION_UNAVAILABLE("error.policy.agencyRegistrationUnavailable"),
+
+    // Billboard lookup values (config-driven LOVs)
+    INVALID_BILLBOARD_TYPE("error.billboard.invalidType"),
+    INVALID_TRAFFIC_TYPE("error.billboard.invalidTrafficType"),
+    INVALID_AUDIENCE_TYPE("error.billboard.invalidAudienceType"),
+    INVALID_FACING_DIRECTION("error.billboard.invalidFacing"),
+    INVALID_BOOKING_DURATION_UNIT("error.billboard.invalidBookingUnit"),
 
     // Generic
     VALIDATION_FAILED("error.validation.failed"),

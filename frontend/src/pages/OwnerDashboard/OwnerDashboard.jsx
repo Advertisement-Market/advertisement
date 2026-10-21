@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { LogoMark } from '@/components/layout/Logo';
 import { notificationApi } from '@/features/notification/notificationApi';
+import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { apiErrorMessage } from '@/lib/apiClient';
 import {
   NAV,
   TITLES,
@@ -27,17 +29,74 @@ import {
   DAY_NAMES,
   initCalData,
   dayKey,
+  DEFAULT_BILLBOARD_TYPES,
+  resolveInitialType,
+  formatBillboardType,
 } from './data';
 import './OwnerDashboard.css';
 
-const html = (s) => ({ __html: s });
+function BillboardIcon({ type = '', name = '', meta = '', size = 24 }) {
+  const combined = `${type} ${name} ${meta}`.toLowerCase();
+  if (combined.includes('led')) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        width={size}
+        height={size}
+        aria-hidden="true"
+      >
+        <rect x="2" y="3" width="20" height="13" rx="2" />
+        <path d="M12 16v5M8 21h8" />
+      </svg>
+    );
+  }
+  if (combined.includes('static')) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        width={size}
+        height={size}
+        aria-hidden="true"
+      >
+        <path d="M3 17l3-10h12l3 10" />
+        <line x1="12" y1="7" x2="12" y2="17" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width={size}
+      height={size}
+      aria-hidden="true"
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
 const displayName = (user) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Owner';
 const initialsOf = (user) =>
   ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || 'A';
 
 /* ── Sidebar ── */
-function Sidebar({ active, onNav, userName }) {
+function Sidebar({ active, onNav, userName, listingsCount }) {
   const { user } = useAuth();
   return (
     <aside className="sb">
@@ -61,17 +120,25 @@ function Sidebar({ active, onNav, userName }) {
         {NAV.map((g) => (
           <div key={g.section}>
             <div className="sb-section">{g.section}</div>
-            {g.items.map((it) => (
-              <button
-                key={it.page}
-                className={cn('sb-item', active === it.page && 'active')}
-                onClick={() => onNav(it.page)}
-              >
-                {it.icon}
-                {it.label}
-                {it.badge && <span className="sb-badge">{it.badge}</span>}
-              </button>
-            ))}
+            {g.items.map((it) => {
+              const badge =
+                it.page === 'listings'
+                  ? listingsCount != null
+                    ? String(listingsCount)
+                    : it.badge
+                  : it.badge;
+              return (
+                <button
+                  key={it.page}
+                  className={cn('sb-item', active === it.page && 'active')}
+                  onClick={() => onNav(it.page)}
+                >
+                  {it.icon}
+                  {it.label}
+                  {badge && <span className="sb-badge">{badge}</span>}
+                </button>
+              );
+            })}
           </div>
         ))}
       </nav>
@@ -697,7 +764,7 @@ function PageHeader({ title, sub, children }) {
 }
 
 /* ── Overview ── */
-function Overview({ onNav, calData }) {
+function Overview({ onNav, calData, listingsCount }) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [onboard, setOnboard] = useState(true);
@@ -767,7 +834,7 @@ function Overview({ onNav, calData }) {
               <path d="M12 16v5M8 21h8" />
             </>,
             'Active Listings',
-            '3',
+            listingsCount != null ? String(listingsCount) : '3',
             <span className="card-trend neutral">All verified</span>,
           ),
           STAT(
@@ -817,13 +884,9 @@ function Overview({ onNav, calData }) {
             </div>
             {LISTINGS.map((l) => (
               <div className="listing-row" key={l.name} onClick={() => onNav('listings')}>
-                <div
-                  className="lr-icon"
-                  style={{ background: l.color }}
-                  dangerouslySetInnerHTML={html(
-                    `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">${l.svgInner}</svg>`,
-                  )}
-                />
+                <div className="lr-icon" style={{ background: l.color }}>
+                  <BillboardIcon type={l.type} name={l.name} meta={l.meta} size={22} />
+                </div>
                 <div className="lr-info">
                   <div className="lr-name">{l.name}</div>
                   <div className="lr-meta">{l.meta}</div>
@@ -938,52 +1001,33 @@ function Overview({ onNav, calData }) {
   );
 }
 
-function Listings({ onEdit }) {
+function Listings({
+  listings = [],
+  loading = false,
+  onAddListing,
+  onEditListing,
+  onDeleteListing,
+}) {
   const { showToast } = useToast();
-  const [listings, setListings] = useState(LISTINGS);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
-  const toggle = (i) =>
-    setListings((prev) =>
-      prev.map((l, idx) =>
-        idx === i
-          ? {
-              ...l,
-              status: l.status === 'Available' ? 'Booked' : 'Available',
-              sc: l.status === 'Available' ? 'chip-booked' : 'chip-available',
-            }
-          : l,
-      ),
-    );
-  const filtered = listings.filter(
-    (l) =>
-      (!q ||
-        l.name.toLowerCase().includes(q.toLowerCase()) ||
-        l.meta.toLowerCase().includes(q.toLowerCase())) &&
-      (status === 'all' || l.status.toLowerCase() === status),
-  );
+
+  const filtered = listings.filter((l) => {
+    const nameMatch = (l.name || '').toLowerCase().includes(q.toLowerCase());
+    const metaText =
+      `${l.addressLine1 || ''} ${l.city || ''} ${l.type || ''} ${formatBillboardType(l.type, l.typeOther)} ${l.meta || ''}`.toLowerCase();
+    const queryMatch = !q || nameMatch || metaText.includes(q.toLowerCase());
+    const currentStatus = (l.status || 'Available').toLowerCase();
+    const statusMatch = status === 'all' || currentStatus === status;
+    return queryMatch && statusMatch;
+  });
+
   return (
     <div className="page active">
       <PageHeader
         title="My Listings"
         sub="Manage your billboard inventory, pricing, and visibility."
-      >
-        <button className="btn-teal" onClick={() => onEdit(null)}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>{' '}
-          Add New Listing
-        </button>
-      </PageHeader>
+      />
       <div className="filter-bar">
         <div className="search-input">
           <svg
@@ -1015,7 +1059,11 @@ function Listings({ onEdit }) {
         </select>
       </div>
       <div style={{ padding: '4px 0' }}>
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="empty-state">
+            <p>Loading listings...</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state">
             <svg
               viewBox="0 0 24 24"
@@ -1027,28 +1075,69 @@ function Listings({ onEdit }) {
               <rect x="2" y="3" width="20" height="13" rx="2" />
               <path d="M12 16v5M8 21h8" />
             </svg>
-            <p>No listings match your search.</p>
+            <p>
+              {listings.length === 0
+                ? 'No billboard listings yet.'
+                : 'No listings match your search.'}
+            </p>
+            {listings.length === 0 && (
+              <button
+                className="btn-teal btn-sm"
+                style={{ marginTop: 12 }}
+                onClick={() => onAddListing()}
+              >
+                Add Your First Listing
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((l) => {
-            const idx = listings.indexOf(l);
+            const isLed = (l.type || '').toLowerCase().includes('led');
+            const isStatic = (l.type || '').toLowerCase().includes('static');
+            const cardColor =
+              l.color ||
+              (isLed
+                ? 'linear-gradient(135deg,#1e3a5f,#1d6fa4)'
+                : isStatic
+                  ? 'linear-gradient(135deg,#1a3320,#2e5e32)'
+                  : 'linear-gradient(135deg,#0c2340,#0a70c0)');
+
+            const meta =
+              l.meta ||
+              [
+                l.addressLine1,
+                l.city,
+                l.widthFt && l.heightFt ? `${l.widthFt}×${l.heightFt} ft` : null,
+                formatBillboardType(l.type, l.typeOther),
+              ]
+                .filter(Boolean)
+                .join(' · ');
+
+            const priceText =
+              l.price ||
+              (l.startPrice != null
+                ? l.startPrice >= 100000
+                  ? `₹${(l.startPrice / 100000).toFixed(1)}L`
+                  : `₹${Number(l.startPrice).toLocaleString('en-IN')}`
+                : '₹0');
+
+            const currentStatus = l.status || 'Available';
+            const currentSc =
+              l.sc || (currentStatus === 'Available' ? 'chip-available' : 'chip-booked');
+
             return (
-              <div className="listing-card-full" key={l.name}>
+              <div className="listing-card-full" key={l.id || l.name}>
                 <div className="lcf-header">
-                  <div
-                    className="lcf-img"
-                    style={{ background: l.color }}
-                    dangerouslySetInnerHTML={html(
-                      `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">${l.svgInner}</svg>`,
-                    )}
-                  />
+                  <div className="lcf-img" style={{ background: cardColor }}>
+                    <BillboardIcon type={l.type} name={l.name} meta={meta} size={24} />
+                  </div>
                   <div className="lcf-info">
                     <div className="lcf-name">{l.name}</div>
-                    <div className="lcf-meta">{l.meta}</div>
+                    <div className="lcf-meta">{meta}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span className={cn('chip', l.sc)}>{l.status}</span>
-                    <button className="btn-ghost btn-sm" onClick={() => onEdit(l.name)}>
+                    <span className={cn('chip', currentSc)}>{currentStatus}</span>
+                    <button className="btn-ghost btn-sm" onClick={() => onEditListing(l)}>
                       Edit
                     </button>
                     <button
@@ -1059,29 +1148,23 @@ function Listings({ onEdit }) {
                     </button>
                     <button
                       className="btn-danger btn-sm"
-                      onClick={() => {
-                        toggle(idx);
-                        showToast(
-                          `"${l.name}" marked as ${l.status === 'Available' ? 'Booked' : 'Available'}.`,
-                          'success',
-                        );
-                      }}
+                      onClick={() => onDeleteListing && onDeleteListing(l)}
                     >
-                      {l.status === 'Available' ? 'Mark Booked' : 'Mark Available'}
+                      Delete
                     </button>
                   </div>
                 </div>
                 <div className="lcf-stats">
                   <div className="lcf-stat">
-                    <div className="lcf-stat-val">{l.views}</div>
+                    <div className="lcf-stat-val">{l.views ?? 0}</div>
                     <div className="lcf-stat-label">Profile views</div>
                   </div>
                   <div className="lcf-stat">
-                    <div className="lcf-stat-val">{l.quotes}</div>
+                    <div className="lcf-stat-val">{l.quotes ?? 0}</div>
                     <div className="lcf-stat-label">Quote requests</div>
                   </div>
                   <div className="lcf-stat">
-                    <div className="lcf-stat-val">{l.price}</div>
+                    <div className="lcf-stat-val">{priceText}</div>
                     <div className="lcf-stat-label">Monthly rate</div>
                   </div>
                   <div className="lcf-stat">
@@ -2148,33 +2231,576 @@ function Modal({ title, onClose, children, footer }) {
   );
 }
 
+const resolveInitialUnit = (unit) => {
+  const u = String(unit || '').toUpperCase();
+  return ['DAYS', 'WEEKS', 'MONTHS'].includes(u) ? u : 'MONTHS';
+};
+
+function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false }) {
+  const [typeOptions, setTypeOptions] = useState(DEFAULT_BILLBOARD_TYPES);
+
+  useEffect(() => {
+    let isMounted = true;
+    ownerListingApi
+      .getBillboardTypes()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setTypeOptions(data);
+        }
+      })
+      .catch(() => {
+        // Fallback silently to DEFAULT_BILLBOARD_TYPES
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const initialType = resolveInitialType(initialData?.type);
+  const initialTypeOther =
+    initialData?.typeOther ||
+    (String(initialData?.type || '').toLowerCase() === 'skywalk' ? 'Skywalk' : '');
+
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    type: initialType,
+    typeOther: initialTypeOther,
+    widthFt: initialData?.widthFt || '',
+    heightFt: initialData?.heightFt || '',
+    groundHeightFt: initialData?.groundHeightFt || '',
+    facing: initialData?.facing || 'North',
+    trafficType: initialData?.trafficType || 'City / Urban',
+    trafficTypeOther: initialData?.trafficTypeOther || '',
+    audienceType: initialData?.audienceType || 'Commuters',
+    audienceTypeOther: initialData?.audienceTypeOther || '',
+    footfall: initialData?.footfall || '',
+    startPrice: initialData?.startPrice || '',
+    minBookingValue: initialData?.minBookingValue ?? 1,
+    minBookingUnit: resolveInitialUnit(initialData?.minBookingUnit),
+    discountNote: initialData?.discountNote || '',
+    addressLine1: initialData?.addressLine1 || '',
+    addressLine2: initialData?.addressLine2 || '',
+    landmark: initialData?.landmark || '',
+    city: initialData?.city || 'Mumbai',
+    state: initialData?.state || 'Maharashtra',
+    pincode: initialData?.pincode || '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (field, val) => {
+    setFormData((prev) => ({ ...prev, [field]: val }));
+    if (error) setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!formData.name?.trim()) {
+      setError('Billboard name is required.');
+      return;
+    }
+    if (!formData.type?.trim()) {
+      setError('Billboard format / type is required.');
+      return;
+    }
+    if (formData.type === 'OTHER' && !formData.typeOther?.trim()) {
+      setError('Please specify the billboard type when "Other" is selected.');
+      return;
+    }
+    if (!formData.addressLine1?.trim()) {
+      setError('Address line 1 is required.');
+      return;
+    }
+    if (!formData.city?.trim()) {
+      setError('City is required.');
+      return;
+    }
+    if (!formData.state?.trim()) {
+      setError('State is required.');
+      return;
+    }
+    if (!formData.pincode?.trim() || !/^\d{6}$/.test(formData.pincode.trim())) {
+      setError('Valid 6-digit PIN code is required.');
+      return;
+    }
+    if (!formData.widthFt || Number(formData.widthFt) <= 0) {
+      setError('Width must be a positive number.');
+      return;
+    }
+    if (!formData.heightFt || Number(formData.heightFt) <= 0) {
+      setError('Height must be a positive number.');
+      return;
+    }
+    if (!formData.startPrice || Number(formData.startPrice) <= 0) {
+      setError('Starting price must be a positive number.');
+      return;
+    }
+    if (!formData.minBookingValue || Number(formData.minBookingValue) <= 0) {
+      setError('Minimum booking duration must be a positive number.');
+      return;
+    }
+    if (Number(formData.minBookingValue) > 1000) {
+      setError('Minimum booking duration cannot exceed 1,000.');
+      return;
+    }
+    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(formData.minBookingUnit)) {
+      setError('Please select a valid booking duration unit.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        type: formData.type.trim(),
+        typeOther: formData.type === 'OTHER' ? formData.typeOther?.trim() || null : null,
+        widthFt: Number(formData.widthFt),
+        heightFt: Number(formData.heightFt),
+        groundHeightFt: formData.groundHeightFt ? Number(formData.groundHeightFt) : null,
+        facing: formData.facing.trim(),
+        trafficType: formData.trafficType.trim(),
+        trafficTypeOther: formData.trafficTypeOther?.trim() || null,
+        audienceType: formData.audienceType.trim(),
+        audienceTypeOther: formData.audienceTypeOther?.trim() || null,
+        footfall: formData.footfall?.trim() || null,
+        startPrice: Number(formData.startPrice),
+        minBookingValue: Math.round(Number(formData.minBookingValue)),
+        minBookingUnit: formData.minBookingUnit,
+        discountNote: formData.discountNote?.trim() || null,
+        addressLine1: formData.addressLine1.trim(),
+        addressLine2: formData.addressLine2?.trim() || null,
+        landmark: formData.landmark?.trim() || null,
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
+      };
+      await onSave(payload);
+      onClose();
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to save billboard listing.'));
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={title}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+          <button className="btn-teal" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Listing'}
+          </button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ color: 'var(--rose)', fontSize: 13, marginBottom: 14, fontWeight: 500 }}>
+            {error}
+          </div>
+        )}
+        <div className="form-row">
+          <div className="form-group">
+            <label>Billboard Name *</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              placeholder="e.g. BKC Highway Prime LED"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Format / Type *</label>
+            <select
+              className="form-control"
+              value={formData.type}
+              onChange={(e) => handleChange('type', e.target.value)}
+            >
+              {typeOptions.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {formData.type === 'OTHER' && (
+          <div className="form-row">
+            <div className="form-group">
+              <label>Specify Billboard Type *</label>
+              <input
+                type="text"
+                className="form-control"
+                value={formData.typeOther}
+                onChange={(e) => handleChange('typeOther', e.target.value)}
+                placeholder="e.g. Bridge Panel, Skywalk, Pillar"
+                required
+              />
+            </div>
+          </div>
+        )}
+        <div className="form-row">
+          <div className="form-group">
+            <label>Width (ft) *</label>
+            <input
+              type="number"
+              step="0.1"
+              className="form-control"
+              value={formData.widthFt}
+              onChange={(e) => handleChange('widthFt', e.target.value)}
+              placeholder="40"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Height (ft) *</label>
+            <input
+              type="number"
+              step="0.1"
+              className="form-control"
+              value={formData.heightFt}
+              onChange={(e) => handleChange('heightFt', e.target.value)}
+              placeholder="20"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Ground Height (ft)</label>
+            <input
+              type="number"
+              step="0.1"
+              className="form-control"
+              value={formData.groundHeightFt}
+              onChange={(e) => handleChange('groundHeightFt', e.target.value)}
+              placeholder="10"
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Facing Direction *</label>
+            <select
+              className="form-control"
+              value={formData.facing}
+              onChange={(e) => handleChange('facing', e.target.value)}
+            >
+              <option>North</option>
+              <option>South</option>
+              <option>East</option>
+              <option>West</option>
+              <option>North-East</option>
+              <option>North-West</option>
+              <option>South-East</option>
+              <option>South-West</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Traffic Type *</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.trafficType}
+              onChange={(e) => handleChange('trafficType', e.target.value)}
+              placeholder="e.g. Vehicular & Pedestrian"
+              required
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Audience Type *</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.audienceType}
+              onChange={(e) => handleChange('audienceType', e.target.value)}
+              placeholder="e.g. Commuters, Shoppers, Tech Pros"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Daily Footfall</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.footfall}
+              onChange={(e) => handleChange('footfall', e.target.value)}
+              placeholder="e.g. 50,000/day"
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Monthly Starting Rate (₹) *</label>
+            <input
+              type="number"
+              className="form-control"
+              value={formData.startPrice}
+              onChange={(e) => handleChange('startPrice', e.target.value)}
+              placeholder="e.g. 350000"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Min Booking Duration *</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="number"
+                min="1"
+                max="1000"
+                step="1"
+                className="form-control"
+                style={{ flex: 1, minWidth: 0 }}
+                value={formData.minBookingValue}
+                onChange={(e) => handleChange('minBookingValue', e.target.value)}
+                placeholder="1"
+                required
+              />
+              <select
+                className="form-control"
+                style={{ flex: 1.2, minWidth: 0 }}
+                value={formData.minBookingUnit}
+                onChange={(e) => handleChange('minBookingUnit', e.target.value)}
+              >
+                <option value="DAYS">Days</option>
+                <option value="WEEKS">Weeks</option>
+                <option value="MONTHS">Months</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Discount Note</label>
+          <input
+            type="text"
+            className="form-control"
+            value={formData.discountNote}
+            onChange={(e) => handleChange('discountNote', e.target.value)}
+            placeholder="e.g. 10% off on 6+ month campaigns"
+          />
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Address Line 1 *</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.addressLine1}
+              onChange={(e) => handleChange('addressLine1', e.target.value)}
+              placeholder="e.g. Plot C-59, G Block"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Address Line 2</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.addressLine2}
+              onChange={(e) => handleChange('addressLine2', e.target.value)}
+              placeholder="e.g. Bandra Kurla Complex"
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Landmark</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.landmark}
+              onChange={(e) => handleChange('landmark', e.target.value)}
+              placeholder="e.g. Opp. ICICI Towers"
+            />
+          </div>
+          <div className="form-group">
+            <label>City *</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.city}
+              onChange={(e) => handleChange('city', e.target.value)}
+              placeholder="e.g. Mumbai"
+              required
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>State *</label>
+            <input
+              type="text"
+              className="form-control"
+              value={formData.state}
+              onChange={(e) => handleChange('state', e.target.value)}
+              placeholder="e.g. Maharashtra"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>PIN Code *</label>
+            <input
+              type="text"
+              maxLength={6}
+              className="form-control"
+              value={formData.pincode}
+              onChange={(e) => handleChange('pincode', e.target.value)}
+              placeholder="400051"
+              required
+            />
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function DeleteListingModal({ listing, onClose, onConfirm }) {
+  const [submitting, setSubmitting] = useState(false);
+  const handleDelete = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm(listing.id);
+      onClose();
+    } catch {
+      setSubmitting(false);
+    }
+  };
+  return (
+    <Modal
+      title="Delete Billboard Listing"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+          <button className="btn-danger" onClick={handleDelete} disabled={submitting}>
+            {submitting ? 'Deleting...' : 'Delete Listing'}
+          </button>
+        </>
+      }
+    >
+      <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, lineHeight: 1.5 }}>
+        Are you sure you want to delete listing{' '}
+        <strong style={{ color: 'var(--ink-rich)' }}>&ldquo;{listing?.name}&rdquo;</strong>? This
+        action cannot be undone and will remove the billboard from your inventory.
+      </p>
+    </Modal>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════════════ */
 export function OwnerDashboard() {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { user } = useAuth();
   const [page, setPage] = useState('overview');
   const [calData, setCalData] = useState(initCalData);
   const [userName, setUserName] = useState(() => displayName(user));
+  const [listings, setListings] = useState(() => (user ? [] : import.meta.env.DEV ? LISTINGS : []));
+  const [loadingListings, setLoadingListings] = useState(() => Boolean(user));
   const [modal, setModal] = useState(null); // {type, brand, listing, tender, name}
+  const [refreshKey, setRefreshKey] = useState(0);
   const today = new Date().toISOString().slice(0, 10);
+
+  const refreshListings = () => {
+    setRefreshKey((k) => k + 1);
+  };
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let isMounted = true;
+    ownerListingApi
+      .getListings()
+      .then((data) => {
+        if (isMounted) {
+          setListings(data || []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          if (import.meta.env.DEV) {
+            setListings(LISTINGS);
+          } else {
+            showToast(apiErrorMessage(err, 'Failed to load listings.'), 'error');
+          }
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoadingListings(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, refreshKey, showToast]);
 
   const closeModal = () => setModal(null);
   const nav = (p) => {
     setPage(p);
   };
+  const handleUpdateListing = async (payload) => {
+    if (user && modal?.listing?.id) {
+      await ownerListingApi.updateListing(modal.listing.id, payload);
+      showToast('Billboard listing updated successfully!', 'success');
+      refreshListings();
+    } else {
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === modal.listing?.id || l.name === modal.listing?.name ? { ...l, ...payload } : l,
+        ),
+      );
+      showToast('Billboard listing updated successfully!', 'success');
+    }
+  };
+
+  const handleDeleteListing = async (id) => {
+    if (user && id) {
+      try {
+        await ownerListingApi.deleteListing(id);
+        showToast('Billboard listing deleted successfully.', 'success');
+        refreshListings();
+      } catch (err) {
+        showToast(apiErrorMessage(err, 'Failed to delete listing.'), 'error');
+      }
+    } else {
+      setListings((prev) => prev.filter((l) => l.id !== id && l.name !== modal?.listing?.name));
+      showToast('Billboard listing deleted successfully.', 'success');
+    }
+  };
 
   return (
     <div className="owner-dashboard-page">
-      <Sidebar active={page} onNav={nav} userName={userName} />
+      <Sidebar active={page} onNav={nav} userName={userName} listingsCount={listings.length} />
       <div className="main">
         <Topbar
           title={TITLES[page] || 'Dashboard'}
-          onAddListing={() => setModal({ type: 'addListing' })}
+          onAddListing={() => navigate(ROUTES.newBillboardListing)}
           onNav={nav}
         />
-        {page === 'overview' && <Overview onNav={nav} calData={calData} />}
+        {page === 'overview' && (
+          <Overview onNav={nav} calData={calData} listingsCount={listings.length} />
+        )}
         {page === 'listings' && (
-          <Listings onEdit={(name) => setModal({ type: 'addListing', name })} />
+          <Listings
+            listings={listings}
+            loading={loadingListings}
+            onAddListing={() => navigate(ROUTES.newBillboardListing)}
+            onEditListing={(listing) => setModal({ type: 'editListing', listing })}
+            onDeleteListing={(listing) => setModal({ type: 'deleteListing', listing })}
+          />
         )}
         {page === 'calendar' && <CalendarPage calData={calData} setCalData={setCalData} />}
         {page === 'quotes' && (
@@ -2187,76 +2813,22 @@ export function OwnerDashboard() {
         {page === 'settings' && <SettingsPage onSaveName={setUserName} />}
       </div>
 
-      {modal?.type === 'addListing' && (
-        <Modal
-          title="Add New Listing"
+      {modal?.type === 'editListing' && (
+        <ListingFormModal
+          title="Edit Billboard Listing"
+          initialData={modal.listing}
+          isEdit
           onClose={closeModal}
-          footer={
-            <>
-              <button className="btn-ghost" onClick={closeModal}>
-                Cancel
-              </button>
-              <button className="btn-teal" onClick={closeModal}>
-                Add Listing
-              </button>
-            </>
-          }
-        >
-          <div className="form-row">
-            <div className="form-group">
-              <label>Listing Name</label>
-              <input
-                type="text"
-                className="form-control"
-                defaultValue={modal.name || ''}
-                placeholder="e.g. Bandra Station LED"
-              />
-            </div>
-            <div className="form-group">
-              <label>Format</label>
-              <select className="form-control">
-                <option>LED Digital</option>
-                <option>Static Hoarding</option>
-                <option>Unipole</option>
-                <option>Bus Shelter</option>
-              </select>
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Width (ft)</label>
-              <input type="number" className="form-control" placeholder="40" />
-            </div>
-            <div className="form-group">
-              <label>Height (ft)</label>
-              <input type="number" className="form-control" placeholder="20" />
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>City</label>
-              <select className="form-control">
-                <option>Mumbai</option>
-                <option>Delhi NCR</option>
-                <option>Bangalore</option>
-                <option>Pune</option>
-                <option>Hyderabad</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Monthly Rate (₹)</label>
-              <input type="text" className="form-control" placeholder="e.g. 3,50,000" />
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Location / Landmark</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. Near Bandra Station, Western Express Highway"
-            />
-          </div>
-        </Modal>
+          onSave={handleUpdateListing}
+        />
+      )}
+      {modal?.type === 'deleteListing' && (
+        <DeleteListingModal
+          listing={modal.listing}
+
+          onClose={closeModal}
+          onConfirm={handleDeleteListing}
+        />
       )}
       {modal?.type === 'quote' && (
         <Modal

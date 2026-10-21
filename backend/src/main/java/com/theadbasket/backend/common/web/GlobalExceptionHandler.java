@@ -75,6 +75,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
         log.warn("Bad request on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        if (!ex.getFieldErrors().isEmpty()) {
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            String message = resolve(ex.getErrorCode(), ex.getArgs());
+            ApiError body = ApiError.validation(status.value(), status.getReasonPhrase(),
+                    ex.getErrorCode().name(), message,
+                    request.getRequestURI(), ex.getFieldErrors());
+            return ResponseEntity.status(status).body(body);
+        }
         return build(HttpStatus.BAD_REQUEST, ex, request);
     }
 

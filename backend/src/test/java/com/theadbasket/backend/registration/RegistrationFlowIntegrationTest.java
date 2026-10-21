@@ -83,8 +83,8 @@ class RegistrationFlowIntegrationTest {
               "billboard":{"name":"BKC LED Screen","addressLine1":"BKC","addressLine2":"","landmark":"",
                 "city":"Mumbai","state":"Maharashtra","pincode":"400051",
                 "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"North",
-                "trafficType":"City / Urban","audienceType":"Corporate","footfall":"150000","startPrice":580000,
-                "minBooking":"3 Months","discountNote":""},
+                "trafficType":"City / Urban","audienceType":"Commuters","footfall":"150000","startPrice":580000,
+                "minBookingValue":3,"minBookingUnit":"MONTHS","discountNote":""},
               "acceptedTerms":true
             }""";
 

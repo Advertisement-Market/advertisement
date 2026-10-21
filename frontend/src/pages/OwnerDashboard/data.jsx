@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import React from 'react';
 /* Data + icons for the owner dashboard (from templates/owner-dashboard.html). */
 
 const I = (props) => (
@@ -406,4 +407,41 @@ export function initCalData() {
 export const dayKey = (y, m, d) => {
   const pad = (n) => (n < 10 ? `0${n}` : `${n}`);
   return `${y}-${pad(m + 1)}-${pad(d)}`;
+};
+
+export const DEFAULT_BILLBOARD_TYPES = [
+  { code: 'LED_DIGITAL', label: 'LED Digital' },
+  { code: 'STATIC_HOARDING', label: 'Static Hoarding' },
+  { code: 'UNIPOLE', label: 'Unipole' },
+  { code: 'GANTRY', label: 'Gantry' },
+  { code: 'BUS_SHELTER', label: 'Bus Shelter' },
+  { code: 'KIOSK', label: 'Kiosk' },
+  { code: 'DIGITAL_SCREEN', label: 'Digital Screen' },
+  { code: 'OTHER', label: 'Other' },
+];
+
+export const resolveInitialType = (val) => {
+  if (!val) return 'LED_DIGITAL';
+  const trimmed = String(val).trim();
+  const match = DEFAULT_BILLBOARD_TYPES.find(
+    (opt) =>
+      opt.code.toLowerCase() === trimmed.toLowerCase() ||
+      opt.label.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (match) return match.code;
+  if (trimmed.toLowerCase() === 'skywalk') return 'OTHER';
+  return trimmed;
+};
+
+export const formatBillboardType = (codeOrLabel, typeOther = '') => {
+  if (!codeOrLabel) return '';
+  const trimmed = String(codeOrLabel).trim();
+  if (trimmed.toUpperCase() === 'OTHER') {
+    return typeOther ? `Other (${typeOther})` : 'Other';
+  }
+  const match = DEFAULT_BILLBOARD_TYPES.find(
+    (opt) => opt.code.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (match) return match.label;
+  return trimmed;
 };

@@ -3,6 +3,8 @@
  * into the backend registration DTOs. Field names mirror the frontend wizard fields.
  */
 
+import { isOther } from '@/lib/validators';
+
 const trimOrNull = (v) => {
   const s = v == null ? '' : String(v).trim();
   return s === '' ? null : s;
@@ -81,7 +83,43 @@ export function mapAdvertiser(d, s) {
   };
 }
 
+export const parseMinBooking = (val) => {
+  if (!val) return { minBookingValue: 1, minBookingUnit: 'MONTHS' };
+  const str = String(val).toLowerCase().trim();
+  if (str.includes('day')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 15;
+    return { minBookingValue: num, minBookingUnit: 'DAYS' };
+  }
+  if (str.includes('week')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+    return { minBookingValue: num, minBookingUnit: 'WEEKS' };
+  }
+  if (str.includes('year')) {
+    const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+    return { minBookingValue: num * 12, minBookingUnit: 'MONTHS' };
+  }
+  const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
+  return { minBookingValue: num, minBookingUnit: 'MONTHS' };
+};
+
+export const resolveBookingDuration = (d) => {
+  if (d.f_minBookingValue != null && d.f_minBookingValue !== '') {
+    const rawUnit = String(d.f_minBookingUnit || 'MONTHS').toUpperCase();
+    const unit = ['DAYS', 'WEEKS', 'MONTHS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    return {
+      minBookingValue: Math.max(1, Math.round(Number(d.f_minBookingValue)) || 1),
+      minBookingUnit: unit,
+    };
+  }
+  return parseMinBooking(d.f_minBooking);
+};
+
 export function mapOwner(d) {
+  const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
+  const isTypeOther = isOther(d.f_bbType);
+  const isTrafficOther = isOther(d.f_trafficType);
+  const isAudienceOther = isOther(d.f_audience);
+
   return {
     firstName: d.f_firstName,
     lastName: d.f_lastName,
@@ -109,16 +147,20 @@ export function mapOwner(d) {
       city: d.f_bbCity,
       state: d.f_bbState,
       pincode: d.f_bbPin,
-      type: d.f_bbType,
+      type: isTypeOther ? 'OTHER' : d.f_bbType,
+      typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
       widthFt: toNumber(d.f_bbWidth),
       heightFt: toNumber(d.f_bbHeight),
       groundHeightFt: toNumber(d.f_bbGroundHeight),
       facing: d.f_facing,
-      trafficType: trimOrNull(d.f_trafficOther) || d.f_trafficType,
-      audienceType: trimOrNull(d.f_audienceOther) || d.f_audience,
+      trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
+      trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
+      audienceType: isAudienceOther ? 'OTHER' : d.f_audience,
+      audienceTypeOther: isAudienceOther ? trimOrNull(d.f_audienceOther) : null,
       footfall: trimOrNull(d.f_footfall),
       startPrice: toNumber(d.f_startPrice),
-      minBooking: d.f_minBooking,
+      minBookingValue,
+      minBookingUnit,
       discountNote: trimOrNull(d.f_discountNote),
     },
     acceptedTerms: !!d.f_termsAccept,
@@ -163,5 +205,37 @@ export function mapAgency(d, s) {
     keyClients: trimOrNull(d.f_client),
     portfolio: collectPortfolio(d),
     acceptedTerms: !!d.f_termsAccept,
+  };
+}
+
+export function mapBillboardListing(d) {
+  const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
+  const isTypeOther = isOther(d.f_bbType);
+  const isTrafficOther = isOther(d.f_trafficType);
+  const isAudienceOther = isOther(d.f_audience);
+
+  return {
+    name: d.f_bbName,
+    addressLine1: d.f_bbAddr,
+    addressLine2: trimOrNull(d.f_bbAddr2),
+    landmark: trimOrNull(d.f_bbLandmark),
+    city: d.f_bbCity,
+    state: d.f_bbState,
+    pincode: d.f_bbPin,
+    type: isTypeOther ? 'OTHER' : d.f_bbType,
+    typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
+    widthFt: toNumber(d.f_bbWidth),
+    heightFt: toNumber(d.f_bbHeight),
+    groundHeightFt: toNumber(d.f_bbGroundHeight),
+    facing: d.f_facing,
+    trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
+    trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
+    audienceType: isAudienceOther ? 'OTHER' : d.f_audience,
+    audienceTypeOther: isAudienceOther ? trimOrNull(d.f_audienceOther) : null,
+    footfall: trimOrNull(d.f_footfall),
+    startPrice: toNumber(d.f_startPrice),
+    minBookingValue,
+    minBookingUnit,
+    discountNote: trimOrNull(d.f_discountNote),
   };
 }

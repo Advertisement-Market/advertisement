@@ -1,0 +1,755 @@
+import { cn } from '@/lib/cn';
+import * as v from '@/lib/validators';
+import {
+  useRegister,
+  useFieldError,
+  FieldError,
+  Field,
+  FieldLabel,
+  FormSection,
+  FormRow,
+  StepHeader,
+  RegNav,
+} from '@/features/register';
+import { TypeGrid, SelectWithOther, UploadZone } from '../OwnerRegister/widgets';
+import { AvailabilityCalendar, PricingTable, MapPin } from '../OwnerRegister/calendar';
+
+const TOTAL = 3;
+
+const PINCODE_MAP = {
+  400001: 'Mumbai, Maharashtra',
+  400053: 'Mumbai, Maharashtra',
+  411001: 'Pune, Maharashtra',
+  110001: 'New Delhi, Delhi',
+  560001: 'Bengaluru, Karnataka',
+  600001: 'Chennai, Tamil Nadu',
+  700001: 'Kolkata, West Bengal',
+  380001: 'Ahmedabad, Gujarat',
+  500001: 'Hyderabad, Telangana',
+};
+
+const typeIcon = (paths) => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {paths}
+  </svg>
+);
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const TYPE_OPTIONS = [
+  {
+    code: 'STATIC_HOARDING',
+    label: 'Static Hoarding',
+    icon: typeIcon(
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="1" />
+        <path d="M3 12h18M12 3v18" />
+      </>,
+    ),
+  },
+  {
+    code: 'LED_DIGITAL',
+    label: 'LED Digital',
+    icon: typeIcon(
+      <>
+        <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+        <line x1="9" y1="21" x2="15" y2="21" />
+        <line x1="10" y1="17" x2="14" y2="17" />
+      </>,
+    ),
+  },
+  {
+    code: 'UNIPOLE',
+    label: 'Unipole',
+    icon: typeIcon(
+      <>
+        <line x1="12" y1="2" x2="12" y2="22" />
+        <rect x="7" y="4" width="10" height="8" rx="1" />
+      </>,
+    ),
+  },
+  {
+    code: 'GANTRY',
+    label: 'Gantry',
+    icon: typeIcon(<path d="M3 6h18M3 12h18M3 18h18" />),
+  },
+  {
+    code: 'BUS_SHELTER',
+    label: 'Bus Shelter',
+    icon: typeIcon(
+      <>
+        <rect x="2" y="8" width="20" height="10" rx="1" />
+        <path d="M8 8V6M16 8V6" />
+      </>,
+    ),
+  },
+  {
+    code: 'KIOSK',
+    label: 'Kiosk',
+    icon: typeIcon(
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 8v4l3 3" />
+      </>,
+    ),
+  },
+  {
+    code: 'DIGITAL_SCREEN',
+    label: 'Digital Screen',
+    icon: typeIcon(
+      <>
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </>,
+    ),
+  },
+  {
+    code: 'OTHER',
+    label: 'Other',
+    icon: typeIcon(
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </>,
+    ),
+  },
+];
+
+const FACING = [
+  'North',
+  'North-East',
+  'East',
+  'South-East',
+  'South',
+  'South-West',
+  'West',
+  'North-West',
+];
+
+const TRAFFIC = [
+  'City / Urban',
+  'Highway',
+  'Commercial Zone',
+  'Residential Area',
+  'Industrial',
+  { value: 'other', label: 'Other' },
+];
+
+const AUDIENCE = [
+  'IT Crowd / Tech Professionals',
+  'Commuters',
+  'Highway Travelers',
+  'Local Residents',
+  'Shoppers',
+  'Students',
+  'Mixed',
+  { value: 'other', label: 'Other' },
+];
+
+const BOOKING_DURATION_UNITS = [
+  { value: 'DAYS', label: 'Days' },
+  { value: 'WEEKS', label: 'Weeks' },
+  { value: 'MONTHS', label: 'Months' },
+];
+
+function MinBookingInput() {
+  const { field, setField } = useRegister();
+  const value = field('f_minBookingValue') ?? '';
+  const unit = field('f_minBookingUnit') || 'MONTHS';
+  const { error, show, invalidClass, onBlur } = useFieldError('f_minBookingValue', [
+    v.required('Please enter a minimum booking duration.'),
+    v.range(1, 1000, 'Must be at least 1.'),
+  ]);
+
+  return (
+    <div className="form-group">
+      <FieldLabel label="Minimum Booking Duration" required />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          className={cn('form-control', invalidClass)}
+          style={{ flex: 1, minWidth: 0 }}
+          placeholder="1"
+          value={value}
+          onChange={(e) => setField('f_minBookingValue', e.target.value)}
+          onBlur={onBlur}
+        />
+        <select
+          className="form-control"
+          style={{ flex: 1.2, minWidth: 0 }}
+          value={unit}
+          onChange={(e) => setField('f_minBookingUnit', e.target.value)}
+        >
+          {BOOKING_DURATION_UNITS.map((u) => (
+            <option key={u.value} value={u.value}>
+              {u.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {show ? (
+        <FieldError show={show} error={error} />
+      ) : (
+        <div className="form-hint">E.g., 15 Days, 2 Weeks, or 1 Month</div>
+      )}
+    </div>
+  );
+}
+
+function usePincode(name, cityField, stateField) {
+  const { field, setField } = useRegister();
+  const val = field(name);
+  const city = val.length === 6 ? PINCODE_MAP[val] || 'India' : '';
+  const err = useFieldError(name, [v.required(), v.pincode()]);
+  const set = (val2) => {
+    const digits = val2.replace(/\D/g, '').slice(0, 6);
+    setField(name, digits);
+  };
+  const onBlur = (e) => {
+    err.onBlur(e);
+    const match = PINCODE_MAP[val];
+    if (match && cityField && stateField) {
+      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
+      if (!field(cityField).trim() && autoCity) setField(cityField, autoCity);
+      if (!field(stateField).trim() && autoState) setField(stateField, autoState);
+    }
+  };
+  return { val, city, err, set, onBlur };
+}
+
+function FootfallField() {
+  const { field, setField } = useRegister();
+  return (
+    <div className="form-group">
+      <label>
+        Daily Footfall (approx.) <span className="opt">(optional)</span>
+      </label>
+      <input
+        type="text"
+        className="form-control"
+        placeholder="e.g., 80,000"
+        value={field('f_footfall')}
+        onChange={(e) => setField('f_footfall', e.target.value.replace(/[^0-9,]/g, ''))}
+      />
+    </div>
+  );
+}
+
+/* ── STEP 1: BILLBOARD DETAILS ── */
+export function ListingStep1() {
+  const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState');
+  const cityErr = useFieldError('f_bbCity', [v.required()]);
+  const stateErr = useFieldError('f_bbState', [v.required()]);
+  const { field, setField } = useRegister();
+
+  return (
+    <div className="step-panel active">
+      <StepHeader
+        step={1}
+        total={TOTAL}
+        heading="Billboard"
+        headingEm="Details"
+        sub="Enter the location, structure dimensions, and audience specifications for this inventory."
+      />
+      <FormSection title="Location">
+        <Field
+          name="f_bbName"
+          label="Billboard Name / Title"
+          required
+          placeholder="e.g., Andheri Flyover — West Side Hoarding"
+        />
+        <Field
+          name="f_bbAddr"
+          label="Address / Street Name"
+          required
+          placeholder="Road / Street / Highway name"
+        />
+        <FormRow>
+          <Field
+            name="f_bbLandmark"
+            label="Nearby Landmark"
+            optional
+            placeholder="e.g., Andheri Station flyover"
+          />
+          <div className="form-group">
+            <label>
+              City <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', cityErr.invalidClass)}
+              placeholder="Mumbai"
+              value={field('f_bbCity')}
+              onChange={(e) => setField('f_bbCity', e.target.value)}
+              onBlur={cityErr.onBlur}
+            />
+            <FieldError show={cityErr.show} error={cityErr.error} />
+          </div>
+        </FormRow>
+        <FormRow>
+          <div className="form-group">
+            <label>
+              State <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', stateErr.invalidClass)}
+              placeholder="Maharashtra"
+              value={field('f_bbState')}
+              onChange={(e) => setField('f_bbState', e.target.value)}
+              onBlur={stateErr.onBlur}
+            />
+            <FieldError show={stateErr.show} error={stateErr.error} />
+          </div>
+          <div className="form-group">
+            <label>
+              Billboard Pincode <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', bb.err.invalidClass)}
+              placeholder="400053"
+              maxLength={6}
+              value={bb.val}
+              onChange={(e) => bb.set(e.target.value)}
+              onBlur={bb.onBlur}
+            />
+            <div className={cn('pincode-autofill', bb.city && 'show')}>{bb.city}</div>
+            <FieldError show={bb.err.show} error={bb.err.error} />
+          </div>
+        </FormRow>
+      </FormSection>
+
+      <FormSection title="Structure Type">
+        <div className="form-group">
+          <label>
+            Billboard Type <span className="req">*</span>
+          </label>
+        </div>
+        <TypeGrid name="f_bbType" options={TYPE_OPTIONS} />
+        {v.isOther(field('f_bbType')) && (
+          <div className="form-group" style={{ marginTop: 12 }}>
+            <label>
+              Specify Billboard Type <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g., Bridge Panel, Skywalk, Pillar"
+              maxLength={120}
+              value={field('f_bbTypeOther')}
+              onChange={(e) => setField('f_bbTypeOther', e.target.value)}
+            />
+          </div>
+        )}
+      </FormSection>
+
+      <FormSection last title="Dimensions & Traffic">
+        <FormRow>
+          <Field
+            name="f_bbWidth"
+            type="number"
+            label="Width (ft)"
+            required
+            placeholder="40"
+            min="1"
+            max="200"
+            hint="Typical range: 1–200 ft"
+          />
+          <Field
+            name="f_bbHeight"
+            type="number"
+            label="Height (ft)"
+            required
+            placeholder="20"
+            min="1"
+            max="100"
+            hint="Typical range: 1–100 ft"
+          />
+        </FormRow>
+        <FormRow>
+          <Field
+            name="f_bbGroundHeight"
+            type="number"
+            label="Height from Ground (ft)"
+            optional
+            placeholder="30"
+            min="0"
+            max="300"
+            hint="0–300 ft from ground level"
+          />
+          <div className="form-group" />
+        </FormRow>
+        <FormRow>
+          <Field
+            name="f_facing"
+            type="select"
+            label="Facing Direction"
+            required
+            options={[{ value: '', label: 'Select direction' }, ...FACING]}
+          />
+          <div className="form-group">
+            <label>
+              Traffic Type <span className="req">*</span>
+            </label>
+            <SelectWithOther name="f_trafficType" otherName="f_trafficOther" options={TRAFFIC} />
+          </div>
+        </FormRow>
+        <FormRow>
+          <div className="form-group">
+            <label>
+              Audience Type <span className="req">*</span>
+            </label>
+            <SelectWithOther name="f_audience" otherName="f_audienceOther" options={AUDIENCE} />
+          </div>
+          <FootfallField />
+        </FormRow>
+      </FormSection>
+
+      <RegNav nextLabel="Continue to Pricing & Availability" />
+    </div>
+  );
+}
+
+/* ── STEP 2: PRICING & AVAILABILITY ── */
+export function ListingStep2() {
+  return (
+    <div className="step-panel active">
+      <StepHeader
+        step={2}
+        total={TOTAL}
+        heading="Pricing &"
+        headingEm="Availability"
+        sub="Set your rates, packages, and mark your availability calendar."
+      />
+      <FormSection title="Rate Card">
+        <FormRow>
+          <Field
+            name="f_startPrice"
+            type="number"
+            label="Starting From Price (₹/Day)"
+            required
+            placeholder="9500"
+            min="100"
+            max="10000000"
+            hint={'₹100 – ₹1,00,00,000 per day. This is the "from" price shown on listings'}
+          />
+          <MinBookingInput />
+        </FormRow>
+        <div className="form-group">
+          <label>Pricing Packages</label>
+          <div className="form-hint" style={{ marginBottom: 10 }}>
+            The 1-month base rate is auto-calculated from your daily rate above. All rates are
+            editable.
+          </div>
+        </div>
+        <PricingTable />
+      </FormSection>
+
+      <FormSection title="Availability Calendar">
+        <div className="form-group">
+          <div className="form-hint" style={{ marginBottom: 12 }}>
+            Click a start date then an end date to mark a range as booked. Click a booked date to
+            clear it. (Note: Cloud calendar sync will be enabled in Phase 3; your rate card
+            parameters are saved directly to your inventory.)
+          </div>
+        </div>
+        <AvailabilityCalendar />
+
+        <div className="form-group" style={{ marginTop: 16 }}>
+          <Field
+            name="f_discountNote"
+            label="Long-term Discount Note"
+            optional
+            placeholder="e.g., Special rates for annual contracts — discuss on connect"
+          />
+        </div>
+      </FormSection>
+
+      <RegNav nextLabel="Continue to Media Uploads" />
+    </div>
+  );
+}
+
+/* ── STEP 3: MEDIA UPLOADS ── */
+const SunIcon = (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+  </svg>
+);
+const MoonIcon = (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+const GlobeIcon = (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+const VideoIcon = (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="23 7 16 12 23 17 23 7" />
+    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+  </svg>
+);
+
+export function ListingStep3() {
+  const { submit, submitting } = useRegister();
+
+  return (
+    <div className="step-panel active">
+      <StepHeader
+        step={3}
+        total={TOTAL}
+        heading="Media"
+        headingEm="Uploads"
+        sub="Upload clear day and night photos. Geotagged photos increase trust."
+      />
+
+      <div
+        style={{
+          background: 'linear-gradient(135deg,var(--teal-light),var(--cream-warm))',
+          border: '1.5px solid rgba(8,145,178,0.25)',
+          borderRadius: 14,
+          padding: '18px 20px',
+          marginBottom: 28,
+          display: 'flex',
+          gap: 14,
+          alignItems: 'flex-start',
+        }}
+      >
+        <div
+          style={{
+            flexShrink: 0,
+            width: 38,
+            height: 38,
+            background: 'var(--teal)',
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+        </div>
+        <div>
+          <div
+            style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal-dark)', marginBottom: 5 }}
+          >
+            📋 Please read the reference guide before uploading
+          </div>
+          <div
+            style={{ fontSize: 13, color: 'var(--ink-muted)', fontWeight: 400, lineHeight: 1.6 }}
+          >
+            This guide explains the exact photo angles, shot types, video requirements, and examples
+            we expect from you. Following it ensures your listing gets approved faster. (Note: Media
+            file storage will be linked in Phase 3; your listing specifications and rates are saved
+            directly to your live database inventory.)
+          </div>
+
+          <a
+            href="#"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 10,
+              background: 'var(--teal)',
+              color: 'white',
+              textDecoration: 'none',
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '8px 16px',
+              borderRadius: 8,
+            }}
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            View Media Reference Guide (PDF)
+          </a>
+        </div>
+      </div>
+
+      <FormSection title="Location Pin Verification">
+        <div
+          style={{
+            background: 'var(--cream-warm)',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 12,
+            padding: '16px 18px',
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--ink)',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Pin Your Billboard&apos;s Exact Location
+          </div>
+          <div
+            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
+          >
+            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
+            the map to mark the exact location of your billboard.
+          </div>
+          <MapPin />
+        </div>
+      </FormSection>
+
+      <FormSection title="Day Photos">
+        <UploadZone
+          sectionTitle="Day Photos"
+          badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
+          icon={SunIcon}
+          title="Drag & drop day photos here"
+          sub="JPG, PNG, WEBP · Max 10MB each · Clear angle required"
+          accept="image/*"
+        />
+      </FormSection>
+      <FormSection title="Night Photos">
+        <UploadZone
+          sectionTitle="Night Photos"
+          badge={<span className="badge-optional">Optional</span>}
+          icon={MoonIcon}
+          title="Drag & drop night photos here"
+          sub="JPG, PNG, WEBP · Must show actual illumination · Max 10MB"
+          accept="image/*"
+        />
+      </FormSection>
+      <FormSection last title="Optional Media">
+        <UploadZone
+          sectionTitle="Surrounding Area Photo"
+          badge={<span className="badge-optional">Optional</span>}
+          icon={GlobeIcon}
+          title="Shows billboard in its surroundings"
+          sub="Drag & drop or click to browse · JPG, PNG"
+          accept="image/*"
+          style={{ padding: 0 }}
+        />
+        <UploadZone
+          sectionTitle="Short Video"
+          badge={<span className="badge-optional">Optional</span>}
+          icon={VideoIcon}
+          title="Drag & drop or click to browse"
+          sub="MP4, MOV · Max 100MB"
+          accept="video/*"
+          multiple={false}
+          single
+          style={{ marginBottom: 0 }}
+        />
+      </FormSection>
+
+      <RegNav showBack={true}>
+        <button
+          type="button"
+          className="btn-next btn-submit"
+          onClick={submit}
+          disabled={submitting}
+        >
+          {submitting ? 'Submitting...' : 'Submit Billboard Listing →'}
+        </button>
+      </RegNav>
+    </div>
+  );
+}
