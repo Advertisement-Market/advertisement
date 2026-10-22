@@ -850,4 +850,137 @@ class OwnerListingControllerTest {
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.typeOther").exists());
     }
+
+    @Test
+    @DisplayName("PATCH clearing optional fields with empty string nulls database values and returns 200 OK")
+    void updateListing_clearingOptionalFields_nullsValuesAndReturns200() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Listing");
+        listing.setDiscountNote("10% off for 6+ months");
+        listing.setFootfall("50,000/day");
+        listing.getAddress().setLine2("Suite 400");
+        listing.getAddress().setLandmark("Near Metro");
+        billboardListingRepository.save(listing);
+
+        // Send empty strings to clear the optional fields
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null,
+                null,
+                "", // addressLine2 -> clear
+                "", // landmark -> clear
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "", // footfall -> clear
+                null,
+                null,
+                null,
+                ""  // discountNote -> clear
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discountNote").doesNotExist())
+                .andExpect(jsonPath("$.footfall").doesNotExist());
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getDiscountNote()).isNull();
+        assertThat(updated.getFootfall()).isNull();
+        assertThat(updated.getAddress().getLine2()).isNull();
+        assertThat(updated.getAddress().getLandmark()).isNull();
+    }
+
+    @Test
+    @DisplayName("PATCH blanking required fields returns 400 VALIDATION_FAILED with field errors")
+    void updateListing_blankingRequiredFields_returns400ValidationFailed() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Listing");
+
+        // Blank name and addressLine1
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "   \u00A0  ", // blank name
+                "   ",        // blank addressLine1
+                null,
+                null,
+                "  ",         // blank city
+                "  ",         // blank state
+                "      ",     // blank pincode
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH persisting touched required fields with Unicode whitespace trims padding cleanly")
+    void updateListing_persistingRequiredFieldsWithPadding_trimsCleanly() throws Exception {
+        BillboardListing listing = createListing(owner1, "Old Name");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "\u00A0\u200BNew Name\u00A0",
+                "123 Highway Ave\u00A0",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "400001",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("New Name"))
+                .andExpect(jsonPath("$.addressLine1").value("123 Highway Ave"));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("New Name");
+        assertThat(updated.getAddress().getLine1()).isEqualTo("123 Highway Ave");
+    }
 }
