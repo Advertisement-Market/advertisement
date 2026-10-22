@@ -102,7 +102,7 @@ export const NAV = [
     items: [
       {
         page: 'settings',
-        label: 'Settings',
+        label: 'Profile',
         icon: (
           <I>
             <circle cx="12" cy="12" r="3" />
@@ -121,7 +121,7 @@ export const TITLES = {
   quotes: 'Quote Requests',
   tenders: 'Tender Board',
   analytics: 'Analytics',
-  settings: 'Account Settings',
+  settings: 'User Profile',
 };
 
 export const NOTIFICATIONS = [
