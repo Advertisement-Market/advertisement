@@ -36,6 +36,7 @@ export function AppRoutes() {
       <Route path={ROUTES.advertiserDashboard} element={<AdvertiserDashboard />} />
       <Route path={ROUTES.ownerDashboard} element={<OwnerDashboard />} />
       <Route path={ROUTES.newBillboardListing} element={<NewBillboardListing />} />
+      <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
       <Route path={ROUTES.agencyDashboard} element={<AgencyDashboard />} />
 
       <Route path={ROUTES.browse} element={<Browse />} />

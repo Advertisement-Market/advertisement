@@ -23,6 +23,8 @@ export const ROUTES = {
 
   // Owner listing inventory
   newBillboardListing: '/owners/listings/new',
+  editBillboardListing: (id) => `/owners/listings/${id}/edit`,
+  ownerListingsTab: '/owners/dashboard?tab=listings',
 
   // Discovery
   browse: '/browse',
