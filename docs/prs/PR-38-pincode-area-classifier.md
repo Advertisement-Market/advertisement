@@ -3,18 +3,20 @@
 - **PR Link / Ticket:** #38
 - **Author:** @AshuLaley
 - **Date:** 2026-10-22
-- **Module / Package:** `frontend/src/features/auth`, `frontend/src/pages/OwnerRegister`
+- **Module / Package:** `frontend/src/features/auth`, `frontend/src/features/register`,
+  `frontend/src/pages/{OwnerRegister, AdvertiserRegister, AgencyRegister, NewBillboardListing}`
 
 ---
 
 ## 1. Overview & Business Requirements
-- **Goal:** Replace the hard-coded nine-entry `PINCODE_MAP` used by the Owner registration wizard
-  with a live PIN-code classifier backed by the public India Post API, so any valid Indian PIN
-  resolves to its City (District) and State and, for the billboard address, to the list of
-  localities (Post Offices) under that PIN.
-- **User Impact:** Billboard Owners typing a 6-digit PIN during registration get City and State
-  filled automatically and can pick the exact Area / Locality from a dropdown instead of guessing,
-  across the whole country rather than nine seeded cities.
+- **Goal:** Replace the hard-coded `PINCODE_MAP` constants (duplicated across four wizards, each
+  seeding only ~9–12 cities) with a single live PIN-code classifier backed by the public India Post
+  API, so any valid Indian PIN resolves to its City (District) and State and, for billboard
+  addresses, to the list of localities (Post Offices) under that PIN.
+- **User Impact:** Everyone registering — Owners, Advertisers and Agencies — and anyone adding a
+  billboard gets City and State filled automatically from a 6-digit PIN across the whole country
+  rather than a handful of seeded cities, and the billboard forms additionally offer the exact
+  Area / Locality from a dropdown instead of free-typing.
 - **Functional Requirements:**
   - A completed 6-digit PIN triggers a lookup on blur.
   - City and State auto-populate only when the owner has not already typed them (user input wins).
@@ -25,9 +27,10 @@
 
 ## 2. Technical Architecture & Component Flow
 - **High-Level Flow:** A small pure module, `pincodeLookup.js`, wraps the India Post endpoint and
-  normalizes its payload. The `usePincode` hook in the Owner wizard calls it on blur, cancels any
-  in-flight request with an `AbortController`, and exposes `{ status, loading, areas }` to the form.
-  Autofill is guarded so it never overwrites a field the owner has already filled.
+  normalizes its payload. A single shared `usePincode` hook (`features/register`) calls it on blur,
+  cancels any in-flight request with an `AbortController`, and exposes `{ status, loading, areas }`
+  to the form; all four wizards consume this one hook instead of each carrying its own copy. Autofill
+  is guarded so it never overwrites a field the user has already filled.
 - **Component Flow (Mermaid):**
   ```mermaid
   sequenceDiagram
@@ -113,9 +116,10 @@
   - Unit: `pincodeLookup.test.js` — `sanitizePincode` (digit-only, 6-cap, null/undefined),
     `isValidPincode` (first digit 1-9, length), `parsePincodeResponse` (City/State extraction plus a
     de-duplicated, sorted locality list; `ok:false` for error / empty / null payloads).
-  - Changed-scope suite (`pincodeLookup`, `registrationMappers`, `OwnerRegister`): 18 tests, 0
-    failures.
-- **Build & Lint:** `eslint` clean on the changed files; `vite build` succeeds (196 modules).
+  - Full frontend suite (`vitest run`): 61 tests across 9 files, 0 failures — including the
+    `NewBillboardListing` component test whose wizard was rewired to the shared hook.
+- **Build & Lint:** `eslint` clean on all changed files; `prettier --check` clean on the whole
+  `src` glob; `vite build` succeeds.
 - **Manual Verification (live API, run from the app):**
   - `560001` → Bangalore, Karnataka, 10 localities.
   - `110001` → Central Delhi, Delhi, 21 localities.
@@ -123,11 +127,18 @@
   - `999999` → `ok:false`, fields left editable.
   - End-to-end in the Owner wizard: Step 2 office PIN auto-fills City/State; Step 3 billboard PIN
     auto-fills City/State and shows the "N localities found for PIN … (India Post)" dropdown.
+  - End-to-end in the Agency wizard (converted form): Step 2 HQ PIN `700001` auto-fills
+    Kolkata / West Bengal with the confirmation badge.
 
 ---
 
-## 8. Scope & Follow-up
-- This PR converts the **Owner registration** wizard only. The Advertiser, Agency and
-  New-Billboard-Listing forms still use the legacy static `PINCODE_MAP`. Migrating them to
-  `pincodeLookup` is a mechanical follow-up and is intentionally out of scope here to keep the change
-  reviewable.
+## 8. Scope
+- All four PIN-code entry points are converted: the **Owner**, **Advertiser** and **Agency**
+  registration wizards and the **New Billboard Listing** wizard. Each previously carried its own copy
+  of the hard-coded `PINCODE_MAP`; those constants and the duplicated blur handlers are removed in
+  favour of the single shared `usePincode` hook in `features/register`.
+- The billboard-location forms (Owner Step 3 and New Billboard Listing) render the Area / Locality
+  dropdown; the general-address forms (Owner Step 2 business, Advertiser contact, Agency HQ)
+  auto-fill City/State with the confirmation badge only, matching the existing pattern.
+- The stale `pincodeAutofill.test.js` — which unit-tested an inlined copy of the old hard-coded map
+  that no form uses any more — is deleted; `pincodeLookup.test.js` covers the live classifier.

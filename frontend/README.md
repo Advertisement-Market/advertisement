@@ -39,7 +39,7 @@ src/
   features/
     auth/                      # AuthModal, GoogleButton, GoogleOneTap, authApi, registration mappers,
                                #   pincodeLookup (live India Post PIN → city/state + area/locality)
-    register/                  # multi-step wizard framework + field widgets
+    register/                  # multi-step wizard framework + field widgets + usePincode hook
   data/                        # sample content for marketing pages + dashboards
   pages/
     Landing/ AdvertiserHome/ OwnerHome/ AgencyHome/

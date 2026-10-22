@@ -1,10 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
-import { fetchPincode, sanitizePincode } from '@/features/auth/pincodeLookup';
 import {
   useRegister,
+  usePincode,
   useFieldError,
   FieldError,
   Field,
@@ -211,49 +210,6 @@ const APPROVAL = [
   { value: 'pending', text: 'No — Pending (Application submitted, awaiting approval)' },
   { value: 'na', text: 'Not Applicable (Private property, no municipal approval needed)' },
 ];
-
-function usePincode(name, cityField, stateField) {
-  const { field, setField } = useRegister();
-  const val = field(name);
-  const err = useFieldError(name, [v.required(), v.pincode()]);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
-  const [areas, setAreas] = useState([]);
-  const abortRef = useRef(null);
-
-  const set = (val2) => setField(name, sanitizePincode(val2));
-
-  const lookup = useCallback(
-    async (pin) => {
-      if (abortRef.current) abortRef.current.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      setLoading(true);
-      setStatus('Looking up…');
-      const r = await fetchPincode(pin, { signal: controller.signal });
-      if (controller.signal.aborted) return;
-      setLoading(false);
-      if (r.ok) {
-        setAreas(r.areas);
-        setStatus([r.city, r.state].filter(Boolean).join(', '));
-        if (cityField && !field(cityField).trim() && r.city) setField(cityField, r.city);
-        if (stateField && !field(stateField).trim() && r.state) setField(stateField, r.state);
-      } else {
-        setAreas([]);
-        setStatus('PIN not found — enter the area manually.');
-      }
-    },
-    [cityField, stateField, field, setField],
-  );
-
-  const onBlur = (e) => {
-    err.onBlur(e);
-    const pin = sanitizePincode(val);
-    if (pin.length === 6) lookup(pin);
-  };
-
-  return { val, status, loading, areas, err, set, onBlur };
-}
 
 /* ── STEP 1 ── */
 export function Step1() {
