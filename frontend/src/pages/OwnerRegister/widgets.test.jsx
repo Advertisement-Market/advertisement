@@ -74,7 +74,12 @@ describe('OwnerRegister and Wizard Widgets', () => {
       );
 
       // Must reveal companion input for lowercase 'other'
-      expect(screen.getByPlaceholderText('Describe')).toBeDefined();
+      const input = screen.getByPlaceholderText('Describe');
+      expect(input).toBeDefined();
+
+      // Enter digits and characters: "Terminal 2 Route 44"
+      fireEvent.change(input, { target: { value: 'Terminal 2 Route 44' } });
+      expect(input.value).toBe('Terminal 2 Route 44');
     });
   });
 
