@@ -6,9 +6,10 @@ import { api } from '@/lib/apiClient';
 export const ownerListingApi = {
   getListings: () => api.get('/api/owner/listings').then((r) => r.data),
   getListing: (id, config) =>
-    (config ? api.get(`/api/owner/listings/${id}`, config) : api.get(`/api/owner/listings/${id}`)).then(
-      (r) => r.data,
-    ),
+    (config
+      ? api.get(`/api/owner/listings/${id}`, config)
+      : api.get(`/api/owner/listings/${id}`)
+    ).then((r) => r.data),
   createListing: (payload) => api.post('/api/owner/listings', payload).then((r) => r.data),
   updateListing: (id, payload) =>
     api.patch(`/api/owner/listings/${id}`, payload).then((r) => r.data),

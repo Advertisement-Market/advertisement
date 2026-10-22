@@ -161,7 +161,6 @@ const AUDIENCE = [
   { value: 'other', label: 'Other' },
 ];
 
-
 function usePincode(name, cityField, stateField) {
   const { field, setField } = useRegister();
   const val = field(name);

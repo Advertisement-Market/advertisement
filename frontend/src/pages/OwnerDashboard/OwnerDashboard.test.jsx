@@ -85,7 +85,8 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
     });
 
     it('initializes tab from ?tab=listings query param and navigates to edit listing', async () => {
-      const { cleanup, render, screen, fireEvent, waitFor } = await import('@testing-library/react');
+      const { cleanup, render, screen, fireEvent, waitFor } =
+        await import('@testing-library/react');
       const { MemoryRouter, Routes, Route } = await import('react-router-dom');
       const { OwnerDashboard } = await import('./OwnerDashboard');
       const { AuthContext } = await import('@/context/AuthContext');
@@ -104,7 +105,10 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       ];
 
       vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
-      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({ notifications: [], unreadCount: 0 });
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
 
       render(
         <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
@@ -150,7 +154,10 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       const { notificationApi } = await import('@/features/notification/notificationApi');
 
       vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue([]);
-      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({ notifications: [], unreadCount: 0 });
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
 
       render(
         <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
@@ -173,4 +180,3 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
     });
   });
 });
-

@@ -273,7 +273,9 @@ export const AUDIENCE_OPTIONS = [
 
 export function resolveFacingOption(val) {
   if (!val) return '';
-  const normalized = String(val).toUpperCase().replace(/[^A-Z]/g, '_');
+  const normalized = String(val)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '_');
   const found = FACING_OPTIONS.find(
     (opt) => opt.toUpperCase().replace(/[^A-Z]/g, '_') === normalized,
   );
@@ -282,7 +284,9 @@ export function resolveFacingOption(val) {
 
 export function formatFacingCode(val) {
   if (!val) return null;
-  return String(val).toUpperCase().replace(/[^A-Z]/g, '_');
+  return String(val)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '_');
 }
 
 export function resolveTrafficOption(val) {

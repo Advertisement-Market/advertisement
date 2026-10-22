@@ -124,11 +124,16 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
     it('validates 6-digit pincode starting with 1-9 and trims whitespace', () => {
       const showToast = vi.fn();
       // Valid pincode with whitespace
-      expect(validate(1, { data: { ...validBaseData, f_bbPin: ' 400001 ' }, showToast })).toBe(true);
+      expect(validate(1, { data: { ...validBaseData, f_bbPin: ' 400001 ' }, showToast })).toBe(
+        true,
+      );
 
       // Starting with 0 fails
       expect(validate(1, { data: { ...validBaseData, f_bbPin: '012345' }, showToast })).toBe(false);
-      expect(showToast).toHaveBeenCalledWith('Please enter a valid 6-digit billboard pincode.', 'error');
+      expect(showToast).toHaveBeenCalledWith(
+        'Please enter a valid 6-digit billboard pincode.',
+        'error',
+      );
 
       // 5 digits fails
       expect(validate(1, { data: { ...validBaseData, f_bbPin: '40000' }, showToast })).toBe(false);
@@ -149,7 +154,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         <MemoryRouter initialEntries={['/owners/listings/not-a-number/edit']}>
           <Routes>
             <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
-            <Route path="/owners/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+            <Route
+              path="/owners/dashboard"
+              element={<div data-testid="dashboard-page">Dashboard</div>}
+            />
           </Routes>
         </MemoryRouter>,
       );
@@ -178,7 +186,9 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         minBookingUnit: 'MONTHS',
       };
 
-      const getListingSpy = vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(mockListing);
+      const getListingSpy = vi
+        .spyOn(ownerListingApi, 'getListing')
+        .mockResolvedValueOnce(mockListing);
 
       render(
         <MemoryRouter initialEntries={['/owners/listings/42/edit']}>
@@ -193,9 +203,12 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         expect(screen.getByDisplayValue('Bandra Reclamation Unipole')).toBeDefined();
       });
 
-      expect(getListingSpy).toHaveBeenCalledWith('42', expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      }));
+      expect(getListingSpy).toHaveBeenCalledWith(
+        '42',
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }),
+      );
     });
 
     it('redirects to dashboard when getListing rejects with an error', async () => {
@@ -205,7 +218,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         <MemoryRouter initialEntries={['/owners/listings/99/edit']}>
           <Routes>
             <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
-            <Route path="/owners/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+            <Route
+              path="/owners/dashboard"
+              element={<div data-testid="dashboard-page">Dashboard</div>}
+            />
           </Routes>
         </MemoryRouter>,
       );
@@ -224,7 +240,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         <MemoryRouter initialEntries={['/owners/listings/99/edit']}>
           <Routes>
             <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
-            <Route path="/owners/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+            <Route
+              path="/owners/dashboard"
+              element={<div data-testid="dashboard-page">Dashboard</div>}
+            />
           </Routes>
         </MemoryRouter>,
       );
@@ -363,7 +382,9 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       // Should display acknowledgement success screen without white screen
       await waitFor(() => {
         expect(screen.getByText('Billboard Updated!')).toBeDefined();
-        expect(screen.getByText('Your billboard listing has been successfully updated.')).toBeDefined();
+        expect(
+          screen.getByText('Your billboard listing has been successfully updated.'),
+        ).toBeDefined();
         expect(screen.getByText('Changes saved')).toBeDefined();
         expect(screen.getByText('Marketplace updated')).toBeDefined();
         const dashboardBtn = screen.getByRole('link', { name: /back to dashboard/i });
@@ -373,5 +394,3 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
     });
   });
 });
-
-
