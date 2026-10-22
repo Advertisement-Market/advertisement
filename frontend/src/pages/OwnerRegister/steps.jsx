@@ -24,6 +24,7 @@ import {
   OwnershipOptions,
   ApprovalOptions,
   UploadZone,
+  MinBookingInput,
 } from './widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from './calendar';
 
@@ -164,14 +165,6 @@ const AUDIENCE = [
   'Students',
   'Mixed',
   { value: 'other', label: 'Other' },
-];
-const MIN_BOOKING = [
-  { value: '1week', label: '1 Week' },
-  { value: '2weeks', label: '2 Weeks' },
-  { value: '3weeks', label: '3 Weeks' },
-  { value: '1month', label: '1 Month (4 Weeks)' },
-  { value: '2months', label: '2 Months (8 Weeks)' },
-  { value: '3months', label: '3 Months' },
 ];
 
 const OWNERSHIP = [
@@ -697,13 +690,7 @@ export function Step4() {
             max="10000000"
             hint={'₹100 – ₹1,00,00,000 per day. This is the "from" price shown on listings'}
           />
-          <Field
-            name="f_minBooking"
-            type="select"
-            label="Minimum Booking Duration"
-            required
-            options={MIN_BOOKING}
-          />
+          <MinBookingInput />
         </FormRow>
         <div className="form-group">
           <label>Pricing Packages</label>
@@ -1164,7 +1151,12 @@ export function Step7() {
         <ReviewSection
           title="Pricing & Availability"
           editStep={4}
-          body={join([v('f_startPrice') && `From ₹${v('f_startPrice')}/day`, v('f_discountNote')])}
+          body={join([
+            v('f_startPrice') && `From ₹${v('f_startPrice')}/day`,
+            v('f_minBookingValue') &&
+              `Min booking: ${v('f_minBookingValue')} ${(v('f_minBookingUnit') || 'MONTHS').toLowerCase()}`,
+            v('f_discountNote'),
+          ])}
         />
         <ReviewSection
           title="Legal Data"
