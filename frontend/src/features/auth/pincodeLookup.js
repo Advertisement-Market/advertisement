@@ -28,12 +28,15 @@ export function isValidPincode(pin) {
  */
 export function parsePincodeResponse(payload) {
   const entry = Array.isArray(payload) ? payload[0] : null;
-  const offices = entry && entry.Status === 'Success' && Array.isArray(entry.PostOffice) ? entry.PostOffice : [];
+  const offices =
+    entry && entry.Status === 'Success' && Array.isArray(entry.PostOffice) ? entry.PostOffice : [];
   if (!offices.length) {
     return { ok: false, city: '', state: '', areas: [] };
   }
   const first = offices[0];
-  const areas = [...new Set(offices.map((o) => o.Name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const areas = [...new Set(offices.map((o) => o.Name).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
   return {
     ok: true,
     city: first.District || '',
@@ -52,7 +55,10 @@ export async function fetchPincode(pin, { signal } = {}) {
     return { ok: false, city: '', state: '', areas: [] };
   }
   try {
-    const res = await fetch(INDIA_POST_URL + pincode, { signal, headers: { Accept: 'application/json' } });
+    const res = await fetch(INDIA_POST_URL + pincode, {
+      signal,
+      headers: { Accept: 'application/json' },
+    });
     if (!res.ok) return { ok: false, city: '', state: '', areas: [] };
     const data = await res.json();
     return parsePincodeResponse(data);
