@@ -28,7 +28,19 @@ export function usePincode(name, cityField, stateField) {
   const [areas, setAreas] = useState([]);
   const abortRef = useRef(null);
 
-  const set = (val2) => setField(name, sanitizePincode(val2));
+  const resetLookup = () => {
+    if (abortRef.current) abortRef.current.abort();
+    setLoading(false);
+    setStatus('');
+    setAreas([]);
+  };
+
+  const set = (val2) => {
+    const sanitized = sanitizePincode(val2);
+    setField(name, sanitized);
+    // A partial PIN can no longer match — drop any in-flight lookup and its stale result.
+    if (sanitized.length < 6) resetLookup();
+  };
 
   const lookup = useCallback(
     async (pin) => {
@@ -57,6 +69,7 @@ export function usePincode(name, cityField, stateField) {
     err.onBlur(e);
     const pin = sanitizePincode(val);
     if (pin.length === 6) lookup(pin);
+    else resetLookup();
   };
 
   return { val, status, loading, areas, err, set, onBlur };
