@@ -14,4 +14,12 @@ public interface BillboardListingRepository extends JpaRepository<BillboardListi
     List<BillboardListing> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     Optional<BillboardListing> findByIdAndUserId(Long id, Long userId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT b FROM BillboardListing b WHERE b.id = :id")
+    Optional<BillboardListing> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
+    long countByUserId(Long userId);
+
+    List<BillboardListing> findByStatusOrderByCreatedAtDesc(BillboardStatus status);
 }
