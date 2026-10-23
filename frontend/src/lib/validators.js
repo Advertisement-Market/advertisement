@@ -119,16 +119,38 @@ const INVISIBLE_CODE_POINTS = new Set([
   0xfeff, // ZERO WIDTH NO-BREAK SPACE / BOM
 ]);
 
+const isWhitespaceOrInvisibleCode = (code) => {
+  // Standard ASCII whitespace (\t, \n, \r, space) or NBSP (\u00A0 = 160)
+  if (code <= 32 || code === 160) return true;
+  if (INVISIBLE_CODE_POINTS.has(code)) return true;
+  return false;
+};
+
+/**
+ * Strips leading and trailing whitespace and invisible Unicode characters
+ * (\u200B, \u200C, \u200D, \u2060, \uFEFF, NBSP).
+ */
+export function cleanText(v) {
+  if (v == null) return '';
+  const str = String(v);
+  let start = 0;
+  let end = str.length;
+  while (start < end && isWhitespaceOrInvisibleCode(str.charCodeAt(start))) {
+    start++;
+  }
+  while (end > start && isWhitespaceOrInvisibleCode(str.charCodeAt(end - 1))) {
+    end--;
+  }
+  return str.slice(start, end);
+}
+
 /** Returns true if string is null, undefined, empty, or whitespace/invisible-only. */
 export const isBlank = (v) => {
   if (v == null) return true;
   const str = String(v);
   for (let i = 0; i < str.length; i++) {
     const code = str.charCodeAt(i);
-    // Standard ASCII whitespace (\t, \n, \r, space) or NBSP (\u00A0 = 160)
-    if (code <= 32 || code === 160) continue;
-    if (INVISIBLE_CODE_POINTS.has(code)) continue;
-    return false;
+    if (!isWhitespaceOrInvisibleCode(code)) return false;
   }
   return true;
 };

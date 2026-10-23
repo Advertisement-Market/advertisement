@@ -3,7 +3,7 @@
  * into the backend registration DTOs. Field names mirror the frontend wizard fields.
  */
 
-import { isOther } from '@/lib/validators';
+import { isOther, cleanText } from '@/lib/validators';
 
 const trimOrNull = (v) => {
   const s = v == null ? '' : String(v).trim();
@@ -406,19 +406,20 @@ export function mapFormDataToPatchPayload(d) {
   const isTrafficOther = isOther(d.f_trafficType);
   const isAudienceOther = isOther(d.f_audience);
 
-  const trimClearable = (v) => (v == null ? '' : String(v).trim());
-  const trimRequired = (v) => (v == null ? '' : String(v).trim());
+  // cleanText strips leading/trailing whitespace plus \u200B \u200C \u200D \u2060 \uFEFF
+  const trimToString = (v) => (v == null ? '' : cleanText(v));
 
   return {
-    name: trimRequired(d.f_bbName),
-    addressLine1: trimRequired(d.f_bbAddr),
-    addressLine2: trimClearable(d.f_bbAddr2),
-    landmark: trimClearable(d.f_bbLandmark),
-    city: trimRequired(d.f_bbCity),
-    state: trimRequired(d.f_bbState),
-    pincode: trimRequired(d.f_bbPin),
-    type: isTypeOther ? 'OTHER' : trimRequired(d.f_bbType),
-    typeOther: isTypeOther ? trimClearable(d.f_bbTypeOther) : null,
+    name: trimToString(d.f_bbName),
+    addressLine1: trimToString(d.f_bbAddr),
+    // Optional fields: '' = clear, null = untouched
+    addressLine2: trimToString(d.f_bbAddr2),
+    landmark: trimToString(d.f_bbLandmark),
+    city: trimToString(d.f_bbCity),
+    state: trimToString(d.f_bbState),
+    pincode: trimToString(d.f_bbPin),
+    type: isTypeOther ? 'OTHER' : trimToString(d.f_bbType),
+    typeOther: isTypeOther ? trimToString(d.f_bbTypeOther) : null,
     widthFt: toNumber(d.f_bbWidth),
     heightFt: toNumber(d.f_bbHeight),
     groundHeightFt:
@@ -427,13 +428,14 @@ export function mapFormDataToPatchPayload(d) {
         : null,
     facing: formatFacingCode(d.f_facing),
     trafficType: isTrafficOther ? 'OTHER' : formatTrafficCode(d.f_trafficType),
-    trafficTypeOther: isTrafficOther ? trimClearable(d.f_trafficOther) : null,
+    trafficTypeOther: isTrafficOther ? trimToString(d.f_trafficOther) : null,
     audienceType: isAudienceOther ? 'OTHER' : formatAudienceCode(d.f_audience),
-    audienceTypeOther: isAudienceOther ? trimClearable(d.f_audienceOther) : null,
-    footfall: trimClearable(d.f_footfall),
+    audienceTypeOther: isAudienceOther ? trimToString(d.f_audienceOther) : null,
+    // Optional fields: '' = clear, null = untouched
+    footfall: trimToString(d.f_footfall),
     startPrice: toNumber(d.f_startPrice),
     minBookingValue,
     minBookingUnit,
-    discountNote: trimClearable(d.f_discountNote),
+    discountNote: trimToString(d.f_discountNote),
   };
 }

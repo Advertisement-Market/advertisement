@@ -596,5 +596,29 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(patchPayload.discountNote).toBe('');
       expect(patchPayload.footfall).toBe('');
     });
+
+    it('strips leading/trailing whitespace and Unicode invisible characters from pincode and companion fields', () => {
+      const formData = mapListingToFormData(sampleDto);
+      formData.f_bbPin = ' 560001 ';
+      let patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.pincode).toBe('560001');
+
+      formData.f_bbPin = '560001\u200B';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.pincode).toBe('560001');
+
+      // Companion text padded with \u200B is sent cleaned
+      formData.f_bbType = 'OTHER';
+      formData.f_bbTypeOther = '\u200BPillar 101 Overpass\u200B';
+      formData.f_trafficType = 'other';
+      formData.f_trafficOther = '  Terminal 2 Airport Route\u200B';
+      formData.f_audience = 'other';
+      formData.f_audienceOther = '\u200BGate 4 Commuters\u200B ';
+      patchPayload = mapFormDataToPatchPayload(formData);
+
+      expect(patchPayload.typeOther).toBe('Pillar 101 Overpass');
+      expect(patchPayload.trafficTypeOther).toBe('Terminal 2 Airport Route');
+      expect(patchPayload.audienceTypeOther).toBe('Gate 4 Commuters');
+    });
   });
 });
