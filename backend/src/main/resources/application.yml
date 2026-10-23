@@ -5,6 +5,11 @@ spring:
     name: theadbasket-backend
   profiles:
     default: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 65MB
+      file-size-threshold: 2MB
   messages:
     # Error/message catalog resolved by MessageSource (see common/error/ErrorCode).
     basename: messages
@@ -101,3 +106,9 @@ app:
     enabled: [MEMBER, ADVERTISER, OWNER, AGENCY]
   auth-providers:
     enabled: [LOCAL, GOOGLE]
+  storage:
+    upload-dir: ${UPLOAD_DIR:./uploads}
+  media:
+    base-url: ${MEDIA_BASE_URL:/api/media}
+  listings:
+    moderation-required: ${LISTINGS_MODERATION_REQUIRED:true}
