@@ -216,7 +216,7 @@ public class OwnerListingService {
             throw BadRequestException.forFieldErrors(ErrorCode.VALIDATION_FAILED, fieldErrors);
         }
 
-        if (req.name() != null) listing.setName(TextUtil.blankToNull(req.name()));
+        if (req.name() != null) listing.setName(req.name().strip());
         if (typeTouched) {
             listing.setType(effType);
             listing.setTypeOther(effType != null && effType.isOther() ? TextUtil.blankToNull(effTypeOther) : null);
@@ -253,12 +253,12 @@ public class OwnerListingService {
             listing.setAddress(addr);
         }
         if (addr != null) {
-            if (req.addressLine1() != null) addr.setLine1(TextUtil.blankToNull(req.addressLine1()));
+            if (req.addressLine1() != null) addr.setLine1(req.addressLine1().strip());
             if (req.addressLine2() != null) addr.setLine2(TextUtil.blankToNull(req.addressLine2()));
             if (req.landmark() != null) addr.setLandmark(TextUtil.blankToNull(req.landmark()));
-            if (req.city() != null) addr.setCity(TextUtil.blankToNull(req.city()));
-            if (req.state() != null) addr.setState(TextUtil.blankToNull(req.state()));
-            if (req.pincode() != null) addr.setPincode(TextUtil.blankToNull(req.pincode()));
+            if (req.city() != null) addr.setCity(req.city().strip());
+            if (req.state() != null) addr.setState(req.state().strip());
+            if (req.pincode() != null) addr.setPincode(req.pincode().strip());
         }
 
         BillboardListing saved = billboardListingRepository.save(listing);

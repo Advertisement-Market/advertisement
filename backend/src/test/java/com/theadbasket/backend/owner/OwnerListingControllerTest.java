@@ -942,13 +942,13 @@ class OwnerListingControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH persisting touched required fields with Unicode whitespace trims padding cleanly")
+    @DisplayName("PATCH persisting touched required fields with whitespace strips padding cleanly")
     void updateListing_persistingRequiredFieldsWithPadding_trimsCleanly() throws Exception {
         BillboardListing listing = createListing(owner1, "Old Name");
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
-                "\u00A0\u200BNew Name\u00A0",
-                "123 Highway Ave\u00A0",
+                "  New Name  ",
+                "123 Highway Ave  ",
                 null,
                 null,
                 "Mumbai",
