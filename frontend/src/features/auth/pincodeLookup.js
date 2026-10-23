@@ -34,13 +34,15 @@ export function parsePincodeResponse(payload) {
     return { ok: false, city: '', state: '', areas: [] };
   }
   const first = offices[0];
-  const areas = [...new Set(offices.map((o) => o.Name).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  );
+  // India Post names often carry trailing spaces (e.g. "Bangalore "); trim before de-duplicating
+  // so whitespace variants collapse and the dropdown shows no stray spaces.
+  const areas = [
+    ...new Set(offices.map((o) => (o.Name ? String(o.Name).trim() : '')).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b));
   return {
     ok: true,
-    city: first.District || '',
-    state: first.State || '',
+    city: (first.District || '').trim(),
+    state: (first.State || '').trim(),
     areas,
   };
 }

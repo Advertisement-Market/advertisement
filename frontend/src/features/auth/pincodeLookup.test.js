@@ -41,6 +41,22 @@ describe('pincodeLookup', () => {
       expect(r.areas).toEqual(['Grant Road', 'Tardeo']);
     });
 
+    it('trims whitespace from names/district/state and de-duplicates trimmed localities', () => {
+      const r = parsePincodeResponse([
+        {
+          Status: 'Success',
+          PostOffice: [
+            { Name: 'Bangalore ', District: 'Bangalore ', State: ' Karnataka' },
+            { Name: 'Bangalore', District: 'Bangalore', State: 'Karnataka' },
+            { Name: 'Bangalore Bazaar', District: 'Bangalore', State: 'Karnataka' },
+          ],
+        },
+      ]);
+      expect(r.city).toBe('Bangalore');
+      expect(r.state).toBe('Karnataka');
+      expect(r.areas).toEqual(['Bangalore', 'Bangalore Bazaar']);
+    });
+
     it('returns ok:false for an error / no-records response', () => {
       expect(parsePincodeResponse([{ Status: 'Error', PostOffice: null }]).ok).toBe(false);
       expect(parsePincodeResponse([]).ok).toBe(false);
