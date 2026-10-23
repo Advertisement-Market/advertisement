@@ -3,6 +3,7 @@ import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
 import {
   useRegister,
+  usePincode,
   useFieldError,
   FieldError,
   Field,
@@ -28,18 +29,6 @@ import {
 import { AvailabilityCalendar, PricingTable, MapPin } from './calendar';
 
 const TOTAL = 7;
-
-const PINCODE_MAP = {
-  400001: 'Mumbai, Maharashtra',
-  400053: 'Mumbai, Maharashtra',
-  411001: 'Pune, Maharashtra',
-  110001: 'New Delhi, Delhi',
-  560001: 'Bengaluru, Karnataka',
-  600001: 'Chennai, Tamil Nadu',
-  700001: 'Kolkata, West Bengal',
-  380001: 'Ahmedabad, Gujarat',
-  500001: 'Hyderabad, Telangana',
-};
 
 const typeIcon = (paths) => (
   <svg
@@ -221,27 +210,6 @@ const APPROVAL = [
   { value: 'pending', text: 'No — Pending (Application submitted, awaiting approval)' },
   { value: 'na', text: 'Not Applicable (Private property, no municipal approval needed)' },
 ];
-
-function usePincode(name, cityField, stateField) {
-  const { field, setField } = useRegister();
-  const val = field(name);
-  const city = val.length === 6 ? PINCODE_MAP[val] || 'India' : '';
-  const err = useFieldError(name, [v.required(), v.pincode()]);
-  const set = (val2) => {
-    const digits = val2.replace(/\D/g, '').slice(0, 6);
-    setField(name, digits);
-  };
-  const onBlur = (e) => {
-    err.onBlur(e);
-    const match = PINCODE_MAP[val];
-    if (match && cityField && stateField) {
-      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
-      if (!field(cityField).trim() && autoCity) setField(cityField, autoCity);
-      if (!field(stateField).trim() && autoState) setField(stateField, autoState);
-    }
-  };
-  return { val, city, err, set, onBlur };
-}
 
 /* ── STEP 1 ── */
 export function Step1() {
@@ -471,7 +439,7 @@ export function Step2() {
             onChange={(e) => biz.set(e.target.value)}
             onBlur={biz.onBlur}
           />
-          <div className={cn('pincode-autofill', biz.city && 'show')}>{biz.city}</div>
+          <div className={cn('pincode-autofill', biz.status && 'show')}>{biz.status}</div>
           <FieldError show={biz.err.show} error={biz.err.error} />
         </div>
       </FormSection>
@@ -559,10 +527,35 @@ export function Step3() {
               onChange={(e) => bb.set(e.target.value)}
               onBlur={bb.onBlur}
             />
-            <div className={cn('pincode-autofill', bb.city && 'show')}>{bb.city}</div>
+            <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
             <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
         </FormRow>
+        {bb.areas.length > 0 && (
+          <FormRow>
+            <div className="form-group">
+              <label>
+                Area / Locality <span className="opt">(optional)</span>
+              </label>
+              <select
+                className="form-control"
+                value={field('f_bbArea') || ''}
+                onChange={(e) => setField('f_bbArea', e.target.value)}
+              >
+                <option value="">Select area / locality…</option>
+                {bb.areas.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+              <div className="form-hint">
+                {bb.areas.length} localities found for PIN {bb.val} (India Post).
+              </div>
+            </div>
+            <div className="form-group" />
+          </FormRow>
+        )}
       </FormSection>
 
       <FormSection title="Structure Type">
