@@ -504,7 +504,28 @@ const VideoIcon = (
 );
 
 export function ListingStep3() {
-  const { submit, submitting } = useRegister();
+  const { field, setField, submit, submitting } = useRegister();
+
+  const dayPhotos = field('f_dayPhotos') || [];
+  const nightPhotos = field('f_nightPhotos') || [];
+  const surroundingPhotos = field('f_surroundingPhotos') || [];
+  const video = field('f_video') || [];
+
+  const existingDayPhotos = field('f_existingDayPhotos') || [];
+  const existingNightPhotos = field('f_existingNightPhotos') || [];
+  const existingSurroundingPhotos = field('f_existingSurroundingPhotos') || [];
+  const existingVideo = field('f_existingVideo') || [];
+
+  const stagedDeleteIds = field('f_stagedDeleteIds') || [];
+
+  const handleRemoveExisting = (id, categoryField) => {
+    setField('f_stagedDeleteIds', [...stagedDeleteIds, id]);
+    const currentExisting = field(categoryField) || [];
+    setField(
+      categoryField,
+      currentExisting.filter((m) => m.id !== id),
+    );
+  };
 
   return (
     <div className="step-panel active">
@@ -560,48 +581,14 @@ export function ListingStep3() {
           <div
             style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal-dark)', marginBottom: 5 }}
           >
-            📋 Please read the reference guide before uploading
+            📋 Guidelines for Faster Verification
           </div>
           <div
             style={{ fontSize: 13, color: 'var(--ink-muted)', fontWeight: 400, lineHeight: 1.6 }}
           >
-            This guide explains the exact photo angles, shot types, video requirements, and examples
-            we expect from you. Following it ensures your listing gets approved faster. (Note: Media
-            file storage will be linked in Phase 3; your listing specifications and rates are saved
-            directly to your live database inventory.)
+            Upload clear, high-resolution daylight photos (at least 2 required to submit for approval).
+            All images are processed securely, downscaled to high definition, and GPS/EXIF-stripped.
           </div>
-
-          <a
-            href="#"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              marginTop: 10,
-              background: 'var(--teal)',
-              color: 'white',
-              textDecoration: 'none',
-              fontSize: 12.5,
-              fontWeight: 600,
-              padding: '8px 16px',
-              borderRadius: 8,
-            }}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            View Media Reference Guide (PDF)
-          </a>
         </div>
       </div>
 
@@ -657,20 +644,34 @@ export function ListingStep3() {
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
           title="Drag & drop day photos here"
-          sub="JPG, PNG, WEBP · Max 10MB each · Clear angle required"
-          accept="image/*"
+          sub="JPG, PNG · Max 10MB each · Clear angle required"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="DAY_PHOTO"
+          maxCount={10}
+          files={dayPhotos}
+          onChange={(files) => setField('f_dayPhotos', files)}
+          existingFiles={existingDayPhotos}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingDayPhotos')}
         />
       </FormSection>
+
       <FormSection title="Night Photos">
         <UploadZone
           sectionTitle="Night Photos"
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
           title="Drag & drop night photos here"
-          sub="JPG, PNG, WEBP · Must show actual illumination · Max 10MB"
-          accept="image/*"
+          sub="JPG, PNG · Must show actual illumination · Max 10MB"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="NIGHT_PHOTO"
+          maxCount={5}
+          files={nightPhotos}
+          onChange={(files) => setField('f_nightPhotos', files)}
+          existingFiles={existingNightPhotos}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingNightPhotos')}
         />
       </FormSection>
+
       <FormSection last title="Optional Media">
         <UploadZone
           sectionTitle="Surrounding Area Photo"
@@ -678,7 +679,13 @@ export function ListingStep3() {
           icon={GlobeIcon}
           title="Shows billboard in its surroundings"
           sub="Drag & drop or click to browse · JPG, PNG"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="SURROUNDING_PHOTO"
+          maxCount={5}
+          files={surroundingPhotos}
+          onChange={(files) => setField('f_surroundingPhotos', files)}
+          existingFiles={existingSurroundingPhotos}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingSurroundingPhotos')}
           style={{ padding: 0 }}
         />
         <UploadZone
@@ -687,9 +694,15 @@ export function ListingStep3() {
           icon={VideoIcon}
           title="Drag & drop or click to browse"
           sub="MP4, MOV · Max 100MB"
-          accept="video/*"
+          accept=".mp4,.mov,video/mp4,video/quicktime"
+          category="VIDEO"
           multiple={false}
           single
+          maxCount={1}
+          files={video}
+          onChange={(files) => setField('f_video', files)}
+          existingFiles={existingVideo}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingVideo')}
           style={{ marginBottom: 0 }}
         />
       </FormSection>

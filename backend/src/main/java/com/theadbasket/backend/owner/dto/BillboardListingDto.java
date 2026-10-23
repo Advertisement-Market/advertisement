@@ -2,9 +2,12 @@ package com.theadbasket.backend.owner.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.owner.BillboardListing;
+import com.theadbasket.backend.owner.BillboardMedia;
 
 /**
  * Payload representing a billboard inventory listing for owners and marketplace views.
@@ -34,10 +37,33 @@ public record BillboardListingDto(
         String minBookingUnit,
         Integer minBookingDays,
         String discountNote,
+        String status,
+        String rejectionReason,
+        String suspensionReason,
+        String coverPhotoUrl,
+        List<BillboardMediaDto> media,
         Instant createdAt
 ) {
     public static BillboardListingDto from(BillboardListing listing) {
+        return from(listing, "/api/media");
+    }
+
+    public static BillboardListingDto from(BillboardListing listing, String mediaBaseUrl) {
         Address addr = listing.getAddress();
+        List<BillboardMedia> mediaList = listing.getMedia();
+
+        List<BillboardMediaDto> mediaDtos = mediaList != null
+                ? mediaList.stream().map(m -> BillboardMediaDto.from(m, mediaBaseUrl)).toList()
+                : Collections.emptyList();
+
+        String coverUrl = mediaList != null
+                ? mediaList.stream()
+                        .filter(BillboardMedia::isCover)
+                        .findFirst()
+                        .map(m -> BillboardMediaDto.from(m, mediaBaseUrl).fileUrl())
+                        .orElse(null)
+                : null;
+
         return new BillboardListingDto(
                 listing.getId(),
                 listing.getName(),
@@ -63,6 +89,11 @@ public record BillboardListingDto(
                 listing.getMinBookingUnit() != null ? listing.getMinBookingUnit().name() : null,
                 listing.getMinBookingDays(),
                 listing.getDiscountNote(),
+                listing.getStatus() != null ? listing.getStatus().name() : null,
+                listing.getRejectionReason(),
+                listing.getSuspensionReason(),
+                coverUrl,
+                mediaDtos,
                 listing.getCreatedAt()
         );
     }

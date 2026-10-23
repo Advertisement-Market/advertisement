@@ -56,6 +56,19 @@ public enum ErrorCode {
     INVALID_FACING_DIRECTION("error.billboard.invalidFacing"),
     INVALID_BOOKING_DURATION_UNIT("error.billboard.invalidBookingUnit"),
 
+    // Media and Storage
+    INVALID_FILE("error.media.invalidFile"),
+    FILE_TOO_LARGE("error.media.fileTooLarge"),
+    UNSUPPORTED_MEDIA_TYPE("error.media.unsupportedType"),
+    IMAGE_DIMENSIONS_EXCEEDED("error.media.dimensionsExceeded"),
+    MEDIA_NOT_FOUND("error.media.notFound"),
+    MINIMUM_DAY_PHOTOS_REQUIRED("error.media.minDayPhotosRequired"),
+    MEDIA_CAP_EXCEEDED("error.media.capExceeded"),
+    LISTING_CAP_EXCEEDED("error.listing.capExceeded"),
+    LISTING_SUSPENDED("error.listing.suspended"),
+    INVALID_STATUS_TRANSITION("error.listing.invalidTransition"),
+    SERVICE_UNAVAILABLE("error.service.unavailable"),
+
     // Generic
     VALIDATION_FAILED("error.validation.failed"),
     INTERNAL_ERROR("error.internal");

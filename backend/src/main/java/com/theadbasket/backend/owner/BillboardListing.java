@@ -113,6 +113,20 @@ public class BillboardListing {
     @Column(name = "discount_note", length = 500)
     private String discountNote;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private BillboardStatus status = BillboardStatus.DRAFT;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
+    @jakarta.persistence.OneToMany(mappedBy = "billboard", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @jakarta.persistence.OrderBy("displayOrder ASC, createdTs ASC")
+    private java.util.List<BillboardMedia> media = new java.util.ArrayList<>();
+
     @CreatedDate
     @Column(name = "created_ts", nullable = false, updatable = false)
     private Instant createdAt;
@@ -275,5 +289,47 @@ public class BillboardListing {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public BillboardStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BillboardStatus status) {
+        this.status = status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+
+    public void setSuspensionReason(String suspensionReason) {
+        this.suspensionReason = suspensionReason;
+    }
+
+    public java.util.List<BillboardMedia> getMedia() {
+        return media;
+    }
+
+    public void setMedia(java.util.List<BillboardMedia> media) {
+        this.media = media;
+    }
+
+    public void addMedia(BillboardMedia item) {
+        media.add(item);
+        item.setBillboard(this);
+    }
+
+    public void removeMedia(BillboardMedia item) {
+        media.remove(item);
+        item.setBillboard(null);
     }
 }

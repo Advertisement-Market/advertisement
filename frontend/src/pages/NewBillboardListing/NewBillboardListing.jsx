@@ -123,6 +123,13 @@ export function validate(step, { data, showToast }) {
     if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
       return fail('Please select a valid booking duration unit.');
   }
+  if (step === 3) {
+    const existingDay = Array.isArray(data.f_existingDayPhotos) ? data.f_existingDayPhotos.length : 0;
+    const newDay = Array.isArray(data.f_dayPhotos) ? data.f_dayPhotos.length : 0;
+    if (existingDay + newDay < 2) {
+      return fail('At least 2 daylight photos are required to submit a billboard listing.');
+    }
+  }
   return true;
 }
 
@@ -214,12 +221,59 @@ export function NewBillboardListing() {
 
   const onSubmit = async ({ data }) => {
     try {
+      const stagedDeleteIds = data.f_stagedDeleteIds || [];
+      const dayPhotos = data.f_dayPhotos || [];
+      const nightPhotos = data.f_nightPhotos || [];
+      const surroundingPhotos = data.f_surroundingPhotos || [];
+      const video = data.f_video || [];
+
+      const allNewFiles = [
+        ...dayPhotos.map((f) => ({ file: f, category: 'DAY_PHOTO' })),
+        ...nightPhotos.map((f) => ({ file: f, category: 'NIGHT_PHOTO' })),
+        ...surroundingPhotos.map((f) => ({ file: f, category: 'SURROUNDING_PHOTO' })),
+        ...video.map((f) => ({ file: f, category: 'VIDEO' })),
+      ];
+
       if (isEdit) {
         const payload = mapFormDataToPatchPayload(data);
         await ownerListingApi.updateListing(id, payload);
+
+        // Synchronize media if any staged deletions or new files exist
+        if (stagedDeleteIds.length > 0 || allNewFiles.length > 0) {
+          const fileMappings = allNewFiles.map((item, idx) => ({
+            clientIndex: idx,
+            category: item.category,
+            uploadId: crypto.randomUUID(),
+          }));
+          const filesToSend = allNewFiles.map((item) => item.file);
+          const manifest = {
+            stagedDeleteIds,
+            fileMappings,
+          };
+          await ownerListingApi.syncMedia(id, manifest, filesToSend);
+        }
       } else {
         const payload = mapBillboardListing(data);
-        await ownerListingApi.createListing(payload);
+        const res = await ownerListingApi.createListing(payload);
+        const newListingId = res?.id ?? res?.data?.id;
+
+        // Upload media files if any
+        if (allNewFiles.length > 0) {
+          const fileMappings = allNewFiles.map((item, idx) => ({
+            clientIndex: idx,
+            category: item.category,
+            uploadId: crypto.randomUUID(),
+          }));
+          const filesToSend = allNewFiles.map((item) => item.file);
+          const manifest = {
+            stagedDeleteIds: [],
+            fileMappings,
+          };
+          await ownerListingApi.syncMedia(newListingId, manifest, filesToSend);
+        }
+
+        // Submit listing for moderation approval
+        await ownerListingApi.submitListing(newListingId);
       }
     } catch (err) {
       if (import.meta.env.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
