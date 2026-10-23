@@ -2268,12 +2268,11 @@ function DeleteListingModal({ listing, onClose, onConfirm }) {
 /* ════════════════════════════════════════════════════════════════════ */
 export function OwnerDashboard() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { user } = useAuth();
   const tabParam = searchParams.get('tab');
-  const [prevTab, setPrevTab] = useState(tabParam);
-  const [page, setPage] = useState(() => (VALID_TABS.includes(tabParam) ? tabParam : 'overview'));
+  const page = VALID_TABS.includes(tabParam) ? tabParam : 'overview';
   const [calData, setCalData] = useState(initCalData);
   const [userName, setUserName] = useState(() => displayName(user));
   const [listings, setListings] = useState(() => (user ? [] : import.meta.env.DEV ? LISTINGS : []));
@@ -2281,13 +2280,6 @@ export function OwnerDashboard() {
   const [modal, setModal] = useState(null); // {type, brand, listing, tender, name}
   const [refreshKey, setRefreshKey] = useState(0);
   const today = new Date().toISOString().slice(0, 10);
-
-  if (tabParam !== prevTab) {
-    setPrevTab(tabParam);
-    if (tabParam && VALID_TABS.includes(tabParam)) {
-      setPage(tabParam);
-    }
-  }
 
   const refreshListings = () => {
     setRefreshKey((k) => k + 1);
@@ -2328,7 +2320,18 @@ export function OwnerDashboard() {
 
   const closeModal = () => setModal(null);
   const nav = (p) => {
-    setPage(p);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (p === 'overview') {
+          next.delete('tab');
+        } else {
+          next.set('tab', p);
+        }
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   const handleDeleteListing = async (id) => {
