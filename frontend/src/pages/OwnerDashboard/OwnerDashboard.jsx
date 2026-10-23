@@ -1120,22 +1120,79 @@ function Listings({
                   : `₹${Number(l.startPrice).toLocaleString('en-IN')}`
                 : '₹0');
 
-            const currentStatus = l.status || 'Available';
-            const currentSc =
-              l.sc || (currentStatus === 'Available' ? 'chip-available' : 'chip-booked');
+            const statusUpper = (l.status || '').toUpperCase();
+            let statusBadge = {
+              text: l.status || 'Active',
+              bg: '#ccfbf1',
+              color: '#0f766e',
+            };
+            if (statusUpper === 'DRAFT') {
+              statusBadge = { text: 'Draft', bg: '#f1f5f9', color: '#475569' };
+            } else if (statusUpper === 'PENDING_APPROVAL') {
+              statusBadge = { text: 'Pending Review', bg: '#fef3c7', color: '#b45309' };
+            } else if (statusUpper === 'REJECTED') {
+              statusBadge = { text: 'Rejected', bg: '#fee2e2', color: '#b91c1c' };
+            } else if (statusUpper === 'SUSPENDED') {
+              statusBadge = { text: 'Suspended', bg: '#ffe4e6', color: '#be123c' };
+            } else if (statusUpper === 'ACTIVE') {
+              statusBadge = { text: 'Active', bg: '#ccfbf1', color: '#0f766e' };
+            }
 
             return (
               <div className="listing-card-full" key={l.id || l.name}>
                 <div className="lcf-header">
-                  <div className="lcf-img" style={{ background: cardColor }}>
-                    <BillboardIcon type={l.type} name={l.name} meta={meta} size={24} />
+                  <div className="lcf-img" style={{ background: cardColor, overflow: 'hidden' }}>
+                    {l.coverUrl ? (
+                      <img
+                        src={l.coverUrl}
+                        alt={l.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <BillboardIcon type={l.type} name={l.name} meta={meta} size={24} />
+                    )}
                   </div>
                   <div className="lcf-info">
                     <div className="lcf-name">{l.name}</div>
                     <div className="lcf-meta">{meta}</div>
+                    {statusUpper === 'REJECTED' && l.rejectionReason && (
+                      <div
+                        style={{
+                          fontSize: 11.5,
+                          color: '#b91c1c',
+                          marginTop: 4,
+                          fontWeight: 500,
+                        }}
+                      >
+                        ⚠️ Rejection note: {l.rejectionReason}
+                      </div>
+                    )}
+                    {statusUpper === 'SUSPENDED' && l.suspensionReason && (
+                      <div
+                        style={{
+                          fontSize: 11.5,
+                          color: '#be123c',
+                          marginTop: 4,
+                          fontWeight: 500,
+                        }}
+                      >
+                        🚫 Suspended: {l.suspensionReason}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span className={cn('chip', currentSc)}>{currentStatus}</span>
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        padding: '3px 9px',
+                        borderRadius: 6,
+                        background: statusBadge.bg,
+                        color: statusBadge.color,
+                      }}
+                    >
+                      {statusBadge.text}
+                    </span>
                     <button className="btn-ghost btn-sm" onClick={() => onEditListing(l)}>
                       Edit
                     </button>

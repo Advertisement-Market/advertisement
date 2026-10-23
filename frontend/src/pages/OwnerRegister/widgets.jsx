@@ -345,7 +345,7 @@ export function ApprovalOptions({ name, options }) {
   );
 }
 
-/* ── Photo / file upload zone with thumbnail previews ── */
+/* ── Photo / file upload zone with thumbnail previews & delete handling ── */
 export function UploadZone({
   icon,
   title,
@@ -356,28 +356,110 @@ export function UploadZone({
   badge,
   single,
   style,
+  files: controlledFiles,
+  onChange,
+  existingFiles = [],
+  onRemoveExisting,
+  onSetCover,
+  category,
+  maxCount = 10,
 }) {
   const { showToast } = useRegister();
   const inputRef = useRef(null);
-  const [files, setFiles] = useState([]);
+  const [internalFiles, setInternalFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
+
+  const isControlled = Array.isArray(controlledFiles) && typeof onChange === 'function';
+  const currentFiles = isControlled ? controlledFiles : internalFiles;
+
+  const setFiles = (updater) => {
+    if (isControlled) {
+      const next = typeof updater === 'function' ? updater(currentFiles) : updater;
+      onChange(next);
+    } else {
+      setInternalFiles(updater);
+    }
+  };
+
+  const validateFile = (file) => {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const isVideo = category === 'VIDEO' || file.type.startsWith('video/');
+
+    if (isVideo) {
+      if (!['mp4', 'mov'].includes(ext) && !['video/mp4', 'video/quicktime'].includes(file.type)) {
+        showToast(`Invalid video format for "${file.name}". Only MP4 and MOV are supported.`, 'error');
+        return false;
+      }
+      if (file.size > 100 * 1024 * 1024) {
+        showToast(`Video "${file.name}" exceeds the 100MB limit.`, 'error');
+        return false;
+      }
+      return true;
+    }
+
+    // Photo validation
+    if (['heic', 'webp', 'svg', 'gif', 'bmp'].includes(ext)) {
+      showToast(`Format .${ext} is not supported. Please upload standard JPG or PNG images.`, 'error');
+      return false;
+    }
+    if (!['jpg', 'jpeg', 'png'].includes(ext) && !['image/jpeg', 'image/png'].includes(file.type)) {
+      showToast(`Invalid image file "${file.name}". Only JPG and PNG are supported.`, 'error');
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast(`Photo "${file.name}" exceeds the 10MB limit.`, 'error');
+      return false;
+    }
+    return true;
+  };
 
   const add = (list) => {
     const arr = Array.from(list);
     if (!arr.length) return;
-    setFiles((prev) => (single ? arr.slice(0, 1) : [...prev, ...arr]));
-    showToast(`${arr.length} ${arr.length === 1 ? 'file' : 'files'} added.`, 'success');
+
+    const valid = arr.filter(validateFile);
+    if (!valid.length) return;
+
+    const currentTotal = existingFiles.length + currentFiles.length;
+    if (currentTotal >= maxCount) {
+      showToast(`Limit reached: maximum ${maxCount} files allowed.`, 'error');
+      return;
+    }
+
+    const availableSlots = maxCount - currentTotal;
+    const toAdd = single ? valid.slice(0, 1) : valid.slice(0, availableSlots);
+
+    if (toAdd.length < valid.length) {
+      showToast(`Only ${toAdd.length} file(s) added to stay within the limit of ${maxCount}.`, 'warning');
+    } else {
+      showToast(`${toAdd.length} ${toAdd.length === 1 ? 'file' : 'files'} added.`, 'success');
+    }
+
+    setFiles((prev) => (single ? toAdd : [...prev, ...toAdd]));
+  };
+
+  const removeFile = (idx) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const previews = useMemo(
     () =>
-      files.map((f) => ({
+      currentFiles.map((f) => ({
         name: f.name,
-        url: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+        size: f.size,
+        file: f,
+        url: f.type?.startsWith('image/') || /\.(jpe?g|png)$/i.test(f.name) ? URL.createObjectURL(f) : null,
       })),
-    [files],
+    [currentFiles],
   );
-  useEffect(() => () => previews.forEach((p) => p.url && URL.revokeObjectURL(p.url)), [previews]);
+
+  useEffect(() => {
+    return () => {
+      previews.forEach((p) => {
+        if (p.url) URL.revokeObjectURL(p.url);
+      });
+    };
+  }, [previews]);
 
   return (
     <div className="upload-section" style={style}>
@@ -388,7 +470,7 @@ export function UploadZone({
       )}
       <div
         className={cn('upload-zone', dragging && 'dragover')}
-        onClick={() => inputRef.current.click()}
+        onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -410,30 +492,117 @@ export function UploadZone({
         multiple={multiple}
         ref={inputRef}
         style={{ display: 'none' }}
-        onChange={(e) => add(e.target.files)}
+        onChange={(e) => {
+          add(e.target.files);
+          e.target.value = '';
+        }}
       />
-      {previews.length > 0 && (
+
+      {/* Previews: Existing files + Newly added files */}
+      {(existingFiles.length > 0 || previews.length > 0) && (
         <div
           className="upload-preview"
-          style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 14 }}
         >
-          {previews.map((p, i) => (
+          {/* 1. Existing Media from DB */}
+          {existingFiles.map((item) => (
             <div
-              key={i}
+              key={`existing-${item.id}`}
               style={{
-                width: 78,
-                height: 78,
+                position: 'relative',
+                width: 84,
+                height: 84,
                 borderRadius: 10,
                 overflow: 'hidden',
-                border: '1px solid var(--border-medium)',
-                background: 'var(--cream-warm)',
+                border: item.isCover ? '2px solid var(--teal, #0d9488)' : '1px solid var(--border-medium, #cbd5e1)',
+                background: 'var(--cream-warm, #f8fafc)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 10,
-                color: 'var(--ink-faint)',
-                padding: 4,
-                textAlign: 'center',
+                color: 'var(--ink-faint, #64748b)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              }}
+            >
+              {item.url ? (
+                <img
+                  src={item.url}
+                  alt={item.originalName || 'Listing photo'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <span style={{ padding: 4, textAlign: 'center' }}>{item.originalName || 'Media'}</span>
+              )}
+              {item.isCover && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 3,
+                    left: 3,
+                    background: 'var(--teal, #0d9488)',
+                    color: '#fff',
+                    fontSize: 8.5,
+                    fontWeight: 700,
+                    padding: '1.5px 5px',
+                    borderRadius: 4,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  COVER
+                </div>
+              )}
+              {onRemoveExisting && (
+                <button
+                  type="button"
+                  title="Remove this photo"
+                  aria-label="Remove photo"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveExisting(item.id);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    right: 3,
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.9)',
+                    color: '#fff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+
+          {/* 2. Newly Added Files */}
+          {previews.map((p, i) => (
+            <div
+              key={`new-${i}`}
+              style={{
+                position: 'relative',
+                width: 84,
+                height: 84,
+                borderRadius: 10,
+                overflow: 'hidden',
+                border: '1px solid var(--border-medium, #cbd5e1)',
+                background: 'var(--cream-warm, #f8fafc)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+                color: 'var(--ink-faint, #64748b)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
               }}
             >
               {p.url ? (
@@ -443,8 +612,51 @@ export function UploadZone({
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                p.name
+                <span style={{ padding: 4, textAlign: 'center', wordBreak: 'break-all' }}>{p.name}</span>
               )}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 3,
+                  left: 3,
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  color: '#fff',
+                  fontSize: 8.5,
+                  padding: '1.5px 4px',
+                  borderRadius: 3,
+                }}
+              >
+                NEW
+              </div>
+              <button
+                type="button"
+                title="Remove this file"
+                aria-label="Remove file"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeFile(i);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 3,
+                  right: 3,
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: 'rgba(239, 68, 68, 0.9)',
+                  color: '#fff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                }}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>

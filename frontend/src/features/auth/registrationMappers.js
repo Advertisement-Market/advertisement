@@ -392,6 +392,15 @@ export function mapListingToFormData(dto) {
           : 1,
     f_minBookingUnit: dto.minBookingUnit || dto.f_minBookingUnit || 'MONTHS',
     f_discountNote: dto.discountNote ?? dto.f_discountNote ?? '',
+    f_dayPhotos: [],
+    f_nightPhotos: [],
+    f_surroundingPhotos: [],
+    f_video: [],
+    f_existingDayPhotos: (dto.media ?? []).filter((m) => m.category === 'DAY_PHOTO'),
+    f_existingNightPhotos: (dto.media ?? []).filter((m) => m.category === 'NIGHT_PHOTO'),
+    f_existingSurroundingPhotos: (dto.media ?? []).filter((m) => m.category === 'SURROUNDING_PHOTO'),
+    f_existingVideo: (dto.media ?? []).filter((m) => m.category === 'VIDEO'),
+    f_stagedDeleteIds: [],
   };
 }
 
