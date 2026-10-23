@@ -11,7 +11,13 @@ import {
   StepHeader,
   RegNav,
 } from '@/features/register';
-import { TypeGrid, SelectWithOther, UploadZone } from '../OwnerRegister/widgets';
+import {
+  TypeGrid,
+  SelectWithOther,
+  UploadZone,
+  MinBookingInput,
+  BOOKING_DURATION_UNITS,
+} from '../OwnerRegister/widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from '../OwnerRegister/calendar';
 
 const TOTAL = 3;
@@ -154,58 +160,6 @@ const AUDIENCE = [
   'Mixed',
   { value: 'other', label: 'Other' },
 ];
-
-const BOOKING_DURATION_UNITS = [
-  { value: 'DAYS', label: 'Days' },
-  { value: 'WEEKS', label: 'Weeks' },
-  { value: 'MONTHS', label: 'Months' },
-];
-
-function MinBookingInput() {
-  const { field, setField } = useRegister();
-  const value = field('f_minBookingValue') ?? '';
-  const unit = field('f_minBookingUnit') || 'MONTHS';
-  const { error, show, invalidClass, onBlur } = useFieldError('f_minBookingValue', [
-    v.required('Please enter a minimum booking duration.'),
-    v.range(1, 1000, 'Must be at least 1.'),
-  ]);
-
-  return (
-    <div className="form-group">
-      <FieldLabel label="Minimum Booking Duration" required />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          className={cn('form-control', invalidClass)}
-          style={{ flex: 1, minWidth: 0 }}
-          placeholder="1"
-          value={value}
-          onChange={(e) => setField('f_minBookingValue', e.target.value)}
-          onBlur={onBlur}
-        />
-        <select
-          className="form-control"
-          style={{ flex: 1.2, minWidth: 0 }}
-          value={unit}
-          onChange={(e) => setField('f_minBookingUnit', e.target.value)}
-        >
-          {BOOKING_DURATION_UNITS.map((u) => (
-            <option key={u.value} value={u.value}>
-              {u.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {show ? (
-        <FieldError show={show} error={error} />
-      ) : (
-        <div className="form-hint">E.g., 15 Days, 2 Weeks, or 1 Month</div>
-      )}
-    </div>
-  );
-}
 
 function usePincode(name, cityField, stateField) {
   const { field, setField } = useRegister();

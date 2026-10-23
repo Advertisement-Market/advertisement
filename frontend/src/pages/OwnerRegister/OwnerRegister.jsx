@@ -107,8 +107,14 @@ function validate(step, { data, showToast, user }) {
       return fail('Please describe the audience type.');
   }
   if (step === 4) {
-    if (!d('f_startPrice')) return fail('Please enter a starting price.');
-    if (!d('f_minBooking')) return fail('Please select a minimum booking duration.');
+    if (!d('f_startPrice') || Number(d('f_startPrice')) <= 0)
+      return fail('Please enter a starting price.');
+    const minVal = d('f_minBookingValue') ?? (d('f_minBooking') ? 1 : null);
+    if (!minVal || Number(minVal) <= 0)
+      return fail('Please enter a valid minimum booking duration.');
+    const minUnit = d('f_minBookingUnit') || 'MONTHS';
+    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
+      return fail('Please select a valid booking duration unit.');
   }
   return true;
 }
@@ -143,14 +149,18 @@ function WizardBody() {
 
 export function OwnerRegister() {
   const { registerOwner, user } = useAuth();
-  const prefill = user
-    ? {
-        f_email: user.email,
-        f_firstName: user.firstName || '',
-        f_lastName: user.lastName || '',
-        f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
-      }
-    : {};
+  const prefill = {
+    f_minBookingValue: 1,
+    f_minBookingUnit: 'MONTHS',
+    ...(user
+      ? {
+          f_email: user.email,
+          f_firstName: user.firstName || '',
+          f_lastName: user.lastName || '',
+          f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
+        }
+      : {}),
+  };
   const onSubmit = async ({ data }) => {
     try {
       await registerOwner(mapOwner(data));

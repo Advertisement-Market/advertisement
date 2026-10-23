@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { mapAdvertiser, mapOwner, mapAgency, mapBillboardListing } from './registrationMappers';
+import {
+  mapAdvertiser,
+  mapOwner,
+  mapAgency,
+  mapBillboardListing,
+  mapListingToFormData,
+  mapFormDataToPatchPayload,
+} from './registrationMappers';
 
 describe('registrationMappers - Address and Payload Structure', () => {
   describe('mapAdvertiser', () => {
@@ -471,6 +478,147 @@ describe('registrationMappers - Address and Payload Structure', () => {
 
       expect(result.minBookingValue).toBe(15);
       expect(result.minBookingUnit).toBe('DAYS');
+    });
+  });
+
+  describe('mapListingToFormData & mapFormDataToPatchPayload (Round-Trip Parity)', () => {
+    const sampleDto = {
+      id: 42,
+      name: 'Highway Prime Hoarding',
+      addressLine1: 'NH 48 KM Marker 45',
+      addressLine2: 'Plot 12-A',
+      landmark: 'Near Milestone Hotel',
+      city: 'Pune',
+      state: 'Maharashtra',
+      pincode: '411001',
+      type: 'STATIC_HOARDING',
+      typeOther: null,
+      widthFt: 40.0,
+      heightFt: 20.0,
+      groundHeightFt: 15.0,
+      facing: 'NORTH_EAST',
+      trafficType: 'HIGHWAY',
+      trafficTypeOther: null,
+      audienceType: 'HIGHWAY_TRAVELERS',
+      audienceTypeOther: null,
+      footfall: '85,000/day',
+      startPrice: 450000.0,
+      minBookingValue: 2,
+      minBookingUnit: 'WEEKS',
+      minBookingDays: 14,
+      discountNote: '10% on quarterly booking',
+    };
+
+    it('reproduces all 22 persisted fields in a full round-trip (DTO -> Form -> PATCH)', () => {
+      const formData = mapListingToFormData(sampleDto);
+
+      // Verify formData mapped properly
+      expect(formData.f_bbName).toBe('Highway Prime Hoarding');
+      expect(formData.f_facing).toBe('North-East');
+      expect(formData.f_trafficType).toBe('Highway');
+      expect(formData.f_audience).toBe('Highway Travelers');
+      expect(formData.f_minBookingValue).toBe(2);
+      expect(formData.f_minBookingUnit).toBe('WEEKS');
+
+      // Round-trip to patch payload
+      const patchPayload = mapFormDataToPatchPayload(formData);
+
+      // Required fields: strict exact equality
+      expect(patchPayload.name).toBe(sampleDto.name);
+      expect(patchPayload.addressLine1).toBe(sampleDto.addressLine1);
+      expect(patchPayload.city).toBe(sampleDto.city);
+      expect(patchPayload.state).toBe(sampleDto.state);
+      expect(patchPayload.pincode).toBe(sampleDto.pincode);
+      expect(patchPayload.type).toBe(sampleDto.type);
+      expect(patchPayload.widthFt).toBe(sampleDto.widthFt);
+      expect(patchPayload.heightFt).toBe(sampleDto.heightFt);
+      expect(patchPayload.groundHeightFt).toBe(sampleDto.groundHeightFt);
+      expect(patchPayload.facing).toBe(sampleDto.facing);
+      expect(patchPayload.trafficType).toBe(sampleDto.trafficType);
+      expect(patchPayload.audienceType).toBe(sampleDto.audienceType);
+      expect(patchPayload.startPrice).toBe(sampleDto.startPrice);
+      expect(patchPayload.minBookingValue).toBe(sampleDto.minBookingValue);
+      expect(patchPayload.minBookingUnit).toBe(sampleDto.minBookingUnit);
+
+      // Optional text fields: null vs "" equivalence
+      expect(patchPayload.addressLine2).toBe(sampleDto.addressLine2);
+      expect(patchPayload.landmark).toBe(sampleDto.landmark);
+      expect(patchPayload.discountNote).toBe(sampleDto.discountNote);
+      expect(patchPayload.footfall).toBe(sampleDto.footfall);
+
+      // Companion text when not OTHER must be null
+      expect(patchPayload.typeOther).toBeNull();
+      expect(patchPayload.trafficTypeOther).toBeNull();
+      expect(patchPayload.audienceTypeOther).toBeNull();
+    });
+
+    it('round-trips OTHER with alphanumeric companion descriptions preserving digits', () => {
+      const otherDto = {
+        ...sampleDto,
+        type: 'OTHER',
+        typeOther: 'Pillar 101 Overpass',
+        trafficType: 'OTHER',
+        trafficTypeOther: 'Terminal 2 Airport Route',
+        audienceType: 'OTHER',
+        audienceTypeOther: 'Gate 4 Commuters & Tech 24/7',
+      };
+
+      const formData = mapListingToFormData(otherDto);
+      expect(formData.f_bbType).toBe('OTHER');
+      expect(formData.f_bbTypeOther).toBe('Pillar 101 Overpass');
+      expect(formData.f_trafficType).toBe('other');
+      expect(formData.f_trafficOther).toBe('Terminal 2 Airport Route');
+      expect(formData.f_audience).toBe('other');
+      expect(formData.f_audienceOther).toBe('Gate 4 Commuters & Tech 24/7');
+
+      const patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.type).toBe('OTHER');
+      expect(patchPayload.typeOther).toBe('Pillar 101 Overpass');
+      expect(patchPayload.trafficType).toBe('OTHER');
+      expect(patchPayload.trafficTypeOther).toBe('Terminal 2 Airport Route');
+      expect(patchPayload.audienceType).toBe('OTHER');
+      expect(patchPayload.audienceTypeOther).toBe('Gate 4 Commuters & Tech 24/7');
+    });
+
+    it('clearing optional fields transmits empty string "" so the backend clears them', () => {
+      const formData = mapListingToFormData(sampleDto);
+
+      // User clears optional fields
+      formData.f_bbAddr2 = '   ';
+      formData.f_bbLandmark = '';
+      formData.f_discountNote = '';
+      formData.f_footfall = '  ';
+
+      const patchPayload = mapFormDataToPatchPayload(formData);
+
+      expect(patchPayload.addressLine2).toBe('');
+      expect(patchPayload.landmark).toBe('');
+      expect(patchPayload.discountNote).toBe('');
+      expect(patchPayload.footfall).toBe('');
+    });
+
+    it('strips leading/trailing whitespace and Unicode invisible characters from pincode and companion fields', () => {
+      const formData = mapListingToFormData(sampleDto);
+      formData.f_bbPin = ' 560001 ';
+      let patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.pincode).toBe('560001');
+
+      formData.f_bbPin = '560001\u200B';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.pincode).toBe('560001');
+
+      // Companion text padded with \u200B is sent cleaned
+      formData.f_bbType = 'OTHER';
+      formData.f_bbTypeOther = '\u200BPillar 101 Overpass\u200B';
+      formData.f_trafficType = 'other';
+      formData.f_trafficOther = '  Terminal 2 Airport Route\u200B';
+      formData.f_audience = 'other';
+      formData.f_audienceOther = '\u200BGate 4 Commuters\u200B ';
+      patchPayload = mapFormDataToPatchPayload(formData);
+
+      expect(patchPayload.typeOther).toBe('Pillar 101 Overpass');
+      expect(patchPayload.trafficTypeOther).toBe('Terminal 2 Airport Route');
+      expect(patchPayload.audienceTypeOther).toBe('Gate 4 Commuters');
     });
   });
 });

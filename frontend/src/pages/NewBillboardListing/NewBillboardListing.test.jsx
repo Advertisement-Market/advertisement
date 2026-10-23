@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS } from './steps';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS } from '../OwnerRegister/steps';
-import { validate } from './NewBillboardListing';
+import { validate, NewBillboardListing } from './NewBillboardListing';
+import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { ROUTES } from '@/lib/routes';
 
 /**
  * Cross-stack canonical parity code list.
@@ -116,6 +120,340 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       const isValid = validate(1, { data, showToast });
       expect(isValid).toBe(true);
       expect(showToast).not.toHaveBeenCalled();
+    });
+
+    it('validates 6-digit pincode starting with 1-9 and trims whitespace', () => {
+      const showToast = vi.fn();
+      // Valid pincode with whitespace
+      expect(validate(1, { data: { ...validBaseData, f_bbPin: ' 400001 ' }, showToast })).toBe(
+        true,
+      );
+
+      // Starting with 0 fails
+      expect(validate(1, { data: { ...validBaseData, f_bbPin: '012345' }, showToast })).toBe(false);
+      expect(showToast).toHaveBeenCalledWith(
+        'Please enter a valid 6-digit billboard pincode.',
+        'error',
+      );
+
+      // 5 digits fails
+      expect(validate(1, { data: { ...validBaseData, f_bbPin: '40000' }, showToast })).toBe(false);
+
+      // Non-digits fail
+      expect(validate(1, { data: { ...validBaseData, f_bbPin: '40000a' }, showToast })).toBe(false);
+    });
+  });
+
+  describe('NewBillboardListing Component Lifecycle & Edit Mode', () => {
+    afterEach(() => {
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('redirects to dashboard when listing ID is not numeric', async () => {
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/not-a-number/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+            <Route
+              path="/owners/dashboard"
+              element={<div data-testid="dashboard-page">Dashboard</div>}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-page')).toBeDefined();
+      });
+    });
+
+    it('fetches listing and pre-fills form in edit mode', async () => {
+      const mockListing = {
+        id: 42,
+        name: 'Bandra Reclamation Unipole',
+        address: 'Bandra West',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400050',
+        type: 'UNIPOLE',
+        widthFt: 40,
+        heightFt: 20,
+        facing: 'WEST',
+        trafficType: 'VEHICULAR',
+        audienceType: 'COMMUTERS',
+        startPrice: 200000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      const getListingSpy = vi
+        .spyOn(ownerListingApi, 'getListing')
+        .mockResolvedValueOnce(mockListing);
+
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/42/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+        expect(screen.getByDisplayValue('Bandra Reclamation Unipole')).toBeDefined();
+      });
+
+      expect(getListingSpy).toHaveBeenCalledWith(
+        '42',
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }),
+      );
+    });
+
+    it('redirects to dashboard when getListing rejects with an error', async () => {
+      vi.spyOn(ownerListingApi, 'getListing').mockRejectedValueOnce(new Error('Server error'));
+
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/99/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+            <Route
+              path="/owners/dashboard"
+              element={<div data-testid="dashboard-page">Dashboard</div>}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-page')).toBeDefined();
+      });
+    });
+
+    it('ignores aborted/canceled requests without redirecting to dashboard', async () => {
+      const canceledError = new Error('Request canceled');
+      canceledError.name = 'CanceledError';
+      vi.spyOn(ownerListingApi, 'getListing').mockRejectedValueOnce(canceledError);
+
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/99/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+            <Route
+              path="/owners/dashboard"
+              element={<div data-testid="dashboard-page">Dashboard</div>}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('listing-loading')).toBeDefined();
+      });
+
+      // Dashboard should NOT be rendered
+      expect(screen.queryByTestId('dashboard-page')).toBeNull();
+    });
+
+    it('falls back to mock listing in dev mode when getListing fails', async () => {
+      vi.spyOn(ownerListingApi, 'getListing').mockRejectedValueOnce(new Error('Network error'));
+
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/1/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+        expect(screen.getByDisplayValue('BKC LED Screen')).toBeDefined();
+        expect(screen.getByDisplayValue('Plot C-59, G Block, Bandra Kurla Complex')).toBeDefined();
+      });
+    });
+
+    it('pre-fills form immediately from location.state.listing', async () => {
+      const stateListing = {
+        id: 77,
+        name: 'Worli Sea Link Digital',
+        addressLine1: 'Worli Sea Face Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400018',
+        type: 'LED_DIGITAL',
+        widthFt: 50,
+        heightFt: 25,
+        facing: 'North',
+        trafficType: 'Highway',
+        audienceType: 'Commuters',
+        startPrice: 750000,
+        minBookingValue: 3,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/77/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+        expect(screen.getByDisplayValue('Worli Sea Link Digital')).toBeDefined();
+        expect(screen.getByDisplayValue('Worli Sea Face Road')).toBeDefined();
+        expect(screen.getByDisplayValue('400018')).toBeDefined();
+        expect(screen.getByDisplayValue('50')).toBeDefined();
+        expect(screen.getByDisplayValue('25')).toBeDefined();
+      });
+    });
+
+    it('displays acknowledgement success screen and Back to Dashboard button on submit', async () => {
+      const stateListing = {
+        id: 88,
+        name: 'Juhu Tara Road Unipole',
+        addressLine1: 'Near Juhu Beach',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400049',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 350000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 88 });
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/88/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      // Should display acknowledgement success screen without white screen
+      await waitFor(() => {
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(
+          screen.getByText('Your billboard listing has been successfully updated.'),
+        ).toBeDefined();
+        expect(screen.getByText('Changes saved')).toBeDefined();
+        expect(screen.getByText('Marketplace updated')).toBeDefined();
+        const dashboardBtn = screen.getByRole('link', { name: /back to dashboard/i });
+        expect(dashboardBtn).toBeDefined();
+        expect(dashboardBtn.getAttribute('href')).toBe('/owners/dashboard?tab=listings');
+      });
+    });
+
+    it('propagates network errors on submit and does not display success screen', async () => {
+      const stateListing = {
+        id: 99,
+        name: 'Andheri West Screen',
+        addressLine1: 'SV Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400058',
+        type: 'LED_DIGITAL',
+        widthFt: 20,
+        heightFt: 10,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 200000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      const networkError = new Error('Network Error');
+      vi.spyOn(ownerListingApi, 'updateListing').mockRejectedValueOnce(networkError);
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/99/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      // Network error must NOT be swallowed: success screen should not render
+      await waitFor(() => {
+        expect(screen.queryByText('Billboard Updated!')).toBeNull();
+      });
     });
   });
 });

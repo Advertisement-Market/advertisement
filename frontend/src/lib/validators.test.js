@@ -10,6 +10,7 @@ import {
   isOther,
   isBlank,
   isNotBlank,
+  cleanText,
 } from './validators';
 
 describe('Frontend Field Validators', () => {
@@ -74,5 +75,17 @@ describe('Frontend Field Validators', () => {
     expect(isBlank('  Skywalk \u200B ')).toBe(false);
     expect(isNotBlank('Skywalk')).toBe(true);
     expect(isNotBlank('\u200B')).toBe(false);
+  });
+
+  it('strips leading and trailing whitespace and invisible Unicode characters with cleanText', () => {
+    expect(cleanText(null)).toBe('');
+    expect(cleanText(undefined)).toBe('');
+    expect(cleanText('')).toBe('');
+    expect(cleanText('   ')).toBe('');
+    expect(cleanText('\u200B')).toBe('');
+    expect(cleanText('  560001  ')).toBe('560001');
+    expect(cleanText('560001\u200B')).toBe('560001');
+    expect(cleanText('\u200B560001\u200B')).toBe('560001');
+    expect(cleanText(' \u00A0\u200C Special Landmark \u200D\uFEFF ')).toBe('Special Landmark');
   });
 });

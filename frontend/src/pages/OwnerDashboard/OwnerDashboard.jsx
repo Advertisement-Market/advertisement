@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
@@ -29,9 +29,8 @@ import {
   DAY_NAMES,
   initCalData,
   dayKey,
-  DEFAULT_BILLBOARD_TYPES,
-  resolveInitialType,
   formatBillboardType,
+  VALID_TABS,
 } from './data';
 import './OwnerDashboard.css';
 
@@ -2231,436 +2230,6 @@ function Modal({ title, onClose, children, footer }) {
   );
 }
 
-const resolveInitialUnit = (unit) => {
-  const u = String(unit || '').toUpperCase();
-  return ['DAYS', 'WEEKS', 'MONTHS'].includes(u) ? u : 'MONTHS';
-};
-
-function ListingFormModal({ title, initialData, onClose, onSave, isEdit = false }) {
-  const [typeOptions, setTypeOptions] = useState(DEFAULT_BILLBOARD_TYPES);
-
-  useEffect(() => {
-    let isMounted = true;
-    ownerListingApi
-      .getBillboardTypes()
-      .then((data) => {
-        if (isMounted && Array.isArray(data) && data.length > 0) {
-          setTypeOptions(data);
-        }
-      })
-      .catch(() => {
-        // Fallback silently to DEFAULT_BILLBOARD_TYPES
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const initialType = resolveInitialType(initialData?.type);
-  const initialTypeOther =
-    initialData?.typeOther ||
-    (String(initialData?.type || '').toLowerCase() === 'skywalk' ? 'Skywalk' : '');
-
-  const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    type: initialType,
-    typeOther: initialTypeOther,
-    widthFt: initialData?.widthFt || '',
-    heightFt: initialData?.heightFt || '',
-    groundHeightFt: initialData?.groundHeightFt || '',
-    facing: initialData?.facing || 'North',
-    trafficType: initialData?.trafficType || 'City / Urban',
-    trafficTypeOther: initialData?.trafficTypeOther || '',
-    audienceType: initialData?.audienceType || 'Commuters',
-    audienceTypeOther: initialData?.audienceTypeOther || '',
-    footfall: initialData?.footfall || '',
-    startPrice: initialData?.startPrice || '',
-    minBookingValue: initialData?.minBookingValue ?? 1,
-    minBookingUnit: resolveInitialUnit(initialData?.minBookingUnit),
-    discountNote: initialData?.discountNote || '',
-    addressLine1: initialData?.addressLine1 || '',
-    addressLine2: initialData?.addressLine2 || '',
-    landmark: initialData?.landmark || '',
-    city: initialData?.city || 'Mumbai',
-    state: initialData?.state || 'Maharashtra',
-    pincode: initialData?.pincode || '',
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleChange = (field, val) => {
-    setFormData((prev) => ({ ...prev, [field]: val }));
-    if (error) setError('');
-  };
-
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!formData.name?.trim()) {
-      setError('Billboard name is required.');
-      return;
-    }
-    if (!formData.type?.trim()) {
-      setError('Billboard format / type is required.');
-      return;
-    }
-    if (formData.type === 'OTHER' && !formData.typeOther?.trim()) {
-      setError('Please specify the billboard type when "Other" is selected.');
-      return;
-    }
-    if (!formData.addressLine1?.trim()) {
-      setError('Address line 1 is required.');
-      return;
-    }
-    if (!formData.city?.trim()) {
-      setError('City is required.');
-      return;
-    }
-    if (!formData.state?.trim()) {
-      setError('State is required.');
-      return;
-    }
-    if (!formData.pincode?.trim() || !/^\d{6}$/.test(formData.pincode.trim())) {
-      setError('Valid 6-digit PIN code is required.');
-      return;
-    }
-    if (!formData.widthFt || Number(formData.widthFt) <= 0) {
-      setError('Width must be a positive number.');
-      return;
-    }
-    if (!formData.heightFt || Number(formData.heightFt) <= 0) {
-      setError('Height must be a positive number.');
-      return;
-    }
-    if (!formData.startPrice || Number(formData.startPrice) <= 0) {
-      setError('Starting price must be a positive number.');
-      return;
-    }
-    if (!formData.minBookingValue || Number(formData.minBookingValue) <= 0) {
-      setError('Minimum booking duration must be a positive number.');
-      return;
-    }
-    if (Number(formData.minBookingValue) > 1000) {
-      setError('Minimum booking duration cannot exceed 1,000.');
-      return;
-    }
-    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(formData.minBookingUnit)) {
-      setError('Please select a valid booking duration unit.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        name: formData.name.trim(),
-        type: formData.type.trim(),
-        typeOther: formData.type === 'OTHER' ? formData.typeOther?.trim() || null : null,
-        widthFt: Number(formData.widthFt),
-        heightFt: Number(formData.heightFt),
-        groundHeightFt: formData.groundHeightFt ? Number(formData.groundHeightFt) : null,
-        facing: formData.facing.trim(),
-        trafficType: formData.trafficType.trim(),
-        trafficTypeOther: formData.trafficTypeOther?.trim() || null,
-        audienceType: formData.audienceType.trim(),
-        audienceTypeOther: formData.audienceTypeOther?.trim() || null,
-        footfall: formData.footfall?.trim() || null,
-        startPrice: Number(formData.startPrice),
-        minBookingValue: Math.round(Number(formData.minBookingValue)),
-        minBookingUnit: formData.minBookingUnit,
-        discountNote: formData.discountNote?.trim() || null,
-        addressLine1: formData.addressLine1.trim(),
-        addressLine2: formData.addressLine2?.trim() || null,
-        landmark: formData.landmark?.trim() || null,
-        city: formData.city.trim(),
-        state: formData.state.trim(),
-        pincode: formData.pincode.trim(),
-      };
-      await onSave(payload);
-      onClose();
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to save billboard listing.'));
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Modal
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button className="btn-ghost" onClick={onClose} disabled={submitting}>
-            Cancel
-          </button>
-          <button className="btn-teal" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Listing'}
-          </button>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit}>
-        {error && (
-          <div style={{ color: 'var(--rose)', fontSize: 13, marginBottom: 14, fontWeight: 500 }}>
-            {error}
-          </div>
-        )}
-        <div className="form-row">
-          <div className="form-group">
-            <label>Billboard Name *</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="e.g. BKC Highway Prime LED"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Format / Type *</label>
-            <select
-              className="form-control"
-              value={formData.type}
-              onChange={(e) => handleChange('type', e.target.value)}
-            >
-              {typeOptions.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {formData.type === 'OTHER' && (
-          <div className="form-row">
-            <div className="form-group">
-              <label>Specify Billboard Type *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.typeOther}
-                onChange={(e) => handleChange('typeOther', e.target.value)}
-                placeholder="e.g. Bridge Panel, Skywalk, Pillar"
-                required
-              />
-            </div>
-          </div>
-        )}
-        <div className="form-row">
-          <div className="form-group">
-            <label>Width (ft) *</label>
-            <input
-              type="number"
-              step="0.1"
-              className="form-control"
-              value={formData.widthFt}
-              onChange={(e) => handleChange('widthFt', e.target.value)}
-              placeholder="40"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Height (ft) *</label>
-            <input
-              type="number"
-              step="0.1"
-              className="form-control"
-              value={formData.heightFt}
-              onChange={(e) => handleChange('heightFt', e.target.value)}
-              placeholder="20"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Ground Height (ft)</label>
-            <input
-              type="number"
-              step="0.1"
-              className="form-control"
-              value={formData.groundHeightFt}
-              onChange={(e) => handleChange('groundHeightFt', e.target.value)}
-              placeholder="10"
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Facing Direction *</label>
-            <select
-              className="form-control"
-              value={formData.facing}
-              onChange={(e) => handleChange('facing', e.target.value)}
-            >
-              <option>North</option>
-              <option>South</option>
-              <option>East</option>
-              <option>West</option>
-              <option>North-East</option>
-              <option>North-West</option>
-              <option>South-East</option>
-              <option>South-West</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Traffic Type *</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.trafficType}
-              onChange={(e) => handleChange('trafficType', e.target.value)}
-              placeholder="e.g. Vehicular & Pedestrian"
-              required
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Audience Type *</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.audienceType}
-              onChange={(e) => handleChange('audienceType', e.target.value)}
-              placeholder="e.g. Commuters, Shoppers, Tech Pros"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Daily Footfall</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.footfall}
-              onChange={(e) => handleChange('footfall', e.target.value)}
-              placeholder="e.g. 50,000/day"
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Monthly Starting Rate (₹) *</label>
-            <input
-              type="number"
-              className="form-control"
-              value={formData.startPrice}
-              onChange={(e) => handleChange('startPrice', e.target.value)}
-              placeholder="e.g. 350000"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Min Booking Duration *</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="number"
-                min="1"
-                max="1000"
-                step="1"
-                className="form-control"
-                style={{ flex: 1, minWidth: 0 }}
-                value={formData.minBookingValue}
-                onChange={(e) => handleChange('minBookingValue', e.target.value)}
-                placeholder="1"
-                required
-              />
-              <select
-                className="form-control"
-                style={{ flex: 1.2, minWidth: 0 }}
-                value={formData.minBookingUnit}
-                onChange={(e) => handleChange('minBookingUnit', e.target.value)}
-              >
-                <option value="DAYS">Days</option>
-                <option value="WEEKS">Weeks</option>
-                <option value="MONTHS">Months</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="form-group">
-          <label>Discount Note</label>
-          <input
-            type="text"
-            className="form-control"
-            value={formData.discountNote}
-            onChange={(e) => handleChange('discountNote', e.target.value)}
-            placeholder="e.g. 10% off on 6+ month campaigns"
-          />
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Address Line 1 *</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.addressLine1}
-              onChange={(e) => handleChange('addressLine1', e.target.value)}
-              placeholder="e.g. Plot C-59, G Block"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Address Line 2</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.addressLine2}
-              onChange={(e) => handleChange('addressLine2', e.target.value)}
-              placeholder="e.g. Bandra Kurla Complex"
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Landmark</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.landmark}
-              onChange={(e) => handleChange('landmark', e.target.value)}
-              placeholder="e.g. Opp. ICICI Towers"
-            />
-          </div>
-          <div className="form-group">
-            <label>City *</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.city}
-              onChange={(e) => handleChange('city', e.target.value)}
-              placeholder="e.g. Mumbai"
-              required
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>State *</label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.state}
-              onChange={(e) => handleChange('state', e.target.value)}
-              placeholder="e.g. Maharashtra"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>PIN Code *</label>
-            <input
-              type="text"
-              maxLength={6}
-              className="form-control"
-              value={formData.pincode}
-              onChange={(e) => handleChange('pincode', e.target.value)}
-              placeholder="400051"
-              required
-            />
-          </div>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
 function DeleteListingModal({ listing, onClose, onConfirm }) {
   const [submitting, setSubmitting] = useState(false);
   const handleDelete = async () => {
@@ -2699,9 +2268,11 @@ function DeleteListingModal({ listing, onClose, onConfirm }) {
 /* ════════════════════════════════════════════════════════════════════ */
 export function OwnerDashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const [page, setPage] = useState('overview');
+  const tabParam = searchParams.get('tab');
+  const page = VALID_TABS.includes(tabParam) ? tabParam : 'overview';
   const [calData, setCalData] = useState(initCalData);
   const [userName, setUserName] = useState(() => displayName(user));
   const [listings, setListings] = useState(() => (user ? [] : import.meta.env.DEV ? LISTINGS : []));
@@ -2749,21 +2320,18 @@ export function OwnerDashboard() {
 
   const closeModal = () => setModal(null);
   const nav = (p) => {
-    setPage(p);
-  };
-  const handleUpdateListing = async (payload) => {
-    if (user && modal?.listing?.id) {
-      await ownerListingApi.updateListing(modal.listing.id, payload);
-      showToast('Billboard listing updated successfully!', 'success');
-      refreshListings();
-    } else {
-      setListings((prev) =>
-        prev.map((l) =>
-          l.id === modal.listing?.id || l.name === modal.listing?.name ? { ...l, ...payload } : l,
-        ),
-      );
-      showToast('Billboard listing updated successfully!', 'success');
-    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (p === 'overview') {
+          next.delete('tab');
+        } else {
+          next.set('tab', p);
+        }
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   const handleDeleteListing = async (id) => {
@@ -2798,7 +2366,11 @@ export function OwnerDashboard() {
             listings={listings}
             loading={loadingListings}
             onAddListing={() => navigate(ROUTES.newBillboardListing)}
-            onEditListing={(listing) => setModal({ type: 'editListing', listing })}
+            onEditListing={(listing) => {
+              if (listing?.id) {
+                navigate(ROUTES.editBillboardListing(listing.id), { state: { listing } });
+              }
+            }}
             onDeleteListing={(listing) => setModal({ type: 'deleteListing', listing })}
           />
         )}
@@ -2812,16 +2384,6 @@ export function OwnerDashboard() {
         {page === 'analytics' && <AnalyticsPage />}
         {page === 'settings' && <SettingsPage onSaveName={setUserName} />}
       </div>
-
-      {modal?.type === 'editListing' && (
-        <ListingFormModal
-          title="Edit Billboard Listing"
-          initialData={modal.listing}
-          isEdit
-          onClose={closeModal}
-          onSave={handleUpdateListing}
-        />
-      )}
       {modal?.type === 'deleteListing' && (
         <DeleteListingModal
           listing={modal.listing}

@@ -196,11 +196,27 @@ public class OwnerListingService {
             }
         }
 
+        if (req.name() != null && TextUtil.isBlank(req.name())) {
+            fieldErrors.put("name", "Billboard name cannot be blank.");
+        }
+        if (req.addressLine1() != null && TextUtil.isBlank(req.addressLine1())) {
+            fieldErrors.put("addressLine1", "Address line 1 cannot be blank.");
+        }
+        if (req.city() != null && TextUtil.isBlank(req.city())) {
+            fieldErrors.put("city", "City cannot be blank.");
+        }
+        if (req.state() != null && TextUtil.isBlank(req.state())) {
+            fieldErrors.put("state", "State cannot be blank.");
+        }
+        if (req.pincode() != null && TextUtil.isBlank(req.pincode())) {
+            fieldErrors.put("pincode", "PIN code cannot be blank.");
+        }
+
         if (!fieldErrors.isEmpty()) {
             throw BadRequestException.forFieldErrors(ErrorCode.VALIDATION_FAILED, fieldErrors);
         }
 
-        if (req.name() != null) listing.setName(req.name().trim());
+        if (req.name() != null) listing.setName(req.name().strip());
         if (typeTouched) {
             listing.setType(effType);
             listing.setTypeOther(effType != null && effType.isOther() ? TextUtil.blankToNull(effTypeOther) : null);
@@ -237,12 +253,12 @@ public class OwnerListingService {
             listing.setAddress(addr);
         }
         if (addr != null) {
-            if (req.addressLine1() != null) addr.setLine1(req.addressLine1().trim());
+            if (req.addressLine1() != null) addr.setLine1(req.addressLine1().strip());
             if (req.addressLine2() != null) addr.setLine2(TextUtil.blankToNull(req.addressLine2()));
             if (req.landmark() != null) addr.setLandmark(TextUtil.blankToNull(req.landmark()));
-            if (req.city() != null) addr.setCity(req.city().trim());
-            if (req.state() != null) addr.setState(req.state().trim());
-            if (req.pincode() != null) addr.setPincode(req.pincode().trim());
+            if (req.city() != null) addr.setCity(req.city().strip());
+            if (req.state() != null) addr.setState(req.state().strip());
+            if (req.pincode() != null) addr.setPincode(req.pincode().strip());
         }
 
         BillboardListing saved = billboardListingRepository.save(listing);
