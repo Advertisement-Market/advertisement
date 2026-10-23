@@ -74,6 +74,7 @@ class OwnerListingControllerTest {
     private String advertiserToken;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         owner1 = userRepository.save(new User("Vikram", "Kumar", "owner1.listings@example.com", "pass", "9876543210", Role.OWNER));
         owner2 = userRepository.save(new User("Rajesh", "Sharma", "owner2.listings@example.com", "pass", "9876543211", Role.OWNER));

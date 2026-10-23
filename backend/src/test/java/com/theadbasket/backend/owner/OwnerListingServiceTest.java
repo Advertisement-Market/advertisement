@@ -47,6 +47,12 @@ class OwnerListingServiceTest {
     private BillboardListingRepository billboardListingRepository;
 
     @Mock
+    private BillboardMediaRepository billboardMediaRepository;
+
+    @Mock
+    private com.theadbasket.backend.common.storage.FileStorageService fileStorageService;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -66,7 +72,16 @@ class OwnerListingServiceTest {
         messages.setUseCodeAsDefaultMessage(true);
         lovService = new LovService(messages);
 
-        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, notificationService, lovService);
+        ownerListingService = new OwnerListingService(
+                billboardListingRepository,
+                billboardMediaRepository,
+                fileStorageService,
+                userRepository,
+                notificationService,
+                lovService,
+                true,
+                "/api/media"
+        );
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
     }
 
