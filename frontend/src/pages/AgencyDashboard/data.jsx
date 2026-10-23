@@ -121,7 +121,7 @@ export const NAV = [
       },
       {
         page: 'settings',
-        label: 'Settings',
+        label: 'Profile',
         icon: (
           <I>
             <circle cx="12" cy="12" r="3" />
@@ -142,7 +142,7 @@ export const TITLES = {
   casestudies: 'Case Studies',
   analytics: 'Analytics & Revenue',
   profile: 'Agency Profile',
-  settings: 'Account Settings',
+  settings: 'User Profile',
 };
 
 export const NOTIFICATIONS = [

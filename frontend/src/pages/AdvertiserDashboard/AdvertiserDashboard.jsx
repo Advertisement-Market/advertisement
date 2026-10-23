@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/context/ToastContext';
@@ -87,15 +87,25 @@ function Sidebar({ active, onNav }) {
 }
 
 /* ── Topbar with notifications ── */
-function Topbar({ title }) {
+function Topbar({ title, onNav }) {
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [notifs, setNotifs] = useState(NOTIFICATIONS);
   const ref = useRef(null);
+  const profileRef = useRef(null);
+  const handleLogout = () => {
+    setMenuOpen(false);
+    logout();
+    showToast('You have been signed out.');
+    navigate(ROUTES.home);
+  };
   useEffect(() => {
     const onDoc = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target)) setMenuOpen(false);
     };
     document.addEventListener('click', onDoc);
     return () => document.removeEventListener('click', onDoc);
@@ -151,8 +161,62 @@ function Topbar({ title }) {
             ))}
           </div>
         </div>
-        <div className="sb-avatar" style={{ cursor: 'pointer' }}>
-          {initialsOf(user)}
+        <div className="profile-wrap" ref={profileRef}>
+          <button
+            type="button"
+            className="sb-avatar"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="Account menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+          >
+            {initialsOf(user)}
+          </button>
+          <div className={cn('profile-menu', menuOpen && 'open')} role="menu">
+            <button
+              type="button"
+              className="profile-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                onNav('settings');
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Profile
+            </button>
+            <button
+              type="button"
+              className="profile-menu-item"
+              role="menuitem"
+              onClick={handleLogout}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1006,7 +1070,7 @@ function Settings() {
   return (
     <div className="page active">
       <PageHeader
-        title="Account Settings"
+        title="User Profile"
         sub="Manage your profile, notifications and billing preferences."
       />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -1035,15 +1099,30 @@ function Settings() {
           </div>
           <div className="form-group">
             <label>Business Email</label>
-            <input type="email" className="form-control" defaultValue="rahul@company.com" />
+            <input
+              type="email"
+              className="form-control"
+              defaultValue={user?.email || ''}
+              placeholder="you@example.com"
+            />
           </div>
           <div className="form-group">
             <label>Phone</label>
-            <input type="tel" className="form-control" defaultValue="+91 98765 43210" />
+            <input
+              type="tel"
+              className="form-control"
+              defaultValue={user?.phone || ''}
+              placeholder="Not provided"
+            />
           </div>
           <div className="form-group">
             <label>Company Name</label>
-            <input type="text" className="form-control" defaultValue="Sharma Enterprises" />
+            <input
+              type="text"
+              className="form-control"
+              defaultValue=""
+              placeholder="Add your company name"
+            />
           </div>
           <div className="form-group">
             <label>Industry</label>
@@ -1195,7 +1274,7 @@ export function AdvertiserDashboard() {
     <div className="advertiser-dashboard-page">
       <Sidebar active={page} onNav={setPage} />
       <div className="main">
-        <Topbar title={TITLES[page] || 'Dashboard'} />
+        <Topbar title={TITLES[page] || 'Dashboard'} onNav={setPage} />
         {pages[page]}
       </div>
     </div>
