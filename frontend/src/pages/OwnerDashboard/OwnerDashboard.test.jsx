@@ -93,6 +93,7 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       const { ToastProvider } = await import('@/context/ToastProvider');
       const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
       const { notificationApi } = await import('@/features/notification/notificationApi');
+      const { ROUTES } = await import('@/lib/routes');
 
       const mockListings = [
         {
@@ -117,7 +118,7 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
               <Routes>
                 <Route path="/owners/dashboard" element={<OwnerDashboard />} />
                 <Route
-                  path="/owners/listings/:id/edit"
+                  path={ROUTES.editBillboardListingPath}
                   element={<div data-testid="edit-page">Edit Page</div>}
                 />
               </Routes>

@@ -5,6 +5,7 @@ import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS } from './steps';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS } from '../OwnerRegister/steps';
 import { validate, NewBillboardListing } from './NewBillboardListing';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { ROUTES } from '@/lib/routes';
 
 /**
  * Cross-stack canonical parity code list.
@@ -153,7 +154,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       render(
         <MemoryRouter initialEntries={['/owners/listings/not-a-number/edit']}>
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
             <Route
               path="/owners/dashboard"
               element={<div data-testid="dashboard-page">Dashboard</div>}
@@ -193,7 +194,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       render(
         <MemoryRouter initialEntries={['/owners/listings/42/edit']}>
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -217,7 +218,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       render(
         <MemoryRouter initialEntries={['/owners/listings/99/edit']}>
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
             <Route
               path="/owners/dashboard"
               element={<div data-testid="dashboard-page">Dashboard</div>}
@@ -239,7 +240,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       render(
         <MemoryRouter initialEntries={['/owners/listings/99/edit']}>
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
             <Route
               path="/owners/dashboard"
               element={<div data-testid="dashboard-page">Dashboard</div>}
@@ -262,7 +263,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       render(
         <MemoryRouter initialEntries={['/owners/listings/1/edit']}>
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -305,7 +306,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
           ]}
         >
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -355,7 +356,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
           ]}
         >
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -429,7 +430,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
           ]}
         >
           <Routes>
-            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
           </Routes>
         </MemoryRouter>,
       );
