@@ -392,5 +392,67 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         expect(dashboardBtn.getAttribute('href')).toBe('/owners/dashboard?tab=listings');
       });
     });
+
+    it('propagates network errors on submit and does not display success screen', async () => {
+      const stateListing = {
+        id: 99,
+        name: 'Andheri West Screen',
+        addressLine1: 'SV Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400058',
+        type: 'LED_DIGITAL',
+        widthFt: 20,
+        heightFt: 10,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 200000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      const networkError = new Error('Network Error');
+      vi.spyOn(ownerListingApi, 'updateListing').mockRejectedValueOnce(networkError);
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/99/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path="/owners/listings/:id/edit" element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      // Network error must NOT be swallowed: success screen should not render
+      await waitFor(() => {
+        expect(screen.queryByText('Billboard Updated!')).toBeNull();
+      });
+    });
   });
 });

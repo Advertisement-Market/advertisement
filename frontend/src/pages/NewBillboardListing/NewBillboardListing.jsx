@@ -222,10 +222,8 @@ export function NewBillboardListing() {
         await ownerListingApi.createListing(payload);
       }
     } catch (err) {
-      if (
-        import.meta.env.DEV &&
-        (err?.response?.status === 401 || err?.response?.status === 403 || !err?.response)
-      ) {
+      if (import.meta.env.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
+        console.warn('[DEV] Auth error suppressed on edit submit.');
         return;
       }
       const fallback = isEdit
