@@ -1084,7 +1084,8 @@ function Settings() {
         sub="Manage your profile, notifications and billing preferences."
       />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        <div className="section-card" style={{ padding: 28 }}>
+        {/* key on user id so the defaultValue inputs re-mount when the signed-in user changes */}
+        <div key={user?.id || 'anon'} className="section-card" style={{ padding: 28 }}>
           <h3
             style={{
               fontFamily: 'var(--font-display)',
