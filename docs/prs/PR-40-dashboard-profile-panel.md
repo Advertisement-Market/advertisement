@@ -84,9 +84,12 @@
 
 ## 7. Verification & Testing Evidence
 - **Automated:**
-  - `eslint` clean on the three changed dashboards; `prettier --check` clean on `src`.
-  - Full frontend suite `vitest run` — 65 tests across 9 files, 0 failures (existing
-    `OwnerDashboard.test.jsx` still green).
+  - New component tests (`OwnerDashboard.profile.test.jsx`, RTL) cover the account-menu behaviours:
+    dropdown open/close on click, close on Escape and outside-click, navigating to the User Profile
+    page with fields populated from the authenticated user, and Logout calling `logout()`, showing a
+    toast and redirecting to `ROUTES.home`.
+  - `eslint` clean on the changed dashboards and the new test; `prettier --check` clean on `src`.
+  - Full frontend suite `vitest run` — 71 tests across 10 files, 0 failures.
   - `vite build` succeeds.
 - **Manual (in-browser, with a signed-in user, all three dashboards):**
   - Sidebar Account item shows **Profile** (no "Settings").
