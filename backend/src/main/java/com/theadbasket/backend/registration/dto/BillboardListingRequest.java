@@ -7,6 +7,8 @@ import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.SanitizeText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -62,6 +64,8 @@ public record BillboardListingRequest(
         @Positive
         BigDecimal heightFt,
         @PositiveOrZero
+        @DecimalMax(value = "300", message = "Ground height must be at most 300 ft.")
+        @Digits(integer = 3, fraction = 2, message = "Ground height must have at most 3 integer digits and 2 decimal places.")
         BigDecimal groundHeightFt,
         @SanitizeText
         @NotBlank(message = "Facing direction is required.")

@@ -2,10 +2,14 @@ package com.theadbasket.backend.owner.dto;
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.theadbasket.backend.common.validation.SanitizeText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 import com.theadbasket.backend.lov.BookingDurationUnit;
 
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
@@ -69,7 +73,11 @@ public record BillboardListingUpdateRequest(
         BigDecimal heightFt,
 
         @PositiveOrZero(message = "Ground height must be positive or zero.")
+        @DecimalMax(value = "300", message = "Ground height must be at most 300 ft.")
+        @Digits(integer = 3, fraction = 2, message = "Ground height must have at most 3 integer digits and 2 decimal places.")
         BigDecimal groundHeightFt,
+
+        Boolean clearGroundHeight,
 
         @SanitizeText
         @Size(max = 60)
@@ -114,5 +122,41 @@ public record BillboardListingUpdateRequest(
         @Size(max = 500)
         String discountNote
 ) {
+    /** Backward-compatible constructor for clients and tests omitting clearGroundHeight. */
+    public BillboardListingUpdateRequest(
+            String name,
+            String addressLine1,
+            String addressLine2,
+            String landmark,
+            String city,
+            String state,
+            String pincode,
+            String type,
+            String typeOther,
+            BigDecimal widthFt,
+            BigDecimal heightFt,
+            BigDecimal groundHeightFt,
+            String facing,
+            String trafficType,
+            String trafficTypeOther,
+            String audienceType,
+            String audienceTypeOther,
+            String footfall,
+            BigDecimal startPrice,
+            Integer minBookingValue,
+            String minBookingUnit,
+            String discountNote
+    ) {
+        this(name, addressLine1, addressLine2, landmark, city, state, pincode,
+             type, typeOther, widthFt, heightFt, groundHeightFt, null,
+             facing, trafficType, trafficTypeOther, audienceType, audienceTypeOther,
+             footfall, startPrice, minBookingValue, minBookingUnit, discountNote);
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "Ground height cannot be set and cleared in the same request.")
+    public boolean isGroundHeightConsistent() {
+        return !Boolean.TRUE.equals(clearGroundHeight) || groundHeightFt == null;
+    }
 }
 

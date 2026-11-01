@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { ROUTES } from '@/lib/routes';
@@ -12,7 +12,7 @@ import {
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { LISTINGS } from '@/pages/OwnerDashboard/data';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther, isBlank } from '@/lib/validators';
+import { isOther, isBlank, FieldFormatError, decimalRange } from '@/lib/validators';
 import './NewBillboardListing.css';
 
 const STEPS = [
@@ -105,6 +105,8 @@ export function validate(step, { data, showToast }) {
       return fail('Please enter a valid width in feet.');
     if (!d('f_bbHeight') || Number(d('f_bbHeight')) <= 0)
       return fail('Please enter a valid height in feet.');
+    if (d('f_bbGroundHeight') && decimalRange(0, 300)(d('f_bbGroundHeight')))
+      return fail('Please enter a valid height from ground (0–300 ft).');
     if (!d('f_facing')) return fail('Please select a facing direction.');
     if (!d('f_trafficType')) return fail('Please select a traffic type.');
     if (isOther(d('f_trafficType')) && isBlank(d('f_trafficOther')))
@@ -148,6 +150,47 @@ function WizardBody({ isEdit }) {
   }
   const Step = STEP_COMPONENTS[currentStep - 1];
   return <Step />;
+}
+
+export function createSubmitHandler({
+  isEdit,
+  id,
+  apiClient = ownerListingApi,
+  env = import.meta.env,
+  mapPayload,
+} = {}) {
+  return async ({ data }) => {
+    let payload;
+    try {
+      payload = mapPayload
+        ? mapPayload(data, isEdit)
+        : isEdit
+          ? mapFormDataToPatchPayload(data)
+          : mapBillboardListing(data);
+    } catch (err) {
+      if (err instanceof FieldFormatError) {
+        throw new Error(err.userMessage, { cause: err });
+      }
+      throw err;
+    }
+
+    try {
+      if (isEdit) {
+        await apiClient.updateListing(id, payload);
+      } else {
+        await apiClient.createListing(payload);
+      }
+    } catch (err) {
+      if (env?.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
+        console.warn('[DEV] Auth error suppressed on edit submit.');
+        return;
+      }
+      const fallback = isEdit
+        ? 'Failed to update billboard listing.'
+        : 'Failed to create billboard listing.';
+      throw new Error(apiErrorMessage(err, fallback), { cause: err });
+    }
+  };
 }
 
 export function NewBillboardListing() {
@@ -212,26 +255,10 @@ export function NewBillboardListing() {
     };
   }, [id, isEdit, navigate, stateListing]);
 
-  const onSubmit = async ({ data }) => {
-    try {
-      if (isEdit) {
-        const payload = mapFormDataToPatchPayload(data);
-        await ownerListingApi.updateListing(id, payload);
-      } else {
-        const payload = mapBillboardListing(data);
-        await ownerListingApi.createListing(payload);
-      }
-    } catch (err) {
-      if (import.meta.env.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
-        console.warn('[DEV] Auth error suppressed on edit submit.');
-        return;
-      }
-      const fallback = isEdit
-        ? 'Failed to update billboard listing.'
-        : 'Failed to create billboard listing.';
-      throw new Error(apiErrorMessage(err, fallback), { cause: err });
-    }
-  };
+  const onSubmit = useMemo(
+    () => createSubmitHandler({ isEdit, id, apiClient: ownerListingApi }),
+    [isEdit, id],
+  );
 
   if (loading || !initialData) {
     return (

@@ -222,8 +222,11 @@ public class OwnerListingService {
             listing.setTypeOther(effType != null && effType.isOther() ? TextUtil.blankToNull(effTypeOther) : null);
         }
         if (req.widthFt() != null) listing.setWidthFt(req.widthFt());
-        if (req.heightFt() != null) listing.setHeightFt(req.heightFt());
-        if (req.groundHeightFt() != null) listing.setGroundHeightFt(req.groundHeightFt());
+        if (Boolean.TRUE.equals(req.clearGroundHeight())) {
+            listing.setGroundHeightFt(null);
+        } else if (req.groundHeightFt() != null) {
+            listing.setGroundHeightFt(req.groundHeightFt());
+        }
         if (facing != null) listing.setFacing(facing);
 
         if (trafficTypeTouched) {

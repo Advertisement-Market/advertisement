@@ -13,6 +13,12 @@ import {
   cleanText,
   stripHtmlTags,
   sanitizeText,
+  number,
+  range,
+  FieldFormatError,
+  decimal,
+  decimalRange,
+  validatorsForType,
 } from './validators';
 import sharedFixtures from '../../../backend/src/test/resources/fixtures/sanitization-fixtures.json';
 
@@ -151,4 +157,90 @@ describe('Frontend Field Validators', () => {
       }
     });
   });
+
+  describe('Decimal and Range Validators', () => {
+    it('accepts valid decimal values including leading decimals and zeros', () => {
+      const validate = decimalRange(0, 300);
+      expect(validate('0')).toBeNull();
+      expect(validate('0.0')).toBeNull();
+      expect(validate('15')).toBeNull();
+      expect(validate('24.5')).toBeNull();
+      expect(validate('.5')).toBeNull();
+      expect(validate('15.')).toBeNull();
+      expect(validate(15)).toBeNull();
+      expect(validate(0)).toBeNull();
+    });
+
+    it('treats empty, null, undefined, and whitespace-only as valid optional blanks', () => {
+      const validate = decimalRange(0, 300);
+      expect(validate('')).toBeNull();
+      expect(validate(null)).toBeNull();
+      expect(validate(undefined)).toBeNull();
+      expect(validate(' ')).toBeNull();
+      expect(validate('   ')).toBeNull();
+      expect(decimal()(' ')).toBeNull();
+      expect(decimal()('   ')).toBeNull();
+    });
+
+    it('rejects invalid number formats: alpha suffixes, scientific notation, hex, and negative signs in decimal()', () => {
+      const validate = decimalRange(0, 300);
+      expect(validate('15abc')).toBe('Enter a valid number.');
+      expect(validate('1e2')).toBe('Enter a valid number.');
+      expect(validate('0x1F')).toBe('Enter a valid number.');
+      expect(validate('-5')).toBe('Enter a valid number.');
+      expect(validate('+5')).toBe('Enter a valid number.');
+
+      expect(decimal()('-5')).toBe('Enter a valid number.');
+      expect(decimal()('+5')).toBe('Enter a valid number.');
+      expect(decimal()('1e2')).toBe('Enter a valid number.');
+      expect(decimal()('')).toBeNull();
+      expect(decimal()(' ')).toBeNull();
+    });
+
+    it('confirms existing callers of number() and range() maintain backward-compatible loose parsing', () => {
+      const numValidate = number();
+      // number() uses Number(v), so negatives, scientific notation, and explicit signs are accepted
+      expect(numValidate('-5')).toBeNull();
+      expect(numValidate('+5')).toBeNull();
+      expect(numValidate('1e2')).toBeNull();
+      expect(numValidate('')).toBeNull();
+      expect(numValidate(' ')).toBeNull();
+      expect(numValidate('not-a-number')).toBe('Enter a valid number.');
+
+      // range() coerces string and number bounds and preserves support for negatives / exponents
+      const rangeValidate = range('-10', '200');
+      expect(rangeValidate('-5')).toBeNull();
+      expect(rangeValidate('+5')).toBeNull();
+      expect(rangeValidate('1e2')).toBeNull();
+      expect(rangeValidate('')).toBeNull();
+      expect(rangeValidate(' ')).toBeNull();
+      expect(rangeValidate('-15')).toBe('Enter a value between -10 and 200.');
+      expect(rangeValidate('250')).toBe('Enter a value between -10 and 200.');
+    });
+
+    it('verifies FieldFormatError extends TypeError and carries field name and user message', () => {
+      const err = new FieldFormatError('f_bbGroundHeight', 'Invalid raw value', 'Ground height must be a valid number.');
+      expect(err).toBeInstanceOf(TypeError);
+      expect(err).toBeInstanceOf(Error);
+      expect(err.name).toBe('FieldFormatError');
+      expect(err.field).toBe('f_bbGroundHeight');
+      expect(err.message).toBe('Invalid raw value');
+      expect(err.userMessage).toBe('Ground height must be a valid number.');
+    });
+
+    it('enforces range bounds accurately', () => {
+      const validate = decimalRange(0, 300);
+      expect(validate('300')).toBeNull();
+      expect(validate('300.1')).toBe('Enter a value between 0 and 300.');
+      expect(validate('301')).toBe('Enter a value between 0 and 300.');
+    });
+
+    it('validatorsForType("decimal", { min: 0, max: 300 }) returns decimalRange validator', () => {
+      const validators = validatorsForType('decimal', { min: 0, max: 300 });
+      expect(validators).toHaveLength(1);
+      expect(validators[0]('15')).toBeNull();
+      expect(validators[0]('15abc')).toBe('Enter a valid number.');
+    });
+  });
 });
+

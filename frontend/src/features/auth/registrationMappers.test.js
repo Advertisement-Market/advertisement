@@ -7,6 +7,7 @@ import {
   mapListingToFormData,
   mapFormDataToPatchPayload,
 } from './registrationMappers';
+import { FieldFormatError } from '@/lib/validators';
 
 describe('registrationMappers - Address and Payload Structure', () => {
   describe('mapAdvertiser', () => {
@@ -634,6 +635,146 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(patchPayload.addressLine1).toBe('12 MG Road alert(1)');
       expect(patchPayload.landmark).toBe('img src=x onerror=alert(1) Near Metro Station');
       expect(patchPayload.discountNote).toBe('10% off for > 3 months');
+    });
+
+    it('preserves groundHeightFt when editing only unrelated fields in round-trip', () => {
+      const formData = mapListingToFormData(sampleDto);
+      expect(formData.f_bbGroundHeight).toBe('15');
+
+      // Edit only name
+      formData.f_bbName = 'Updated Billboard Name';
+      const patchPayload = mapFormDataToPatchPayload(formData);
+
+      expect(patchPayload.name).toBe('Updated Billboard Name');
+      expect(patchPayload.groundHeightFt).toBe(15);
+      expect(patchPayload.clearGroundHeight).toBe(false);
+    });
+
+    it('strictly maps null groundHeightFt without resurrecting stale draft value', () => {
+      const dtoWithNull = { ...sampleDto, groundHeightFt: null, f_bbGroundHeight: '30' };
+      const formData = mapListingToFormData(dtoWithNull);
+      expect(formData.f_bbGroundHeight).toBe('');
+    });
+
+    it('correctly maps empty string and whitespace-only groundHeightFt to clearGroundHeight=true', () => {
+      const formData = mapListingToFormData(sampleDto);
+
+      formData.f_bbGroundHeight = '';
+      let patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBeNull();
+      expect(patchPayload.clearGroundHeight).toBe(true);
+
+      formData.f_bbGroundHeight = ' ';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBeNull();
+      expect(patchPayload.clearGroundHeight).toBe(true);
+
+      formData.f_bbGroundHeight = '   ';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBeNull();
+      expect(patchPayload.clearGroundHeight).toBe(true);
+
+      formData.f_bbGroundHeight = null;
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBeNull();
+      expect(patchPayload.clearGroundHeight).toBe(true);
+    });
+
+    it('hydrates representative BigDecimal values and exponential forms into plain decimal strings and round-trips', () => {
+      // Representative values: plain integers, decimals, 2-scale Decimals, zero, and scientific notation
+      const testCases = [
+        { serverVal: 15, expectedForm: '15', expectedNum: 15 },
+        { serverVal: 24.5, expectedForm: '24.5', expectedNum: 24.5 },
+        { serverVal: 0, expectedForm: '0', expectedNum: 0 },
+        { serverVal: '18.00', expectedForm: '18', expectedNum: 18 },
+        { serverVal: '1E+1', expectedForm: '10', expectedNum: 10 },
+        { serverVal: '2.5e1', expectedForm: '25', expectedNum: 25 },
+        { serverVal: 0.0000001, expectedForm: '0', expectedNum: 0 },
+      ];
+
+      for (const tc of testCases) {
+        const dto = { ...sampleDto, groundHeightFt: tc.serverVal };
+        const formData = mapListingToFormData(dto);
+        expect(formData.f_bbGroundHeight).toBe(tc.expectedForm);
+
+        const patchPayload = mapFormDataToPatchPayload(formData);
+        expect(patchPayload.groundHeightFt).toBe(tc.expectedNum);
+        expect(patchPayload.clearGroundHeight).toBe(false);
+      }
+    });
+
+    it('correctly maps non-negative decimal numbers including zero, leading decimals, and trailing decimals', () => {
+      const formData = mapListingToFormData(sampleDto);
+
+      formData.f_bbGroundHeight = '0';
+      let patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBe(0);
+      expect(patchPayload.clearGroundHeight).toBe(false);
+
+      formData.f_bbGroundHeight = '0.0';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBe(0);
+      expect(patchPayload.clearGroundHeight).toBe(false);
+
+      formData.f_bbGroundHeight = '.5';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBe(0.5);
+      expect(patchPayload.clearGroundHeight).toBe(false);
+
+      formData.f_bbGroundHeight = '15.';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBe(15);
+      expect(patchPayload.clearGroundHeight).toBe(false);
+
+      formData.f_bbGroundHeight = '24.5';
+      patchPayload = mapFormDataToPatchPayload(formData);
+      expect(patchPayload.groundHeightFt).toBe(24.5);
+      expect(patchPayload.clearGroundHeight).toBe(false);
+    });
+
+    it('omits groundHeightFt and clearGroundHeight when f_bbGroundHeight is undefined', () => {
+      const partialData = { f_bbName: 'Partial Form Name' };
+      const patchPayload = mapFormDataToPatchPayload(partialData);
+      expect(patchPayload.name).toBe('Partial Form Name');
+      expect(patchPayload.groundHeightFt).toBeUndefined();
+      expect(patchPayload.clearGroundHeight).toBeUndefined();
+    });
+
+    it('throws FieldFormatError with field and userMessage for malformed number inputs at the mapper level', () => {
+      const formData = mapListingToFormData(sampleDto);
+
+      formData.f_bbGroundHeight = '15abc';
+      try {
+        mapFormDataToPatchPayload(formData);
+        expect.unreachable('Should have thrown FieldFormatError');
+      } catch (err) {
+        expect(err).toBeInstanceOf(FieldFormatError);
+        expect(err.field).toBe('f_bbGroundHeight');
+        expect(err.userMessage).toBe('Ground height must be a valid number (e.g. 15 or 24.5).');
+      }
+
+      // Also verify create mappers mapBillboardListing and mapOwner throw FieldFormatError with userMessage
+      expect(() => mapBillboardListing({ f_bbGroundHeight: '15abc' })).toThrow(FieldFormatError);
+      expect(() => mapOwner({ f_bbGroundHeight: '15abc' })).toThrow(FieldFormatError);
+
+      formData.f_bbGroundHeight = '1e2';
+      expect(() => mapFormDataToPatchPayload(formData)).toThrow(FieldFormatError);
+
+      formData.f_bbGroundHeight = '0x1F';
+      expect(() => mapFormDataToPatchPayload(formData)).toThrow(FieldFormatError);
+
+      formData.f_bbGroundHeight = 'abc';
+      expect(() => mapFormDataToPatchPayload(formData)).toThrow(FieldFormatError);
+    });
+
+    it('ensures mapBillboardListing does not emit clearGroundHeight on create', () => {
+      const createData = {
+        ...mapListingToFormData(sampleDto),
+        f_bbGroundHeight: '',
+      };
+      const createPayload = mapBillboardListing(createData);
+      expect(createPayload).not.toHaveProperty('clearGroundHeight');
+      expect(createPayload.groundHeightFt).toBeNull();
     });
   });
 });

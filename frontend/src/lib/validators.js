@@ -66,12 +66,51 @@ export const minLength = (n, msg) => (v) =>
 export const maxLength = (n, msg) => (v) =>
   isEmpty(v) || String(v).length <= n ? null : msg || `Must be at most ${n} characters.`;
 
-export const range = (min, max, msg) => (v) => {
-  if (isEmpty(v)) return null;
-  const n = Number(v);
-  if (Number.isNaN(n)) return MSG.number;
-  return n >= min && n <= max ? null : msg || `Enter a value between ${min} and ${max}.`;
+export const range = (min, max, msg) => {
+  const numMin = min != null ? Number(min) : Number.NEGATIVE_INFINITY;
+  const numMax = max != null ? Number(max) : Number.POSITIVE_INFINITY;
+  return (v) => {
+    if (isEmpty(v)) return null;
+    const n = Number(v);
+    if (Number.isNaN(n)) return MSG.number;
+    return n >= numMin && n <= numMax ? null : msg || `Enter a value between ${numMin} and ${numMax}.`;
+  };
 };
+
+export class FieldFormatError extends TypeError {
+  constructor(field, message, userMessage) {
+    super(message);
+    this.name = 'FieldFormatError';
+    this.field = field;
+    this.userMessage = userMessage || message;
+  }
+}
+
+// Matches non-negative decimal numbers: 0, 15, 24.5, .5, 15.
+// Rejects: 1e2, 0x1F, 15abc, -5
+export const DECIMAL_RE = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+
+export const decimal =
+  (msg = MSG.number) =>
+  (v) => {
+    if (isEmpty(v)) return null;
+    const str = String(v).trim();
+    // DECIMAL_RE matches the syntax; Number.isFinite guards against absurdly long digit strings overflowing to Infinity
+    return DECIMAL_RE.test(str) && Number.isFinite(Number(str)) ? null : msg;
+  };
+
+export const decimalRange =
+  (min, max, msg) => {
+    const numMin = min != null ? Number(min) : Number.NEGATIVE_INFINITY;
+    const numMax = max != null ? Number(max) : Number.POSITIVE_INFINITY;
+    return (v) => {
+      if (isEmpty(v)) return null;
+      const str = String(v).trim();
+      if (!DECIMAL_RE.test(str)) return MSG.number;
+      const n = Number(str);
+      return n >= numMin && n <= numMax ? null : msg || `Enter a value between ${numMin} and ${numMax}.`;
+    };
+  };
 
 /** Runs validators in order and returns the first error, or null. */
 export function runValidators(value, validators = []) {
@@ -88,6 +127,8 @@ export function runValidators(value, validators = []) {
  */
 export function validatorsForType(type, { min, max } = {}) {
   switch (type) {
+    case 'decimal':
+      return min != null || max != null ? [decimalRange(min, max)] : [decimal()];
     case 'email':
       return [email()];
     case 'tel':

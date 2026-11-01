@@ -335,12 +335,14 @@ export function ListingStep1() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="number"
+            type="text"
+            inputMode="decimal"
+            validateAs="decimal"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min="0"
-            max="300"
+            min={0}
+            max={300}
             hint="0–300 ft from ground level"
           />
           <div className="form-group" />

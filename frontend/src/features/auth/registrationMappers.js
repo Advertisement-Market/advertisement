@@ -3,7 +3,7 @@
  * into the backend registration DTOs. Field names mirror the frontend wizard fields.
  */
 
-import { isOther, sanitizeText } from '@/lib/validators';
+import { isOther, sanitizeText, DECIMAL_RE, FieldFormatError } from '@/lib/validators';
 
 const trimOrNull = (v) => {
   const s = v == null ? '' : sanitizeText(v);
@@ -20,6 +20,37 @@ const toInt = (v) => {
   if (v == null || String(v).trim() === '') return null;
   const n = parseInt(String(v).replace(/\D/g, ''), 10);
   return Number.isFinite(n) ? n : null;
+};
+
+export function toPlainDecimalString(v) {
+  if (v == null || v === '') return '';
+  const num = Number(v);
+  if (Number.isNaN(num)) return String(v);
+  // Format up to 2 decimal places (matching NUMERIC(8,2)) and strip trailing zeroes
+  const fixed = num.toFixed(2);
+  return fixed.replace(/\.?0+$/, '') || '0';
+}
+
+const toDecimalOrNull = (v, fieldName) => {
+  if (v == null || String(v).trim() === '') return null;
+  const str = String(v).trim();
+  if (!DECIMAL_RE.test(str)) {
+    throw new FieldFormatError(
+      fieldName,
+      `Invalid numeric value for ${fieldName}: "${v}"`,
+      'Ground height must be a valid number (e.g. 15 or 24.5).',
+    );
+  }
+  const n = Number(str);
+  // Guard against absurdly large digit strings evaluating to Infinity
+  if (!Number.isFinite(n)) {
+    throw new FieldFormatError(
+      fieldName,
+      `Overflow numeric value for ${fieldName}: "${v}"`,
+      'Ground height is too large. Enter a value between 0 and 300.',
+    );
+  }
+  return n;
 };
 
 const splitTags = (v) =>
@@ -151,7 +182,7 @@ export function mapOwner(d) {
       typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
       widthFt: toNumber(d.f_bbWidth),
       heightFt: toNumber(d.f_bbHeight),
-      groundHeightFt: toNumber(d.f_bbGroundHeight),
+      groundHeightFt: toDecimalOrNull(d.f_bbGroundHeight, 'f_bbGroundHeight'),
       facing: d.f_facing,
       trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
       trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
@@ -226,7 +257,7 @@ export function mapBillboardListing(d) {
     typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
     widthFt: toNumber(d.f_bbWidth),
     heightFt: toNumber(d.f_bbHeight),
-    groundHeightFt: toNumber(d.f_bbGroundHeight),
+    groundHeightFt: toDecimalOrNull(d.f_bbGroundHeight, 'f_bbGroundHeight'),
     facing: d.f_facing,
     trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
     trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
@@ -366,12 +397,7 @@ export function mapListingToFormData(dto) {
         : dto.f_bbHeight != null && dto.f_bbHeight !== ''
           ? String(dto.f_bbHeight)
           : '',
-    f_bbGroundHeight:
-      dto.groundHeightFt != null
-        ? String(dto.groundHeightFt)
-        : dto.f_bbGroundHeight != null && dto.f_bbGroundHeight !== ''
-          ? String(dto.f_bbGroundHeight)
-          : '',
+    f_bbGroundHeight: toPlainDecimalString(dto.groundHeightFt),
     f_facing: facing,
     f_trafficType: trafficType,
     f_trafficOther: dto.trafficTypeOther ?? dto.f_trafficOther ?? '',
@@ -409,7 +435,7 @@ export function mapFormDataToPatchPayload(d) {
   // sanitizeText strips HTML tags, invisible Unicode code points, and trims whitespace
   const trimToString = (v) => (v == null ? '' : sanitizeText(v));
 
-  return {
+  const payload = {
     name: trimToString(d.f_bbName),
     addressLine1: trimToString(d.f_bbAddr),
     // Optional fields: '' = clear, null = untouched
@@ -422,10 +448,6 @@ export function mapFormDataToPatchPayload(d) {
     typeOther: isTypeOther ? trimToString(d.f_bbTypeOther) : null,
     widthFt: toNumber(d.f_bbWidth),
     heightFt: toNumber(d.f_bbHeight),
-    groundHeightFt:
-      d.f_bbGroundHeight != null && String(d.f_bbGroundHeight).trim() !== ''
-        ? toNumber(d.f_bbGroundHeight)
-        : null,
     facing: formatFacingCode(d.f_facing),
     trafficType: isTrafficOther ? 'OTHER' : formatTrafficCode(d.f_trafficType),
     trafficTypeOther: isTrafficOther ? trimToString(d.f_trafficOther) : null,
@@ -438,4 +460,19 @@ export function mapFormDataToPatchPayload(d) {
     minBookingUnit,
     discountNote: trimToString(d.f_discountNote),
   };
+
+  if (d.f_bbGroundHeight !== undefined) {
+    const raw = d.f_bbGroundHeight;
+    const str = raw == null ? '' : String(raw).trim();
+
+    if (str === '') {
+      payload.groundHeightFt = null;
+      payload.clearGroundHeight = true;
+    } else {
+      payload.groundHeightFt = toDecimalOrNull(raw, 'f_bbGroundHeight');
+      payload.clearGroundHeight = false;
+    }
+  }
+
+  return payload;
 }

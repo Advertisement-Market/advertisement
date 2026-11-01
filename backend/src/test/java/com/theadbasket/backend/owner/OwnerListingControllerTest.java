@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.nullValue;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -982,5 +983,95 @@ class OwnerListingControllerTest {
         BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
         assertThat(updated.getName()).isEqualTo("New Name");
         assertThat(updated.getAddress().getLine1()).isEqualTo("123 Highway Ave");
+    }
+
+    @Test
+    @DisplayName("PATCH with clearGroundHeight=true unsets groundHeightFt to null")
+    void updateListing_clearGroundHeight_unsetsToNull() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+        listing.setGroundHeightFt(new BigDecimal("15.00"));
+        billboardListingRepository.save(listing);
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearGroundHeight\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(nullValue()));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getGroundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("PATCH with both clearGroundHeight=true and groundHeightFt rejects with 400")
+    void updateListing_contradictoryGroundHeight_rejects() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearGroundHeight\": true, \"groundHeightFt\": 15.0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.groundHeightConsistent")
+                        .value("Ground height cannot be set and cleared in the same request."));
+    }
+
+    @Test
+    @DisplayName("PATCH with groundHeightFt > 300 rejects with 400")
+    void updateListing_groundHeightAbove300_rejects() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"groundHeightFt\": 300.1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.groundHeightFt")
+                        .value("Ground height must be at most 300 ft."));
+    }
+
+    @Test
+    @DisplayName("PATCH with clearGroundHeight absent or null preserves existing ground height")
+    void updateListing_clearGroundHeightAbsentOrNull_preservesExisting() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+        listing.setGroundHeightFt(new BigDecimal("18.00"));
+        billboardListingRepository.save(listing);
+
+        // Key absent
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Updated Name 1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(18.0));
+
+        // Key present as null
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Updated Name 2\", \"clearGroundHeight\": null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(18.0));
+    }
+
+    @Test
+    @DisplayName("PATCH with clearGroundHeight=true and groundHeightFt key literally absent clears stored value to null")
+    void updateListing_clearGroundHeightTrue_absentGroundHeightKey_clearsToNull() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board for Clear");
+        listing.setGroundHeightFt(new BigDecimal("22.50"));
+        billboardListingRepository.save(listing);
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearGroundHeight\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(nullValue()));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getGroundHeightFt()).isNull();
     }
 }

@@ -64,6 +64,9 @@ const FIELD_LABELS = {
   startPrice: 'Starting Price',
   pincode: 'PIN Code',
   name: 'Billboard Name',
+  groundHeightFt: 'Ground Height',
+  groundHeightConsistent: '',
+  clearGroundHeight: '',
 };
 
 /** Turn an axios error into a user-facing message using the backend's ApiError body. */
