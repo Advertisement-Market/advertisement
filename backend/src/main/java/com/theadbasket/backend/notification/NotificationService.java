@@ -57,6 +57,12 @@ public class NotificationService {
 
     /**
      * Creates and persists a new notification for the specified user.
+     *
+     * <p>Note on sinks: Titles and messages are stored as plain text and rendered
+     * directly in the frontend via React JSX (which auto-escapes). If notifications
+     * are dispatched to external HTML email templates (e.g. Thymeleaf) or third-party
+     * channels in the future, contextual output encoding (e.g. {@code th:text}) must
+     * be applied at render time.
      */
     @Transactional
     public Notification createNotification(User user, String title, String message,

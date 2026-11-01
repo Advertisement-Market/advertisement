@@ -65,4 +65,65 @@ public final class TextUtil {
         }
         return s.substring(start, end);
     }
+
+    private static final java.util.regex.Pattern TAG = java.util.regex.Pattern.compile("</?[a-zA-Z][^>]*>|<!--[\\s\\S]*?-->");
+    private static final java.util.regex.Pattern TAG_START = java.util.regex.Pattern.compile("<+(?=[a-zA-Z/!])");
+    private static final java.util.regex.Pattern INVISIBLE_OR_BIDI = java.util.regex.Pattern.compile("[\\u200B\\u200C\\u200D\\u2060\\uFEFF\\u202A-\\u202E\\u2066-\\u2069]");
+    private static final int MAX_RAW_LENGTH = 10_000;
+
+    /**
+     * Strips HTML/XML tags and comments iteratively up to 10 passes.
+     * Truncates raw inputs exceeding 10,000 characters to prevent quadratic ReDoS regex scanning.
+     * Neutralizes zero-width code points and bidi overrides before tag scanning to prevent evasion (e.g. <s\u200Bcript>).
+     * Fails closed by disarming any unclosed tag markers (< followed by a tag start character [a-zA-Z/!]).
+     */
+    public static String stripHtmlTags(String s) {
+        if (s == null) {
+            return null;
+        }
+        String str = s;
+        if (str.length() > MAX_RAW_LENGTH) {
+            str = str.substring(0, MAX_RAW_LENGTH);
+        }
+        str = INVISIBLE_OR_BIDI.matcher(str).replaceAll("");
+        for (int i = 0; i < 10; i++) {
+            String next = TAG.matcher(str).replaceAll("");
+            if (next.equals(str)) {
+                break;
+            }
+            str = next;
+        }
+        return TAG_START.matcher(str).replaceAll("");
+    }
+
+    /**
+     * Trims leading and trailing whitespace and invisible Unicode characters.
+     * Returns empty string {@code ""} if empty; returns {@code null} if input is null.
+     */
+    public static String cleanText(String s) {
+        if (s == null) {
+            return null;
+        }
+        int start = 0;
+        int end = s.length();
+        while (start < end && isWhitespaceOrInvisible(s.charAt(start))) {
+            start++;
+        }
+        while (end > start && isWhitespaceOrInvisible(s.charAt(end - 1))) {
+            end--;
+        }
+        return s.substring(start, end);
+    }
+
+    /**
+     * Combines HTML tag stripping, invisible Unicode stripping, and whitespace trimming.
+     * Preserves empty string {@code ""} if non-null, ensuring PATCH optional field clearing signals are retained.
+     */
+    public static String sanitizeText(String s) {
+        if (s == null) {
+            return null;
+        }
+        return cleanText(stripHtmlTags(s));
+    }
 }
+

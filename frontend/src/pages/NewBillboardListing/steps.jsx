@@ -335,12 +335,14 @@ export function ListingStep1() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="number"
+            type="text"
+            inputMode="decimal"
+            validateAs="decimal"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min="0"
-            max="300"
+            min={0}
+            max={300}
             hint="0–300 ft from ground level"
           />
           <div className="form-group" />
@@ -586,8 +588,9 @@ export function ListingStep3() {
           <div
             style={{ fontSize: 13, color: 'var(--ink-muted)', fontWeight: 400, lineHeight: 1.6 }}
           >
-            Upload clear, high-resolution daylight photos (at least 2 required to submit for approval).
-            All images are processed securely, downscaled to high definition, and GPS/EXIF-stripped.
+            Upload clear, high-resolution daylight photos (at least 2 required to submit for
+            approval). All images are processed securely, downscaled to high definition, and
+            GPS/EXIF-stripped.
           </div>
         </div>
       </div>

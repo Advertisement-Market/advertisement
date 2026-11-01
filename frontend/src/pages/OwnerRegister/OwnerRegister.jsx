@@ -4,7 +4,7 @@ import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
 import { useAuth } from '@/context/AuthContext';
 import { mapOwner } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther, isBlank } from '@/lib/validators';
+import { isOther, isBlank, isValidPincode } from '@/lib/validators';
 import './OwnerRegister.css';
 
 const STEPS = [
@@ -60,7 +60,8 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, showToast, user }) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function validate(step, { data, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
@@ -87,6 +88,8 @@ function validate(step, { data, showToast, user }) {
     if (!d('f_bizCity')) return fail('Please enter your city.');
     if (!d('f_bizState')) return fail('Please enter your state.');
     if (!d('f_bizPin')) return fail('Please enter your office pincode.');
+    if (!isValidPincode(d('f_bizPin')))
+      return fail('Please enter a valid 6-digit office pincode (cannot start with 0).');
   }
   if (step === 3) {
     if (!d('f_bbName')) return fail('Please enter a billboard name.');
@@ -94,6 +97,8 @@ function validate(step, { data, showToast, user }) {
     if (!d('f_bbCity')) return fail('Please enter the billboard city.');
     if (!d('f_bbState')) return fail('Please enter the billboard state.');
     if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
+    if (!isValidPincode(d('f_bbPin')))
+      return fail('Please enter a valid 6-digit billboard pincode (cannot start with 0).');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
     if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
       return fail('Please describe the billboard type.');

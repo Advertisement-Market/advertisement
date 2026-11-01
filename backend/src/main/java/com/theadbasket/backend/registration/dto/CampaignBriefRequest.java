@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.theadbasket.backend.common.validation.SanitizeText;
+
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -16,26 +18,27 @@ import jakarta.validation.constraints.Size;
  * registration.
  */
 public record CampaignBriefRequest(
+        @SanitizeText
         @NotBlank(message = "Project title is required.")
         @Size(max = 200)
-
         String title,
+        @SanitizeText
         @NotBlank(message = "Project description is required.")
         @Size(max = 2000)
-
         String description,
+        @SanitizeText
         @NotBlank(message = "Target audience is required.")
         @Size(max = 500)
-
         String targetAudience,
+        @SanitizeText
         @NotBlank(message = "Target location is required.")
         @Size(max = 300)
-
         String targetLocation,
         @NotNull(message = "Start date is required.")
         LocalDate startDate,
         @NotNull(message = "End date is required.")
         LocalDate endDate,
+        @SanitizeText
         @NotBlank(message = "Duration is required.")
         @Size(max = 50)
         String duration,

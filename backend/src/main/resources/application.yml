@@ -10,6 +10,9 @@ spring:
       max-file-size: 50MB
       max-request-size: 65MB
       file-size-threshold: 2MB
+  jackson:
+    generator:
+      write-bigdecimal-as-plain: true
   messages:
     # Error/message catalog resolved by MessageSource (see common/error/ErrorCode).
     basename: messages

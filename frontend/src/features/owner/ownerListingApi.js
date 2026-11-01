@@ -51,6 +51,5 @@ export const ownerListingApi = {
   reorderMedia: (id, mediaIds) =>
     api.put(`/api/owner/listings/${id}/media/order`, { mediaIds }).then((r) => r.data),
 
-  submitListing: (id) =>
-    api.post(`/api/owner/listings/${id}/submit`).then((r) => r.data),
+  submitListing: (id) => api.post(`/api/owner/listings/${id}/submit`).then((r) => r.data),
 };

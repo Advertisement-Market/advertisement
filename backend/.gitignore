@@ -17,8 +17,5 @@ target/
 # Local env / secrets
 .env
 
-# Local media uploads
+# Local runtime file uploads
 uploads/
-**/uploads/
-!**/uploads/.gitkeep
-

@@ -4,6 +4,7 @@ import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
 import { useAuth } from '@/context/AuthContext';
 import { mapAgency } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
+import { isValidPincode } from '@/lib/validators';
 import './AgencyRegister.css';
 
 const STEPS = [
@@ -75,7 +76,8 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, selections, showToast, user }) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function validate(step, { data, selections, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
@@ -101,6 +103,8 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_city')) return fail('Please enter your city.');
     if (!d('f_state')) return fail('Please enter your state.');
     if (!d('f_pincode')) return fail('Please enter your headquarters pincode.');
+    if (!isValidPincode(d('f_pincode')))
+      return fail('Please enter a valid 6-digit headquarters pincode (cannot start with 0).');
   }
   if (step === 3) {
     if (!d('f_firstName') || !d('f_lastName')) return fail('Please enter the contact person name.');

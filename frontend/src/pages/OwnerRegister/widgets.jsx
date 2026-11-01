@@ -360,7 +360,6 @@ export function UploadZone({
   onChange,
   existingFiles = [],
   onRemoveExisting,
-  onSetCover,
   category,
   maxCount = 10,
 }) {
@@ -387,7 +386,10 @@ export function UploadZone({
 
     if (isVideo) {
       if (!['mp4', 'mov'].includes(ext) && !['video/mp4', 'video/quicktime'].includes(file.type)) {
-        showToast(`Invalid video format for "${file.name}". Only MP4 and MOV are supported.`, 'error');
+        showToast(
+          `Invalid video format for "${file.name}". Only MP4 and MOV are supported.`,
+          'error',
+        );
         return false;
       }
       if (file.size > 100 * 1024 * 1024) {
@@ -399,7 +401,10 @@ export function UploadZone({
 
     // Photo validation
     if (['heic', 'webp', 'svg', 'gif', 'bmp'].includes(ext)) {
-      showToast(`Format .${ext} is not supported. Please upload standard JPG or PNG images.`, 'error');
+      showToast(
+        `Format .${ext} is not supported. Please upload standard JPG or PNG images.`,
+        'error',
+      );
       return false;
     }
     if (!['jpg', 'jpeg', 'png'].includes(ext) && !['image/jpeg', 'image/png'].includes(file.type)) {
@@ -430,7 +435,10 @@ export function UploadZone({
     const toAdd = single ? valid.slice(0, 1) : valid.slice(0, availableSlots);
 
     if (toAdd.length < valid.length) {
-      showToast(`Only ${toAdd.length} file(s) added to stay within the limit of ${maxCount}.`, 'warning');
+      showToast(
+        `Only ${toAdd.length} file(s) added to stay within the limit of ${maxCount}.`,
+        'warning',
+      );
     } else {
       showToast(`${toAdd.length} ${toAdd.length === 1 ? 'file' : 'files'} added.`, 'success');
     }
@@ -448,7 +456,10 @@ export function UploadZone({
         name: f.name,
         size: f.size,
         file: f,
-        url: f.type?.startsWith('image/') || /\.(jpe?g|png)$/i.test(f.name) ? URL.createObjectURL(f) : null,
+        url:
+          f.type?.startsWith('image/') || /\.(jpe?g|png)$/i.test(f.name)
+            ? URL.createObjectURL(f)
+            : null,
       })),
     [currentFiles],
   );
@@ -514,7 +525,9 @@ export function UploadZone({
                 height: 84,
                 borderRadius: 10,
                 overflow: 'hidden',
-                border: item.isCover ? '2px solid var(--teal, #0d9488)' : '1px solid var(--border-medium, #cbd5e1)',
+                border: item.isCover
+                  ? '2px solid var(--teal, #0d9488)'
+                  : '1px solid var(--border-medium, #cbd5e1)',
                 background: 'var(--cream-warm, #f8fafc)',
                 display: 'flex',
                 alignItems: 'center',
@@ -531,7 +544,9 @@ export function UploadZone({
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <span style={{ padding: 4, textAlign: 'center' }}>{item.originalName || 'Media'}</span>
+                <span style={{ padding: 4, textAlign: 'center' }}>
+                  {item.originalName || 'Media'}
+                </span>
               )}
               {item.isCover && (
                 <div
@@ -612,7 +627,9 @@ export function UploadZone({
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <span style={{ padding: 4, textAlign: 'center', wordBreak: 'break-all' }}>{p.name}</span>
+                <span style={{ padding: 4, textAlign: 'center', wordBreak: 'break-all' }}>
+                  {p.name}
+                </span>
               )}
               <div
                 style={{

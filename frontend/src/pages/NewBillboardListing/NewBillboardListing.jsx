@@ -12,7 +12,7 @@ import {
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { LISTINGS } from '@/pages/OwnerDashboard/data';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther, isBlank } from '@/lib/validators';
+import { isOther, isBlank, FieldFormatError, decimalRange, isValidPincode } from '@/lib/validators';
 import './NewBillboardListing.css';
 
 const STEPS = [
@@ -96,8 +96,9 @@ export function validate(step, { data, showToast }) {
     if (!d('f_bbAddr')) return fail('Please enter the billboard address.');
     if (!d('f_bbCity')) return fail('Please enter the billboard city.');
     if (!d('f_bbState')) return fail('Please enter the billboard state.');
-    if (!d('f_bbPin') || !/^[1-9]\d{5}$/.test(d('f_bbPin')))
-      return fail('Please enter a valid 6-digit billboard pincode.');
+    if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
+    if (!isValidPincode(d('f_bbPin')))
+      return fail('Please enter a valid 6-digit billboard pincode (cannot start with 0).');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
     if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
       return fail('Please describe the billboard type.');
@@ -105,6 +106,8 @@ export function validate(step, { data, showToast }) {
       return fail('Please enter a valid width in feet.');
     if (!d('f_bbHeight') || Number(d('f_bbHeight')) <= 0)
       return fail('Please enter a valid height in feet.');
+    if (d('f_bbGroundHeight') && decimalRange(0, 300)(d('f_bbGroundHeight')))
+      return fail('Please enter a valid height from ground (0–300 ft).');
     if (!d('f_facing')) return fail('Please select a facing direction.');
     if (!d('f_trafficType')) return fail('Please select a traffic type.');
     if (isOther(d('f_trafficType')) && isBlank(d('f_trafficOther')))
@@ -124,7 +127,9 @@ export function validate(step, { data, showToast }) {
       return fail('Please select a valid booking duration unit.');
   }
   if (step === 3) {
-    const existingDay = Array.isArray(data.f_existingDayPhotos) ? data.f_existingDayPhotos.length : 0;
+    const existingDay = Array.isArray(data.f_existingDayPhotos)
+      ? data.f_existingDayPhotos.length
+      : 0;
     const newDay = Array.isArray(data.f_dayPhotos) ? data.f_dayPhotos.length : 0;
     if (existingDay + newDay < 2) {
       return fail('At least 2 daylight photos are required to submit a billboard listing.');
@@ -155,6 +160,48 @@ function WizardBody({ isEdit }) {
   }
   const Step = STEP_COMPONENTS[currentStep - 1];
   return <Step />;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function createSubmitHandler({
+  isEdit,
+  id,
+  apiClient = ownerListingApi,
+  env = import.meta.env,
+  mapPayload,
+} = {}) {
+  return async ({ data }) => {
+    let payload;
+    try {
+      payload = mapPayload
+        ? mapPayload(data, isEdit)
+        : isEdit
+          ? mapFormDataToPatchPayload(data)
+          : mapBillboardListing(data);
+    } catch (err) {
+      if (err instanceof FieldFormatError) {
+        throw new Error(err.userMessage, { cause: err });
+      }
+      throw err;
+    }
+
+    try {
+      if (isEdit) {
+        await apiClient.updateListing(id, payload);
+      } else {
+        await apiClient.createListing(payload);
+      }
+    } catch (err) {
+      if (env?.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
+        console.warn('[DEV] Auth error suppressed on edit submit.');
+        return;
+      }
+      const fallback = isEdit
+        ? 'Failed to update billboard listing.'
+        : 'Failed to create billboard listing.';
+      throw new Error(apiErrorMessage(err, fallback), { cause: err });
+    }
+  };
 }
 
 export function NewBillboardListing() {
@@ -276,6 +323,9 @@ export function NewBillboardListing() {
         await ownerListingApi.submitListing(newListingId);
       }
     } catch (err) {
+      if (err instanceof FieldFormatError) {
+        throw new Error(err.userMessage, { cause: err });
+      }
       if (import.meta.env.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
         console.warn('[DEV] Auth error suppressed on edit submit.');
         return;

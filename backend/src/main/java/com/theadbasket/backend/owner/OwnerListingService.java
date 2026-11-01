@@ -275,7 +275,11 @@ public class OwnerListingService {
         }
         if (req.widthFt() != null) listing.setWidthFt(req.widthFt());
         if (req.heightFt() != null) listing.setHeightFt(req.heightFt());
-        if (req.groundHeightFt() != null) listing.setGroundHeightFt(req.groundHeightFt());
+        if (Boolean.TRUE.equals(req.clearGroundHeight())) {
+            listing.setGroundHeightFt(null);
+        } else if (req.groundHeightFt() != null) {
+            listing.setGroundHeightFt(req.groundHeightFt());
+        }
         if (req.facing() != null) listing.setFacing(facing);
         if (req.trafficType() != null) listing.setTrafficType(trafficType);
         if (req.trafficTypeOther() != null) {

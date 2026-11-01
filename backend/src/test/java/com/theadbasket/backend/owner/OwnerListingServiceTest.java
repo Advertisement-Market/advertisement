@@ -374,4 +374,104 @@ class OwnerListingServiceTest {
         assertThat(updated.type()).isNull();
         assertThat(updated.typeOther()).isNull();
     }
+
+    @Test
+    @DisplayName("updateListing with clearGroundHeight=true clears stored ground height to null")
+    void updateListing_clearGroundHeight_setsNull() {
+        BillboardListing existing = createSampleListing("Ground Height Listing", owner);
+        existing.setGroundHeightFt(new BigDecimal("15.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, true,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.groundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateListing with clearGroundHeight=true is idempotent when ground height is already null")
+    void updateListing_clearGroundHeight_whenAlreadyNull_isIdempotent() {
+        BillboardListing existing = createSampleListing("Null Ground Height Listing", owner);
+        existing.setGroundHeightFt(null);
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, true,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.groundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateListing with clearGroundHeight=null or false preserves existing ground height (no-op)")
+    void updateListing_clearGroundHeightOmittedOrFalse_preservesExisting() {
+        BillboardListing existing = createSampleListing("Preserved Height Listing", owner);
+        existing.setGroundHeightFt(new BigDecimal("25.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // clearGroundHeight is false and groundHeightFt is null
+        BillboardListingUpdateRequest patchReqFalse = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, false,
+                null, null, null, null, null, null, null, null, null, null
+        );
+        BillboardListingDto updatedFalse = ownerListingService.updateListing(10L, 1L, patchReqFalse);
+        assertThat(updatedFalse.groundHeightFt()).isEqualByComparingTo("25.00");
+
+        // clearGroundHeight is null and groundHeightFt is null (omitted)
+        BillboardListingUpdateRequest patchReqNull = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null
+        );
+        BillboardListingDto updatedNull = ownerListingService.updateListing(10L, 1L, patchReqNull);
+        assertThat(updatedNull.groundHeightFt()).isEqualByComparingTo("25.00");
+    }
+
+    @Test
+    @DisplayName("updateListing updates ground height to 0.00 without treating zero as clear")
+    void updateListing_updateToZero_setsZero() {
+        BillboardListing existing = createSampleListing("Zero Height Listing", owner);
+        existing.setGroundHeightFt(new BigDecimal("15.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, BigDecimal.ZERO, false,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.groundHeightFt()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    @DisplayName("updateListing combined patch updates name and clears ground height simultaneously")
+    void updateListing_combinedPatch_updatesNameAndClearsGroundHeight() {
+        BillboardListing existing = createSampleListing("Old Name", owner);
+        existing.setGroundHeightFt(new BigDecimal("18.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "Brand New Billboard Name", null, null, null, null, null, null,
+                null, null, null, null, null, true,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.name()).isEqualTo("Brand New Billboard Name");
+        assertThat(updated.groundHeightFt()).isNull();
+    }
 }

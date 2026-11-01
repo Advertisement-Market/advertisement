@@ -11,7 +11,8 @@ export const MSG = {
   phone: 'Enter a valid 10-digit mobile number.',
   number: 'Enter a valid number.',
   url: 'Enter a valid URL (https://…).',
-  pincode: 'Enter a valid 6-digit PIN code.',
+  // Keep in sync with backend ValidationPatterns.PINCODE_MESSAGE
+  pincode: 'Enter a valid 6-digit PIN code (cannot start with 0).',
   gst: 'Enter a valid 15-character GSTIN.',
   pan: 'Enter a valid PAN (e.g. AAAAA0000A).',
 };
@@ -43,10 +44,19 @@ export const url =
   (v) =>
     isEmpty(v) || /^https?:\/\/[^\s.]+\.[^\s]+$/.test(String(v).trim()) ? null : msg;
 
+// Matches a well-formed 6-digit Indian PIN code: a first digit of 1-9 followed by five digits (0-9)
+const PINCODE_RE = /^[1-9]\d{5}$/;
+
+export function isValidPincode(v) {
+  if (v == null) return false;
+  const str = String(v).trim();
+  return PINCODE_RE.test(str);
+}
+
 export const pincode =
   (msg = MSG.pincode) =>
   (v) =>
-    isEmpty(v) || /^\d{6}$/.test(String(v).trim()) ? null : msg;
+    isEmpty(v) || isValidPincode(v) ? null : msg;
 
 const GST_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 export const gst =
@@ -66,11 +76,53 @@ export const minLength = (n, msg) => (v) =>
 export const maxLength = (n, msg) => (v) =>
   isEmpty(v) || String(v).length <= n ? null : msg || `Must be at most ${n} characters.`;
 
-export const range = (min, max, msg) => (v) => {
-  if (isEmpty(v)) return null;
-  const n = Number(v);
-  if (Number.isNaN(n)) return MSG.number;
-  return n >= min && n <= max ? null : msg || `Enter a value between ${min} and ${max}.`;
+export const range = (min, max, msg) => {
+  const numMin = min != null ? Number(min) : Number.NEGATIVE_INFINITY;
+  const numMax = max != null ? Number(max) : Number.POSITIVE_INFINITY;
+  return (v) => {
+    if (isEmpty(v)) return null;
+    const n = Number(v);
+    if (Number.isNaN(n)) return MSG.number;
+    return n >= numMin && n <= numMax
+      ? null
+      : msg || `Enter a value between ${numMin} and ${numMax}.`;
+  };
+};
+
+export class FieldFormatError extends TypeError {
+  constructor(field, message, userMessage) {
+    super(message);
+    this.name = 'FieldFormatError';
+    this.field = field;
+    this.userMessage = userMessage || message;
+  }
+}
+
+// Matches non-negative decimal numbers: 0, 15, 24.5, .5, 15.
+// Rejects: 1e2, 0x1F, 15abc, -5
+export const DECIMAL_RE = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+
+export const decimal =
+  (msg = MSG.number) =>
+  (v) => {
+    if (isEmpty(v)) return null;
+    const str = String(v).trim();
+    // DECIMAL_RE matches the syntax; Number.isFinite guards against absurdly long digit strings overflowing to Infinity
+    return DECIMAL_RE.test(str) && Number.isFinite(Number(str)) ? null : msg;
+  };
+
+export const decimalRange = (min, max, msg) => {
+  const numMin = min != null ? Number(min) : Number.NEGATIVE_INFINITY;
+  const numMax = max != null ? Number(max) : Number.POSITIVE_INFINITY;
+  return (v) => {
+    if (isEmpty(v)) return null;
+    const str = String(v).trim();
+    if (!DECIMAL_RE.test(str)) return MSG.number;
+    const n = Number(str);
+    return n >= numMin && n <= numMax
+      ? null
+      : msg || `Enter a value between ${numMin} and ${numMax}.`;
+  };
 };
 
 /** Runs validators in order and returns the first error, or null. */
@@ -88,6 +140,8 @@ export function runValidators(value, validators = []) {
  */
 export function validatorsForType(type, { min, max } = {}) {
   switch (type) {
+    case 'decimal':
+      return min != null || max != null ? [decimalRange(min, max)] : [decimal()];
     case 'email':
       return [email()];
     case 'tel':
@@ -157,3 +211,40 @@ export const isBlank = (v) => {
 
 /** Inverse of isBlank. */
 export const isNotBlank = (v) => !isBlank(v);
+
+const TAG_REGEX = /<\/?[a-zA-Z][^>]*>|<!--[\s\S]*?-->/g;
+const TAG_START = /<+(?=[a-zA-Z/!])/g;
+// Matches zero-width spaces, joiners/non-joiners, word joiner, BOM, and bidi override control characters.
+// eslint-disable-next-line no-misleading-character-class -- \u200C (ZWNJ) and \u200D (ZWJ) are intentionally matched in sanitization
+const INVISIBLE_OR_BIDI = /[\u200B\u200C\u200D\u2060\uFEFF\u202A-\u202E\u2066-\u2069]/g;
+const MAX_RAW_LENGTH = 10_000;
+
+/**
+ * Strips HTML and XML tags from free-form text.
+ * Truncates raw inputs exceeding 10,000 characters to prevent quadratic ReDoS regex scanning.
+ * Neutralizes zero-width code points and bidi overrides before tag scanning to prevent evasion (e.g. <s\u200Bcript>).
+ * Loops iteratively (up to 10 passes) to defeat nested tag evasion (e.g. <<script>script>).
+ * Fails closed by disarming any unclosed tag markers (< followed by a tag start character [a-zA-Z/!]).
+ */
+export function stripHtmlTags(v) {
+  if (v == null) return '';
+  let str = String(v);
+  if (str.length > MAX_RAW_LENGTH) {
+    str = str.slice(0, MAX_RAW_LENGTH);
+  }
+  str = str.replace(INVISIBLE_OR_BIDI, '');
+  for (let i = 0; i < 10; i++) {
+    const next = str.replace(TAG_REGEX, '');
+    if (next === str) break;
+    str = next;
+  }
+  return str.replace(TAG_START, '');
+}
+
+/**
+ * Combines HTML tag stripping, invisible Unicode stripping, and whitespace trimming.
+ */
+export function sanitizeText(v) {
+  if (v == null) return '';
+  return cleanText(stripHtmlTags(v));
+}
