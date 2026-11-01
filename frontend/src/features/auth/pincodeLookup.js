@@ -49,16 +49,28 @@ export function parsePincodeResponse(payload) {
 
 /**
  * Look up a PIN via India Post. Returns `{ ok, city, state, areas }`; `ok` is false for an
- * invalid PIN, a "no records" response, or a network/parse error (never throws).
+ * invalid PIN, a "no records" response, or a network/parse/timeout error (never throws).
+ *
+ * The request is bounded by `timeoutMs` (default 6s) so a slow or hung third-party service
+ * falls back to manual entry instead of leaving the UI stuck; the caller's `signal` still
+ * aborts it early (e.g. when a newer PIN is entered).
  */
-export async function fetchPincode(pin, { signal } = {}) {
+export async function fetchPincode(pin, { signal, timeoutMs = 6000 } = {}) {
   const pincode = sanitizePincode(pin);
   if (!isValidPincode(pincode)) {
     return { ok: false, city: '', state: '', areas: [] };
   }
+  // Abort on either the caller's signal or the timeout, whichever fires first.
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener('abort', onAbort, { once: true });
+  }
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(INDIA_POST_URL + pincode, {
-      signal,
+      signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) return { ok: false, city: '', state: '', areas: [] };
@@ -66,5 +78,8 @@ export async function fetchPincode(pin, { signal } = {}) {
     return parsePincodeResponse(data);
   } catch {
     return { ok: false, city: '', state: '', areas: [] };
+  } finally {
+    clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', onAbort);
   }
 }
