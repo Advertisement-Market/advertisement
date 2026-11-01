@@ -30,9 +30,11 @@ export function usePincode(name, cityField, stateField, areaField) {
   const [status, setStatus] = useState('');
   const [areas, setAreas] = useState([]);
   const abortRef = useRef(null);
+  const lastPinRef = useRef(null);
 
   const resetLookup = () => {
     if (abortRef.current) abortRef.current.abort();
+    lastPinRef.current = null;
     setLoading(false);
     setStatus('');
     setAreas([]);
@@ -48,6 +50,8 @@ export function usePincode(name, cityField, stateField, areaField) {
 
   const lookup = useCallback(
     async (pin) => {
+      // Skip a redundant round-trip when the already-resolved PIN hasn't changed.
+      if (pin === lastPinRef.current) return;
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -57,6 +61,7 @@ export function usePincode(name, cityField, stateField, areaField) {
       if (controller.signal.aborted) return;
       setLoading(false);
       if (r.ok) {
+        lastPinRef.current = pin;
         setAreas(r.areas);
         setStatus([r.city, r.state].filter(Boolean).join(', '));
         if (cityField && !field(cityField).trim() && r.city) setField(cityField, r.city);
