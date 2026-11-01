@@ -450,7 +450,7 @@ export function Step2() {
 }
 /* ── STEP 3 ── */
 export function Step3() {
-  const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState');
+  const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState', 'f_bbArea');
   const cityErr = useFieldError('f_bbCity', [v.required()]);
   const stateErr = useFieldError('f_bbState', [v.required()]);
   const { field, setField } = useRegister();

@@ -18,8 +18,11 @@ import { useFieldError } from './useFieldError';
  * @param {string} name        field key holding the PIN
  * @param {string} [cityField] field key to auto-fill with the resolved City (District)
  * @param {string} [stateField] field key to auto-fill with the resolved State
+ * @param {string} [areaField] field key holding a selected locality; it is cleared whenever the
+ *   PIN changes to one whose localities no longer include it, so a stale area is never persisted
+ *   under a different city/PIN.
  */
-export function usePincode(name, cityField, stateField) {
+export function usePincode(name, cityField, stateField, areaField) {
   const { field, setField } = useRegister();
   const val = field(name);
   const err = useFieldError(name, [v.required(), v.pincode()]);
@@ -33,6 +36,7 @@ export function usePincode(name, cityField, stateField) {
     setLoading(false);
     setStatus('');
     setAreas([]);
+    if (areaField && field(areaField)) setField(areaField, '');
   };
 
   const set = (val2) => {
@@ -57,12 +61,16 @@ export function usePincode(name, cityField, stateField) {
         setStatus([r.city, r.state].filter(Boolean).join(', '));
         if (cityField && !field(cityField).trim() && r.city) setField(cityField, r.city);
         if (stateField && !field(stateField).trim() && r.state) setField(stateField, r.state);
+        // Drop a previously selected locality that this PIN no longer offers.
+        if (areaField && field(areaField) && !r.areas.includes(field(areaField))) {
+          setField(areaField, '');
+        }
       } else {
         setAreas([]);
         setStatus('PIN not found — enter the area manually.');
       }
     },
-    [cityField, stateField, field, setField],
+    [cityField, stateField, areaField, field, setField],
   );
 
   const onBlur = (e) => {
