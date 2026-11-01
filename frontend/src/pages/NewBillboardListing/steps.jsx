@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
+import { MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/config';
 import {
   useRegister,
   useFieldError,
@@ -696,8 +697,8 @@ export function ListingStep3() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub="MP4, MOV · Max 50MB"
-          accept=".mp4,.mov,video/mp4,video/quicktime"
+          sub={MAX_VIDEO_LABEL}
+          accept={VIDEO_ACCEPT_TYPES}
           category="VIDEO"
           multiple={false}
           single

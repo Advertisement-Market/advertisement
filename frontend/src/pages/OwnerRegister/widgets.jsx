@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { useRegister, useFieldError, FieldError, FieldLabel } from '@/features/register';
+import { MAX_VIDEO_BYTES, MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/config';
 
 /* ── 6-box OTP ── */
 export function OtpBoxes({ channel, dest, disabled }) {
@@ -382,7 +383,9 @@ export function UploadZone({
 
   const validateFile = (file) => {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    const isVideo = category === 'VIDEO' || file.type.startsWith('video/');
+    // Fall back to extension if browser reports empty file.type for .mov recordings
+    const isVideo =
+      category === 'VIDEO' || file.type.startsWith('video/') || ['mp4', 'mov'].includes(ext);
 
     if (isVideo) {
       if (!['mp4', 'mov'].includes(ext) && !['video/mp4', 'video/quicktime'].includes(file.type)) {
@@ -392,7 +395,7 @@ export function UploadZone({
         );
         return false;
       }
-      if (file.size > 50 * 1024 * 1024) {
+      if (file.size > MAX_VIDEO_BYTES) {
         showToast(`Video "${file.name}" exceeds the 50MB limit.`, 'error');
         return false;
       }
@@ -495,11 +498,13 @@ export function UploadZone({
       >
         <div className="upload-icon">{icon}</div>
         <div className="upload-title">{title}</div>
-        <div className="upload-sub">{sub}</div>
+        <div className="upload-sub">
+          {sub || (category === 'VIDEO' ? MAX_VIDEO_LABEL : undefined)}
+        </div>
       </div>
       <input
         type="file"
-        accept={accept}
+        accept={accept || (category === 'VIDEO' ? VIDEO_ACCEPT_TYPES : undefined)}
         multiple={multiple}
         ref={inputRef}
         style={{ display: 'none' }}

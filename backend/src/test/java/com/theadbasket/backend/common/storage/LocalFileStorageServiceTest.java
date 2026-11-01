@@ -119,12 +119,28 @@ class LocalFileStorageServiceTest {
     }
 
     @Test
-    @DisplayName("storeVideo rejects video exceeding 50MB")
-    void storeVideo_rejectsOversizedVideo() {
+    @DisplayName("storeVideo accepts video at exact 50MB boundary")
+    void storeVideo_acceptsExact50MbBoundary() {
+        MockMultipartFile file = new MockMultipartFile("file", "boundary.mp4", "video/mp4", createMp4Header()) {
+            @Override
+            public long getSize() {
+                return 50 * 1024 * 1024L; // exactly 50 MB
+            }
+        };
+
+        FileStorageService.StoredFile stored = storageService.storeVideo("videos", file, "exact-50mb");
+        assertThat(stored).isNotNull();
+        assertThat(stored.contentType()).isEqualTo("video/mp4");
+        assertThat(stored.storageKey()).isEqualTo("videos/exact-50mb.mp4");
+    }
+
+    @Test
+    @DisplayName("storeVideo rejects video exceeding 50MB by 1 byte")
+    void storeVideo_rejectsOversizedVideoBoundary() {
         MockMultipartFile file = new MockMultipartFile("file", "large.mp4", "video/mp4", createMp4Header()) {
             @Override
             public long getSize() {
-                return 51 * 1024 * 1024L; // 51 MB
+                return 50 * 1024 * 1024L + 1L; // 50 MB + 1 byte
             }
         };
 
@@ -134,5 +150,84 @@ class LocalFileStorageServiceTest {
                     BadRequestException bre = (BadRequestException) ex;
                     assertThat(bre.getErrorCode()).isEqualTo(ErrorCode.FILE_TOO_LARGE);
                 });
+    }
+
+    @Test
+    @DisplayName("storeVideo rejects HTML file disguised with .mp4 extension")
+    void storeVideo_rejectsHtmlNamedAsMp4() {
+        byte[] htmlBytes = "<html><head><title>Spoof</title></head><body>Fake video</body></html>".getBytes();
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "clip.mp4", "video/mp4", htmlBytes
+        );
+
+        assertThatThrownBy(() -> storageService.storeVideo("videos", file, UUID.randomUUID().toString()))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> {
+                    BadRequestException bre = (BadRequestException) ex;
+                    assertThat(bre.getErrorCode()).isEqualTo(ErrorCode.UNSUPPORTED_MEDIA_TYPE);
+                });
+    }
+
+    @Test
+    @DisplayName("storeVideo rejects HTML file disguised with .mov extension")
+    void storeVideo_rejectsHtmlNamedAsMov() {
+        byte[] htmlBytes = "<!DOCTYPE html><html><body><script>alert(1)</script></body></html>".getBytes();
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "payload.mov", "video/quicktime", htmlBytes
+        );
+
+        assertThatThrownBy(() -> storageService.storeVideo("videos", file, UUID.randomUUID().toString()))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> {
+                    BadRequestException bre = (BadRequestException) ex;
+                    assertThat(bre.getErrorCode()).isEqualTo(ErrorCode.UNSUPPORTED_MEDIA_TYPE);
+                });
+    }
+
+    @Test
+    @DisplayName("storeVideo derives extension and contentType strictly from detected bytes, not file name")
+    void storeVideo_derivesExtensionAndMimeFromDetectedBytes() {
+        // MOV magic header uploaded with .mp4 name
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "mismatch.mp4", "video/mp4", createQuickTimeMovHeader()
+        );
+
+        FileStorageService.StoredFile stored = storageService.storeVideo("videos", file, "mismatch-test");
+        assertThat(stored.contentType()).isEqualTo("video/quicktime");
+        assertThat(stored.storageKey()).isEqualTo("videos/mismatch-test.mov");
+    }
+
+    @Test
+    @DisplayName("deleteQuietly safely deletes file or handles missing/blank keys")
+    void deleteQuietly_safelyDeletesOrIgnores() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", createMp4Header()
+        );
+        FileStorageService.StoredFile stored = storageService.storeVideo("videos", file, "del-test");
+        Path path = storageService.resolvePath(stored.storageKey());
+        assertThat(Files.exists(path)).isTrue();
+
+        storageService.deleteQuietly(stored.storageKey());
+        assertThat(Files.exists(path)).isFalse();
+
+        // Safe with blank/null or non-existent file
+        storageService.deleteQuietly(null);
+        storageService.deleteQuietly("");
+        storageService.deleteQuietly("videos/del-test.mp4");
+    }
+
+    @Test
+    @DisplayName("deleteDirectory cleanly deletes recursive subdirectories without locking stream")
+    void deleteDirectory_recursivelyDeletesDirectory() throws IOException {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", createMp4Header()
+        );
+        FileStorageService.StoredFile stored = storageService.storeVideo("sub/folder", file, "nested-file");
+        Path filePath = storageService.resolvePath(stored.storageKey());
+        Path dirPath = storageService.resolvePath("sub/folder");
+        assertThat(Files.exists(filePath)).isTrue();
+
+        storageService.deleteDirectory("sub/folder");
+        assertThat(Files.exists(dirPath)).isFalse();
     }
 }

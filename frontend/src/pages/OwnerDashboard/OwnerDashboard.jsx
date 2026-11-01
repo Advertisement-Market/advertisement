@@ -1142,9 +1142,10 @@ function Listings({
               <div className="listing-card-full" key={l.id || l.name}>
                 <div className="lcf-header">
                   <div className="lcf-img" style={{ background: cardColor, overflow: 'hidden' }}>
-                    {l.coverPhotoUrl || l.coverUrl ? (
+                    {/* BillboardListingDto.coverPhotoUrl is the authoritative backend contract for cover photo */}
+                    {l.coverPhotoUrl ? (
                       <img
-                        src={l.coverPhotoUrl || l.coverUrl}
+                        src={l.coverPhotoUrl}
                         alt={l.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
+import { MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/config';
 import {
   useRegister,
   useFieldError,
@@ -972,8 +973,8 @@ export function Step5() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub="MP4, MOV · Max 50MB"
-          accept="video/*"
+          sub={MAX_VIDEO_LABEL}
+          accept={VIDEO_ACCEPT_TYPES}
           multiple={false}
           single
           style={{ marginBottom: 0 }}

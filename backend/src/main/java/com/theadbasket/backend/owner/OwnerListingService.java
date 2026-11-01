@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
@@ -335,8 +337,28 @@ public class OwnerListingService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found"));
 
         billboardListingRepository.delete(listing);
-        fileStorageService.deleteDirectory("billboards/" + id);
-        log.info("Deleted billboard listing id={} and cleaned disk files for user id={}", id, userId);
+        log.info("Deleted billboard listing entity id={} for user id={}", id, userId);
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        fileStorageService.deleteDirectory("billboards/" + id);
+                        log.info("Cleaned physical media directory for billboard listing id={}", id);
+                    } catch (Exception e) {
+                        log.error("Failed to delete physical media directory for billboard listing id={}: {}", id, e.getMessage(), e);
+                    }
+                }
+            });
+        } else {
+            log.warn("Transaction synchronization not active for listing delete id={}; cleaning directory synchronously", id);
+            try {
+                fileStorageService.deleteDirectory("billboards/" + id);
+            } catch (Exception e) {
+                log.error("Failed to synchronously delete physical media directory for billboard listing id={}: {}", id, e.getMessage(), e);
+            }
+        }
     }
 
     // ── Admin Actions ──

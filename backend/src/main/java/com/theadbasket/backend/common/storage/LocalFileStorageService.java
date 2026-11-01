@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +32,7 @@ import javax.imageio.stream.ImageOutputStream;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,14 +54,18 @@ public class LocalFileStorageService implements FileStorageService {
     private static final int TARGET_MAX_EDGE = 2560;
     private static final float JPEG_QUALITY = 0.85f;
     private static final long MAX_IMAGE_BYTES = 10 * 1024 * 1024L; // 10 MB
-    private static final long MAX_VIDEO_BYTES = 50 * 1024 * 1024L; // 50 MB
 
     private final Path uploadRoot;
+    private final long maxVideoBytes;
     private final Tika tika;
     private final Semaphore imageProcessingSemaphore;
 
-    public LocalFileStorageService(@Value("${app.storage.upload-dir:./uploads}") String uploadDir) {
+    @Autowired
+    public LocalFileStorageService(
+            @Value("${app.storage.upload-dir:./uploads}") String uploadDir,
+            @Value("${app.storage.max-video-bytes:52428800}") long maxVideoBytes) {
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
+        this.maxVideoBytes = maxVideoBytes;
         this.tika = new Tika();
         this.imageProcessingSemaphore = new Semaphore(2);
         try {
@@ -67,6 +73,10 @@ public class LocalFileStorageService implements FileStorageService {
         } catch (IOException e) {
             throw new IllegalStateException("Failed to create root upload directory: " + this.uploadRoot, e);
         }
+    }
+
+    public LocalFileStorageService(String uploadDir) {
+        this(uploadDir, 50L * 1024 * 1024);
     }
 
     @Override
@@ -281,34 +291,53 @@ public class LocalFileStorageService implements FileStorageService {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException(ErrorCode.INVALID_FILE, "Video file cannot be empty");
         }
-        if (file.getSize() > MAX_VIDEO_BYTES) {
+        if (file.getSize() > maxVideoBytes) {
             throw new BadRequestException(ErrorCode.FILE_TOO_LARGE, "Video file exceeds maximum allowed size of 50MB");
         }
 
         byte[] headerBytes = new byte[8192];
+        int bytesRead;
         try (InputStream is = file.getInputStream()) {
-            int read = is.read(headerBytes);
-            if (read < 12) {
+            bytesRead = is.read(headerBytes);
+            if (bytesRead < 12) {
                 throw new BadRequestException(ErrorCode.INVALID_FILE, "File is too small to be a valid video");
             }
         } catch (IOException e) {
             throw new BadRequestException(ErrorCode.INVALID_FILE, "Failed to read video header");
         }
 
-        String mimeType;
+        // Detect MIME strictly from content bytes — do NOT trust client filename or client-declared MIME
+        byte[] actualHeader = bytesRead == headerBytes.length ? headerBytes : java.util.Arrays.copyOf(headerBytes, bytesRead);
+        String byteDetectedMime;
         try {
-            mimeType = tika.detect(headerBytes, file.getOriginalFilename());
+            byteDetectedMime = tika.detect(actualHeader);
         } catch (Exception e) {
             throw new BadRequestException(ErrorCode.INVALID_FILE, "Could not detect MIME type");
         }
-        boolean isMp4 = "video/mp4".equalsIgnoreCase(mimeType);
-        boolean isQuickTime = "video/quicktime".equalsIgnoreCase(mimeType);
-        if (!isMp4 && !isQuickTime) {
+
+        boolean isMp4Family = "video/mp4".equalsIgnoreCase(byteDetectedMime);
+        boolean isQuickTimeFamily = "video/quicktime".equalsIgnoreCase(byteDetectedMime);
+
+        if (!isMp4Family && !isQuickTimeFamily) {
             throw new BadRequestException(ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-                    "Unsupported video format: " + mimeType + ". Only MP4 and MOV (QuickTime) videos are supported.");
+                    "Unsupported video format: " + byteDetectedMime + ". Only MP4 and MOV (QuickTime) videos are supported.");
         }
 
-        String extension = isQuickTime ? ".mov" : ".mp4";
+        // Content bytes confirmed valid ISO/QuickTime video.
+        // QuickTime .mov and MP4 share the ftyp container. Determine whether to store as .mov or .mp4:
+        // 1. Explicit QuickTime major brand ("qt  " at offset 8)
+        // 2. Or filename hint ends with .mov as tiebreaker when Tika detected video/quicktime
+        boolean isExplicitQuickTime = bytesRead >= 12
+                && actualHeader[4] == 'f' && actualHeader[5] == 't' && actualHeader[6] == 'y' && actualHeader[7] == 'p'
+                && actualHeader[8] == 'q' && actualHeader[9] == 't' && actualHeader[10] == ' ' && actualHeader[11] == ' ';
+
+        String origName = file.getOriginalFilename();
+        boolean hasMovExtension = origName != null && origName.toLowerCase().endsWith(".mov");
+
+        boolean treatAsQuickTime = isExplicitQuickTime || (isQuickTimeFamily && hasMovExtension);
+        String finalMimeType = treatAsQuickTime ? "video/quicktime" : "video/mp4";
+        String extension = treatAsQuickTime ? ".mov" : ".mp4";
+
         String uuid = (preferredFilename != null && !preferredFilename.isBlank())
                 ? preferredFilename
                 : UUID.randomUUID().toString();
@@ -322,7 +351,7 @@ public class LocalFileStorageService implements FileStorageService {
             }
             long writtenSize = Files.size(targetPath);
             String originalName = sanitizeOriginalName(file.getOriginalFilename());
-            return new StoredFile(storageKey, originalName, mimeType, writtenSize, null, null);
+            return new StoredFile(storageKey, originalName, finalMimeType, writtenSize, null, null);
         } catch (IOException e) {
             deleteQuietly(storageKey);
             throw new IllegalStateException("Failed to write video to disk", e);
@@ -356,14 +385,16 @@ public class LocalFileStorageService implements FileStorageService {
         Path dir = resolvePath(relativeDirectory);
         if (Files.exists(dir)) {
             try {
-                Files.walk(dir)
-                        .sorted(Comparator.reverseOrder())
-                        .forEach(p -> {
-                            try {
-                                Files.deleteIfExists(p);
-                            } catch (IOException ignored) {
-                            }
-                        });
+                List<Path> paths;
+                try (var stream = Files.walk(dir)) {
+                    paths = stream.sorted(Comparator.reverseOrder()).toList();
+                }
+                for (Path p : paths) {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException ignored) {
+                    }
+                }
             } catch (IOException e) {
                 log.warn("Failed to delete directory {}: {}", relativeDirectory, e.getMessage());
             }

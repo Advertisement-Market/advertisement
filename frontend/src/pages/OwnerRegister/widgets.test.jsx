@@ -233,14 +233,13 @@ describe('OwnerRegister and Wizard Widgets', () => {
       const fileInput = document.querySelector('input[type="file"]');
       expect(fileInput).toBeDefined();
 
-      // 1. File > 50MB rejected
+      // 1. Boundary: 50MB + 1 byte rejected
       const oversizedFile = new File([new ArrayBuffer(1024)], 'walkthrough.mp4', {
         type: 'video/mp4',
       });
-      Object.defineProperty(oversizedFile, 'size', { value: 55 * 1024 * 1024 });
+      Object.defineProperty(oversizedFile, 'size', { value: 50 * 1024 * 1024 + 1 });
 
       fireEvent.change(fileInput, { target: { files: [oversizedFile] } });
-      // In UploadZone, validateFile shows toast and does not call onChange with the invalid file
       expect(onChange).not.toHaveBeenCalled();
 
       // 2. Unsupported video format rejected (e.g. .avi)
@@ -250,21 +249,21 @@ describe('OwnerRegister and Wizard Widgets', () => {
       fireEvent.change(fileInput, { target: { files: [aviFile] } });
       expect(onChange).not.toHaveBeenCalled();
 
-      // 3. Valid MP4 within 50MB accepted
-      const validMp4 = new File([new ArrayBuffer(1024)], 'clip.mp4', {
+      // 3. Boundary: exactly 50MB accepted
+      const boundaryMp4 = new File([new ArrayBuffer(1024)], 'boundary.mp4', {
         type: 'video/mp4',
       });
-      Object.defineProperty(validMp4, 'size', { value: 25 * 1024 * 1024 });
-      fireEvent.change(fileInput, { target: { files: [validMp4] } });
-      expect(onChange).toHaveBeenCalledWith([validMp4]);
+      Object.defineProperty(boundaryMp4, 'size', { value: 50 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [boundaryMp4] } });
+      expect(onChange).toHaveBeenCalledWith([boundaryMp4]);
 
-      // 4. Valid MOV within 50MB accepted
-      const validMov = new File([new ArrayBuffer(1024)], 'iphone_clip.mov', {
-        type: 'video/quicktime',
+      // 4. Browser quirk: .mov with empty MIME type ('') is accepted based on extension
+      const movEmptyMime = new File([new ArrayBuffer(1024)], 'iphone_clip.mov', {
+        type: '',
       });
-      Object.defineProperty(validMov, 'size', { value: 35 * 1024 * 1024 });
-      fireEvent.change(fileInput, { target: { files: [validMov] } });
-      expect(onChange).toHaveBeenCalledWith([validMov]);
+      Object.defineProperty(movEmptyMime, 'size', { value: 35 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [movEmptyMime] } });
+      expect(onChange).toHaveBeenCalledWith([movEmptyMime]);
     });
   });
 });

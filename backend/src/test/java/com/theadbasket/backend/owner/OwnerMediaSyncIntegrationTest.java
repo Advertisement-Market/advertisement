@@ -27,9 +27,11 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -44,6 +46,7 @@ import com.theadbasket.backend.lov.BookingDurationUnit;
 import com.theadbasket.backend.lov.FacingDirection;
 import com.theadbasket.backend.lov.TrafficType;
 import com.theadbasket.backend.owner.dto.AdminReviewRequest;
+import com.theadbasket.backend.owner.dto.ReorderMediaRequest;
 import com.theadbasket.backend.owner.dto.SyncFileMapping;
 import com.theadbasket.backend.owner.dto.SyncManifest;
 import com.theadbasket.backend.security.JwtService;
@@ -123,6 +126,10 @@ class OwnerMediaSyncIntegrationTest {
     @SuppressWarnings("unused")
     void tearDown() throws IOException {
         deleteListingFiles();
+        billboardMediaRepository.deleteAll();
+        billboardListingRepository.deleteAll();
+        addressRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     private void deleteListingFiles() throws IOException {
@@ -201,6 +208,24 @@ class OwnerMediaSyncIntegrationTest {
         try (var files = Files.list(listingDir)) {
             assertThat(files.count()).isEqualTo(2);
         }
+
+        // ── 1b. Reorder Media Contract: PUT /api/owner/listings/{id}/media/reorder ──
+        List<BillboardMedia> uploadedMedia = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(uploadedMedia).hasSize(2);
+        Long id1 = uploadedMedia.get(0).getId();
+        Long id2 = uploadedMedia.get(1).getId();
+
+        ReorderMediaRequest reorderReq = new ReorderMediaRequest(List.of(id2, id1));
+        mockMvc.perform(put("/api/owner/listings/" + listing.getId() + "/media/reorder")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reorderReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(id2))
+                .andExpect(jsonPath("$[0].displayOrder").value(1))
+                .andExpect(jsonPath("$[1].id").value(id1))
+                .andExpect(jsonPath("$[1].displayOrder").value(2));
 
         // ── 2. Idempotent Replay: zero extra files written to disk ──
         mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
@@ -364,5 +389,82 @@ class OwnerMediaSyncIntegrationTest {
         BufferedImage savedImage = ImageIO.read(physicalFile.toFile());
         assertThat(savedImage).isNotNull();
         assertThat(Math.max(savedImage.getWidth(), savedImage.getHeight())).isEqualTo(2560);
+    }
+
+    @Test
+    @DisplayName("HTTP Multipart Stack: 50MB video upload accepted through MockMvc and multipart configuration")
+    void videoUploadUpTo50MbAcceptedThroughHttpMultipartStack() throws Exception {
+        byte[] mp4Header = new byte[64];
+        byte[] header = new byte[] {
+                0x00, 0x00, 0x00, 0x20,
+                'f', 't', 'y', 'p',
+                'i', 's', 'o', 'm',
+                0x00, 0x00, 0x02, 0x00,
+                'i', 's', 'o', 'm',
+                'm', 'p', '4', '1'
+        };
+        System.arraycopy(header, 0, mp4Header, 0, header.length);
+
+        String uploadId = UUID.randomUUID().toString();
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.VIDEO, uploadId))
+        );
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)
+        );
+        MockMultipartFile videoFile = new MockMultipartFile("files", "drone_tour.mp4", "video/mp4", mp4Header) {
+            @Override
+            public long getSize() {
+                return 50 * 1024 * 1024L; // 50MB boundary
+            }
+        };
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(videoFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].category").value("VIDEO"))
+                .andExpect(jsonPath("$[0].contentType").value("video/mp4"));
+    }
+
+    @Test
+    @DisplayName("End-to-End Delete Listing: commits DB deletion and removes physical media directory via afterCommit")
+    void deleteListing_removesDbRecordsAndCleansPhysicalFilesAfterCommit() throws Exception {
+        byte[] photoBytes = createTestJpeg(400, 300);
+        String uploadId = UUID.randomUUID().toString();
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, uploadId))
+        );
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)
+        );
+        MockMultipartFile photoFile = new MockMultipartFile("files", "delete_test.jpg", "image/jpeg", photoBytes);
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(photoFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        Path listingDir = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
+        assertThat(Files.exists(listingDir)).isTrue();
+        assertThat(billboardListingRepository.findById(listing.getId())).isPresent();
+        assertThat(billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId())).isNotEmpty();
+
+        // Perform DELETE /api/owner/listings/{id}
+        mockMvc.perform(delete("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNoContent());
+
+        // Assert DB records (listing and cascaded media) are deleted
+        assertThat(billboardListingRepository.findById(listing.getId())).isEmpty();
+        assertThat(billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId())).isEmpty();
+
+        // Assert physical directory on disk was removed by afterCommit hook
+        assertThat(Files.exists(listingDir)).isFalse();
     }
 }

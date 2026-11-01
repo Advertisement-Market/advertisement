@@ -56,7 +56,7 @@ public record BillboardListingDto(
                 ? mediaList.stream().map(m -> BillboardMediaDto.from(m, mediaBaseUrl)).toList()
                 : Collections.emptyList();
 
-        String coverUrl = mediaList != null
+        String coverPhotoUrl = mediaList != null
                 ? mediaList.stream()
                         .filter(BillboardMedia::isCover)
                         .findFirst()
@@ -92,7 +92,7 @@ public record BillboardListingDto(
                 listing.getStatus() != null ? listing.getStatus().name() : null,
                 listing.getRejectionReason(),
                 listing.getSuspensionReason(),
-                coverUrl,
+                coverPhotoUrl,
                 mediaDtos,
                 listing.getCreatedAt()
         );

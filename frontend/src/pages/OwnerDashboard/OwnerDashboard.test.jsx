@@ -180,7 +180,7 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       vi.restoreAllMocks();
     });
 
-    it('renders cover image using coverPhotoUrl, fallback to coverUrl, or BillboardIcon', async () => {
+    it('renders cover image using BillboardListingDto.coverPhotoUrl or falls back to BillboardIcon', async () => {
       const { cleanup, render, screen, waitFor } = await import('@testing-library/react');
       const { MemoryRouter, Routes, Route } = await import('react-router-dom');
       const { OwnerDashboard } = await import('./OwnerDashboard');
@@ -201,13 +201,6 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
         },
         {
           id: 202,
-          name: 'Listing With coverUrl',
-          type: 'GANTRY',
-          status: 'Available',
-          coverUrl: 'https://example.com/legacy-cover.jpg',
-        },
-        {
-          id: 203,
           name: 'Listing Without Cover',
           type: 'ROOFTOP',
           status: 'Available',
@@ -238,9 +231,6 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
 
       const imgWithCoverPhoto = screen.getByAltText('Listing With coverPhotoUrl');
       expect(imgWithCoverPhoto.getAttribute('src')).toBe('https://example.com/cover-photo.jpg');
-
-      const imgWithLegacyCover = screen.getByAltText('Listing With coverUrl');
-      expect(imgWithLegacyCover.getAttribute('src')).toBe('https://example.com/legacy-cover.jpg');
 
       expect(screen.queryByAltText('Listing Without Cover')).toBeNull();
 

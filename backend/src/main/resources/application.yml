@@ -7,7 +7,7 @@ spring:
     default: dev
   servlet:
     multipart:
-      max-file-size: 50MB
+      max-file-size: 55MB
       max-request-size: 65MB
       file-size-threshold: 2MB
   jackson:
@@ -111,6 +111,7 @@ app:
     enabled: [LOCAL, GOOGLE]
   storage:
     upload-dir: ${UPLOAD_DIR:./uploads}
+    max-video-bytes: ${MAX_VIDEO_BYTES:52428800}
   media:
     base-url: ${MEDIA_BASE_URL:/api/media}
   listings:
