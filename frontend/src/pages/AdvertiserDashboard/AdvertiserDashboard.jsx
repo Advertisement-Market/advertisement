@@ -107,8 +107,18 @@ function Topbar({ title, onNav }) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setMenuOpen(false);
     };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setMenuOpen(false);
+      }
+    };
     document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('click', onDoc);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, []);
   const hasUnread = notifs.some((n) => n.unread);
   const markRead = (i) =>
