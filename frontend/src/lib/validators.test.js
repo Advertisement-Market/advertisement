@@ -136,7 +136,17 @@ describe('Frontend Field Validators', () => {
     });
 
     it('strips all categories of invisible characters and bidi overrides with stripHtmlTags', () => {
-      const chars = ['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF', '\u202A', '\u202E', '\u2066', '\u2069'];
+      const chars = [
+        '\u200B',
+        '\u200C',
+        '\u200D',
+        '\u2060',
+        '\uFEFF',
+        '\u202A',
+        '\u202E',
+        '\u2066',
+        '\u2069',
+      ];
       for (const ch of chars) {
         expect(stripHtmlTags(`hello${ch}world`)).toBe('helloworld');
       }
@@ -256,7 +266,11 @@ describe('Frontend Field Validators', () => {
     });
 
     it('verifies FieldFormatError extends TypeError and carries field name and user message', () => {
-      const err = new FieldFormatError('f_bbGroundHeight', 'Invalid raw value', 'Ground height must be a valid number.');
+      const err = new FieldFormatError(
+        'f_bbGroundHeight',
+        'Invalid raw value',
+        'Ground height must be a valid number.',
+      );
       expect(err).toBeInstanceOf(TypeError);
       expect(err).toBeInstanceOf(Error);
       expect(err.name).toBe('FieldFormatError');
@@ -280,4 +294,3 @@ describe('Frontend Field Validators', () => {
     });
   });
 });
-

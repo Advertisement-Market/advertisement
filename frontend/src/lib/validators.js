@@ -83,7 +83,9 @@ export const range = (min, max, msg) => {
     if (isEmpty(v)) return null;
     const n = Number(v);
     if (Number.isNaN(n)) return MSG.number;
-    return n >= numMin && n <= numMax ? null : msg || `Enter a value between ${numMin} and ${numMax}.`;
+    return n >= numMin && n <= numMax
+      ? null
+      : msg || `Enter a value between ${numMin} and ${numMax}.`;
   };
 };
 
@@ -109,18 +111,19 @@ export const decimal =
     return DECIMAL_RE.test(str) && Number.isFinite(Number(str)) ? null : msg;
   };
 
-export const decimalRange =
-  (min, max, msg) => {
-    const numMin = min != null ? Number(min) : Number.NEGATIVE_INFINITY;
-    const numMax = max != null ? Number(max) : Number.POSITIVE_INFINITY;
-    return (v) => {
-      if (isEmpty(v)) return null;
-      const str = String(v).trim();
-      if (!DECIMAL_RE.test(str)) return MSG.number;
-      const n = Number(str);
-      return n >= numMin && n <= numMax ? null : msg || `Enter a value between ${numMin} and ${numMax}.`;
-    };
+export const decimalRange = (min, max, msg) => {
+  const numMin = min != null ? Number(min) : Number.NEGATIVE_INFINITY;
+  const numMax = max != null ? Number(max) : Number.POSITIVE_INFINITY;
+  return (v) => {
+    if (isEmpty(v)) return null;
+    const str = String(v).trim();
+    if (!DECIMAL_RE.test(str)) return MSG.number;
+    const n = Number(str);
+    return n >= numMin && n <= numMax
+      ? null
+      : msg || `Enter a value between ${numMin} and ${numMax}.`;
   };
+};
 
 /** Runs validators in order and returns the first error, or null. */
 export function runValidators(value, validators = []) {
@@ -245,4 +248,3 @@ export function sanitizeText(v) {
   if (v == null) return '';
   return cleanText(stripHtmlTags(v));
 }
-

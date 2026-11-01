@@ -146,7 +146,9 @@ describe('OwnerRegister and Wizard Widgets', () => {
       expect(showToast).toHaveBeenCalledWith('Please enter your office pincode.', 'error');
 
       // Fails on leading zero
-      expect(validateOwner(2, { data: { ...baseData, f_bizPin: '012345' }, showToast })).toBe(false);
+      expect(validateOwner(2, { data: { ...baseData, f_bizPin: '012345' }, showToast })).toBe(
+        false,
+      );
       expect(showToast).toHaveBeenCalledWith(
         'Please enter a valid 6-digit office pincode (cannot start with 0).',
         'error',

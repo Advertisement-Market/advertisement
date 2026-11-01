@@ -69,4 +69,3 @@ describe('AdvertiserRegister Pincode Validation', () => {
     expect(screen.getByText(MSG.pincode)).toBeDefined();
   });
 });
-

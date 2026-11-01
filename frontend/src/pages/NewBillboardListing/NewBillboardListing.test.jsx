@@ -677,9 +677,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         apiClient: { updateListing: vi.fn() },
       });
 
-      await expect(handler({ data: {} })).rejects.toThrow(
-        TypeError,
-      );
+      await expect(handler({ data: {} })).rejects.toThrow(TypeError);
       await expect(handler({ data: {} })).rejects.toThrow(
         'Cannot read properties of undefined (reading "foo")',
       );
@@ -699,9 +697,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
 
       // Must surface the normal fallback message, NOT a ground-height error!
-      await expect(handler({ data: {} })).rejects.toThrow(
-        'Failed to update billboard listing.',
-      );
+      await expect(handler({ data: {} })).rejects.toThrow('Failed to update billboard listing.');
     });
   });
 });
