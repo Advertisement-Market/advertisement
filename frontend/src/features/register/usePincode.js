@@ -67,7 +67,7 @@ export function usePincode(name, cityField, stateField, areaField) {
         }
       } else {
         setAreas([]);
-        setStatus('PIN not found — enter the area manually.');
+        setStatus('PIN not found — enter details manually.');
       }
     },
     [cityField, stateField, areaField, field, setField],
