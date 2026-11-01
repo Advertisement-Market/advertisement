@@ -510,6 +510,12 @@ describe('registrationMappers - Address and Payload Structure', () => {
       discountNote: '10% on quarterly booking',
     };
 
+    it('blanks out legacy "000000" placeholder pincode when mapping DTO to formData', () => {
+      expect(mapListingToFormData({ pincode: '000000' }).f_bbPin).toBe('');
+      expect(mapListingToFormData({ pincode: ' 000000 ' }).f_bbPin).toBe('');
+      expect(mapListingToFormData({ pincode: '400050' }).f_bbPin).toBe('400050');
+    });
+
     it('reproduces all 22 persisted fields in a full round-trip (DTO -> Form -> PATCH)', () => {
       const formData = mapListingToFormData(sampleDto);
 

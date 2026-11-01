@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
+  MSG,
   required,
   email,
   phone,
   pincode,
+  isValidPincode,
   gst,
   minLength,
   runValidators,
@@ -44,8 +46,36 @@ describe('Frontend Field Validators', () => {
   });
 
   it('validates PIN code and GST', () => {
-    expect(pincode()('12345')).toBe('Enter a valid 6-digit PIN code.');
+    // Rejects non-6-digit numbers and leading-zero PIN codes
+    expect(pincode()('12345')).toBe(MSG.pincode);
+    expect(pincode()('012345')).toBe(MSG.pincode);
+    expect(pincode()('000000')).toBe(MSG.pincode);
+    expect(pincode()('099999')).toBe(MSG.pincode);
+    expect(pincode()('40000a')).toBe(MSG.pincode);
+
+    // Accepts valid 6-digit PIN codes starting with 1-9
     expect(pincode()('560001')).toBeNull();
+    expect(pincode()('100000')).toBeNull();
+    expect(pincode()('999999')).toBeNull();
+
+    // Format validator passes empty values (composes with required())
+    expect(pincode()('')).toBeNull();
+    expect(pincode()(' ')).toBeNull();
+    expect(pincode()('   ')).toBeNull();
+    expect(pincode()(null)).toBeNull();
+
+    // Direct helper isValidPincode enforces non-empty trimmed format
+    expect(isValidPincode('560001')).toBe(true);
+    expect(isValidPincode(' 560001 ')).toBe(true);
+    expect(isValidPincode('012345')).toBe(false);
+    expect(isValidPincode('000000')).toBe(false);
+    expect(isValidPincode('099999')).toBe(false);
+    expect(isValidPincode(' ')).toBe(false);
+    expect(isValidPincode('   ')).toBe(false);
+    expect(isValidPincode('')).toBe(false);
+    expect(isValidPincode(null)).toBe(false);
+    expect(isValidPincode(undefined)).toBe(false);
+
     expect(gst()('27AAAAA0000A1Z5')).toBeNull();
   });
 
@@ -103,6 +133,13 @@ describe('Frontend Field Validators', () => {
       expect(stripHtmlTags(null)).toBe('');
       expect(stripHtmlTags(undefined)).toBe('');
       expect(stripHtmlTags('<b>Bold</b>')).toBe('Bold');
+    });
+
+    it('strips all categories of invisible characters and bidi overrides with stripHtmlTags', () => {
+      const chars = ['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF', '\u202A', '\u202E', '\u2066', '\u2069'];
+      for (const ch of chars) {
+        expect(stripHtmlTags(`hello${ch}world`)).toBe('helloworld');
+      }
     });
 
     it('executes all shared test fixtures with expected outputs', () => {

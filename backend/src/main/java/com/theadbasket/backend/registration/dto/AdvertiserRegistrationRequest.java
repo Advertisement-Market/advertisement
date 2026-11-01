@@ -85,7 +85,7 @@ public record AdvertiserRegistrationRequest(
         String state,
         @SanitizeText
         @NotBlank(message = "PIN code is required.")
-        @Pattern(regexp = ValidationPatterns.PINCODE, message = "Enter a valid 6-digit PIN code.")
+        @Pattern(regexp = ValidationPatterns.PINCODE, message = ValidationPatterns.PINCODE_MESSAGE)
         String pincode,
         // ── First requirement ──
         @NotNull(message = "Project details are required.")

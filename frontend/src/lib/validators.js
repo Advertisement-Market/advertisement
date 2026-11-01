@@ -11,7 +11,8 @@ export const MSG = {
   phone: 'Enter a valid 10-digit mobile number.',
   number: 'Enter a valid number.',
   url: 'Enter a valid URL (https://…).',
-  pincode: 'Enter a valid 6-digit PIN code.',
+  // Keep in sync with backend ValidationPatterns.PINCODE_MESSAGE
+  pincode: 'Enter a valid 6-digit PIN code (cannot start with 0).',
   gst: 'Enter a valid 15-character GSTIN.',
   pan: 'Enter a valid PAN (e.g. AAAAA0000A).',
 };
@@ -43,10 +44,19 @@ export const url =
   (v) =>
     isEmpty(v) || /^https?:\/\/[^\s.]+\.[^\s]+$/.test(String(v).trim()) ? null : msg;
 
+// Matches a well-formed 6-digit Indian PIN code: a first digit of 1-9 followed by five digits (0-9)
+const PINCODE_RE = /^[1-9]\d{5}$/;
+
+export function isValidPincode(v) {
+  if (v == null) return false;
+  const str = String(v).trim();
+  return PINCODE_RE.test(str);
+}
+
 export const pincode =
   (msg = MSG.pincode) =>
   (v) =>
-    isEmpty(v) || /^\d{6}$/.test(String(v).trim()) ? null : msg;
+    isEmpty(v) || isValidPincode(v) ? null : msg;
 
 const GST_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 export const gst =
@@ -201,6 +211,8 @@ export const isNotBlank = (v) => !isBlank(v);
 
 const TAG_REGEX = /<\/?[a-zA-Z][^>]*>|<!--[\s\S]*?-->/g;
 const TAG_START = /<+(?=[a-zA-Z/!])/g;
+// Matches zero-width spaces, joiners/non-joiners, word joiner, BOM, and bidi override control characters.
+// eslint-disable-next-line no-misleading-character-class -- \u200C (ZWNJ) and \u200D (ZWJ) are intentionally matched in sanitization
 const INVISIBLE_OR_BIDI = /[\u200B\u200C\u200D\u2060\uFEFF\u202A-\u202E\u2066-\u2069]/g;
 const MAX_RAW_LENGTH = 10_000;
 

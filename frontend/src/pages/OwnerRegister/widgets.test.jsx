@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RegisterProvider, useRegister } from '@/features/register';
 import { TypeGrid, SelectWithOther } from './widgets';
-import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step3 } from './steps';
+import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
+import { validate as validateOwner } from './OwnerRegister';
+import { MSG } from '@/lib/validators';
 
 function FieldInspector({ name }) {
   const { field } = useRegister();
@@ -126,6 +128,92 @@ describe('OwnerRegister and Wizard Widgets', () => {
 
       // OTHER: companion input is rendered
       expect(screen.getByPlaceholderText('e.g., Bridge Panel, Skywalk, Pillar')).toBeDefined();
+    });
+  });
+
+  describe('Pincode validation across OwnerRegister steps', () => {
+    it('validates f_bizPin in Step 2 step validation', () => {
+      const showToast = vi.fn();
+      const baseData = {
+        f_companyName: 'Acme Signs',
+        f_bizAddr1: '100 Main St',
+        f_bizCity: 'Mumbai',
+        f_bizState: 'Maharashtra',
+      };
+
+      // Fails on blank
+      expect(validateOwner(2, { data: { ...baseData, f_bizPin: '' }, showToast })).toBe(false);
+      expect(showToast).toHaveBeenCalledWith('Please enter your office pincode.', 'error');
+
+      // Fails on leading zero
+      expect(validateOwner(2, { data: { ...baseData, f_bizPin: '012345' }, showToast })).toBe(false);
+      expect(showToast).toHaveBeenCalledWith(
+        'Please enter a valid 6-digit office pincode (cannot start with 0).',
+        'error',
+      );
+
+      // Succeeds on valid pin
+      expect(validateOwner(2, { data: { ...baseData, f_bizPin: '400050' }, showToast })).toBe(true);
+    });
+
+    it('validates f_bbPin in Step 3 step validation', () => {
+      const showToast = vi.fn();
+      const baseData = {
+        f_bbName: 'Prime Screen',
+        f_bbAddr: '100 Main St',
+        f_bbCity: 'Mumbai',
+        f_bbState: 'Maharashtra',
+        f_bbType: 'STATIC_HOARDING',
+        f_bbWidth: '30',
+        f_bbHeight: '15',
+        f_facing: 'NORTH',
+        f_trafficType: 'HIGHWAY',
+        f_audience: 'COMMUTERS',
+      };
+
+      // Fails on blank
+      expect(validateOwner(3, { data: { ...baseData, f_bbPin: '' }, showToast })).toBe(false);
+      expect(showToast).toHaveBeenCalledWith('Please enter the billboard pincode.', 'error');
+
+      // Fails on leading zero
+      expect(validateOwner(3, { data: { ...baseData, f_bbPin: '012345' }, showToast })).toBe(false);
+      expect(showToast).toHaveBeenCalledWith(
+        'Please enter a valid 6-digit billboard pincode (cannot start with 0).',
+        'error',
+      );
+
+      // Succeeds on valid pin
+      expect(validateOwner(3, { data: { ...baseData, f_bbPin: '400050' }, showToast })).toBe(true);
+    });
+
+    it('displays inline error on blur when f_bizPin starts with 0', () => {
+      render(
+        <RegisterProvider initialData={{ f_bizPin: '' }}>
+          <Step2 />
+        </RegisterProvider>,
+      );
+
+      const pinInput = screen.getByPlaceholderText('411001');
+      fireEvent.change(pinInput, { target: { value: '012345' } });
+      fireEvent.blur(pinInput);
+
+      expect(pinInput.classList.contains('invalid')).toBe(true);
+      expect(screen.getByText(MSG.pincode)).toBeDefined();
+    });
+
+    it('displays inline error on blur when f_bbPin starts with 0', () => {
+      render(
+        <RegisterProvider initialData={{ f_bbPin: '' }}>
+          <Step3 />
+        </RegisterProvider>,
+      );
+
+      const pinInput = screen.getByPlaceholderText('400053');
+      fireEvent.change(pinInput, { target: { value: '012345' } });
+      fireEvent.blur(pinInput);
+
+      expect(pinInput.classList.contains('invalid')).toBe(true);
+      expect(screen.getByText(MSG.pincode)).toBeDefined();
     });
   });
 });

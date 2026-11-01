@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS } from './steps';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS } from '../OwnerRegister/steps';
 import { validate, NewBillboardListing, createSubmitHandler } from './NewBillboardListing';
-import { FieldFormatError } from '@/lib/validators';
+import { FieldFormatError, MSG } from '@/lib/validators';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { ROUTES } from '@/lib/routes';
 
@@ -125,6 +125,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
 
     it('validates 6-digit pincode starting with 1-9 and trims whitespace', () => {
       const showToast = vi.fn();
+      // Blank fails with specific message
+      expect(validate(1, { data: { ...validBaseData, f_bbPin: '' }, showToast })).toBe(false);
+      expect(showToast).toHaveBeenCalledWith('Please enter the billboard pincode.', 'error');
+
       // Valid pincode with whitespace
       expect(validate(1, { data: { ...validBaseData, f_bbPin: ' 400001 ' }, showToast })).toBe(
         true,
@@ -133,7 +137,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       // Starting with 0 fails
       expect(validate(1, { data: { ...validBaseData, f_bbPin: '012345' }, showToast })).toBe(false);
       expect(showToast).toHaveBeenCalledWith(
-        'Please enter a valid 6-digit billboard pincode.',
+        'Please enter a valid 6-digit billboard pincode (cannot start with 0).',
         'error',
       );
 
@@ -211,6 +215,63 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
           signal: expect.any(AbortSignal),
         }),
       );
+    });
+
+    it('displays inline error on blur when pincode starts with 0 (012345)', async () => {
+      render(
+        <MemoryRouter initialEntries={[ROUTES.newBillboardListing]}>
+          <Routes>
+            <Route path={ROUTES.newBillboardListing} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const pinInput = screen.getByPlaceholderText('400053');
+      fireEvent.change(pinInput, { target: { value: '012345' } });
+      fireEvent.blur(pinInput);
+
+      expect(pinInput.classList.contains('invalid')).toBe(true);
+      expect(screen.getByText(MSG.pincode)).toBeDefined();
+    });
+
+    it('hydrates legacy "000000" pincode as empty string in edit mode', async () => {
+      const legacyListing = {
+        id: 77,
+        name: 'Legacy Billboard',
+        addressLine1: 'Old Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '000000',
+        type: 'LED_DIGITAL',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'NORTH',
+        startPrice: 200000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce({
+        data: legacyListing,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/77/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      // Await proof that async data hydration completed by checking non-empty hydrated fields
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Legacy Billboard')).toBeDefined();
+        expect(screen.getByDisplayValue('Old Road')).toBeDefined();
+      });
+
+      const pinInput = screen.getByPlaceholderText('400053');
+      // Must be empty string, blanking out the legacy "000000" placeholder
+      expect(pinInput.value).toBe('');
     });
 
     it('redirects to dashboard when getListing rejects with an error', async () => {

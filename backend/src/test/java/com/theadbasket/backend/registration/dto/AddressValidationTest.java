@@ -1,3 +1,4 @@
+
 package com.theadbasket.backend.registration.dto;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
 import com.theadbasket.backend.common.validation.RequiredOtherTextValidator;
+import com.theadbasket.backend.common.validation.ValidationPatterns;
 import com.theadbasket.backend.lov.LovService;
 
 import jakarta.validation.ConstraintValidator;
@@ -83,6 +85,32 @@ class AddressValidationTest {
                 "Prime Unipole", line1, line2, landmark, city, state, pincode,
                 "Unipole", null, BigDecimal.valueOf(40), BigDecimal.valueOf(20), BigDecimal.valueOf(10),
                 "North", "Highway", null, "Commuters", null, "50k/day", BigDecimal.valueOf(100000), 1, "MONTHS", "10% off"
+        );
+    }
+
+    private AgencyRegistrationRequest createValidAgencyRequest(String pincode) {
+        return new AgencyRegistrationRequest(
+                "agency@example.com", "Passw0rd!", "Pinnacle Media", "Full Service",
+                2015, "10+", "Top OOH", "About us", "https://pinnacle.in",
+                "9876543210", "https://linkedin.com/company/pinnacle",
+                "Tower A", "Suite 2", "Near Metro", "Mumbai", "Maharashtra", pincode,
+                "Aarav", "Sharma", "Director", "aarav@pinnacle.in", "9876543210",
+                List.of("OOH"), List.of("Automotive"), List.of("OOH"), List.of("English"),
+                "50", "Fixed", "Pan-India", "10L", "Mumbai",
+                "REG123456", "27AAAAA0000A1Z5", "ABCDE1234F", "Client X",
+                List.of(new PortfolioItemRequest("Campaign 1", "Billboard in Bandra")),
+                true
+        );
+    }
+
+    private OwnerRegistrationRequest createValidOwnerRequest(String pincode) {
+        return new OwnerRegistrationRequest(
+                "Rajesh", "Patel", "owner@example.com", "9876543210", "Passw0rd!",
+                "Patel Hoardings", "9876543210", "REG987654", "27AAAAA0000A1Z5",
+                "Plot 4", "Phase 1", "Near Toll", "Pune", "Maharashtra", pincode,
+                "LIC1234", "Direct Owner", "Municipal Approval",
+                createValidBillboardRequest("Highway Road", null, null, "Pune", "Maharashtra", "411001"),
+                true
         );
     }
 
@@ -159,26 +187,57 @@ class AddressValidationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "12345", // 5 digits
-        "1234567", // 7 digits
-        "40000A", // alphanumeric
-        "400-01", // special characters
-        "400 01", // internal space
-        "", // empty
-        "   " // whitespace
-    })
-    @DisplayName("Invalid pincode formats fail validation")
-    void invalidPincodes_fail(String pincode) {
+    @ValueSource(strings = {"", "   "})
+    @DisplayName("Blank pincode fails validation on @NotBlank")
+    void blankPincode_fails(String pincode) {
         AdvertiserRegistrationRequest req = createValidAdvertiserRequest(
                 "12 MG Road", null, null, "Mumbai", "Maharashtra", pincode
         );
         Set<ConstraintViolation<AdvertiserRegistrationRequest>> violations = validator.validate(req);
-        assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("pincode"));
+        assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("pincode")
+                && v.getMessage().equals("PIN code is required."));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "12345", // 5 digits
+        "1234567", // 7 digits
+        "012345", // leading zero
+        "000000", // legacy placeholder zero
+        "40000A", // alphanumeric
+        "400-01", // special characters
+        "400 01"  // internal space
+    })
+    @DisplayName("Invalid pincode formats fail validation with PINCODE_MESSAGE")
+    void invalidPincodeFormats_fail(String pincode) {
+        AdvertiserRegistrationRequest req = createValidAdvertiserRequest(
+                "12 MG Road", null, null, "Mumbai", "Maharashtra", pincode
+        );
+        Set<ConstraintViolation<AdvertiserRegistrationRequest>> violations = validator.validate(req);
+        assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("pincode")
+                && v.getMessage().equals(ValidationPatterns.PINCODE_MESSAGE));
     }
 
     @Test
-    @DisplayName("BillboardListingRequest validates address fields correctly")
+    @DisplayName("AgencyRegistrationRequest rejects 012345 pincode with PINCODE_MESSAGE")
+    void agencyPincode_leadingZero_fails() {
+        AgencyRegistrationRequest req = createValidAgencyRequest("012345");
+        Set<ConstraintViolation<AgencyRegistrationRequest>> violations = validator.validate(req);
+        assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("pincode")
+                && v.getMessage().equals(ValidationPatterns.PINCODE_MESSAGE));
+    }
+
+    @Test
+    @DisplayName("OwnerRegistrationRequest rejects 012345 pincode with PINCODE_MESSAGE")
+    void ownerPincode_leadingZero_fails() {
+        OwnerRegistrationRequest req = createValidOwnerRequest("012345");
+        Set<ConstraintViolation<OwnerRegistrationRequest>> violations = validator.validate(req);
+        assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("pincode")
+                && v.getMessage().equals(ValidationPatterns.PINCODE_MESSAGE));
+    }
+
+    @Test
+    @DisplayName("BillboardListingRequest validates address fields correctly and rejects 012345")
     void billboardAddress_validation() {
         BillboardListingRequest valid = createValidBillboardRequest(
                 "Highway Road", null, "Opposite Park", "Pune", "Maharashtra", "411001"
@@ -186,10 +245,11 @@ class AddressValidationTest {
         assertThat(validator.validate(valid)).isEmpty();
 
         BillboardListingRequest invalidPin = createValidBillboardRequest(
-                "Highway Road", null, null, "Pune", "Maharashtra", "invalid"
+                "Highway Road", null, null, "Pune", "Maharashtra", "012345"
         );
         assertThat(validator.validate(invalidPin))
-                .anyMatch(v -> v.getPropertyPath().toString().equals("pincode"));
+                .anyMatch(v -> v.getPropertyPath().toString().equals("pincode")
+                        && v.getMessage().equals(ValidationPatterns.PINCODE_MESSAGE));
 
         BillboardListingRequest blankLine1 = createValidBillboardRequest(
                 "", null, null, "Pune", "Maharashtra", "411001"

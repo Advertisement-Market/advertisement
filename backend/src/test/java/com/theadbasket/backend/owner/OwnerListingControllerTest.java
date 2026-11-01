@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.address.AddressRepository;
+import com.theadbasket.backend.common.validation.ValidationPatterns;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.BookingDurationUnit;
@@ -249,7 +250,44 @@ class OwnerListingControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.fieldErrors.pincode").exists());
+                .andExpect(jsonPath("$.fieldErrors.pincode").value(ValidationPatterns.PINCODE_MESSAGE));
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with leading-zero pincode (012345) returns 400 VALIDATION_FAILED")
+    void createListing_leadingZeroPincode_returns400() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Invalid Pin Listing",
+                "Central Avenue",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "012345", // leading zero
+                "LED Digital",
+                null,
+                new BigDecimal("35.00"),
+                new BigDecimal("18.00"),
+                null,
+                "East",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                null,
+                new BigDecimal("220000.00"),
+                1,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.pincode").value(ValidationPatterns.PINCODE_MESSAGE));
     }
 
     @Test
@@ -635,6 +673,46 @@ class OwnerListingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.typeOther").value("A description is required when the selection is 'Other'."));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} on legacy row with pincode=000000 succeeds and preserves pincode when omitted")
+    void updateListing_legacyPincode000000_omittedOnPatch_preservesStoredValue() throws Exception {
+        BillboardListing listing = createListing(owner1, "Legacy Pin Listing");
+        Address legacyAddress = Address.of("100 Bandra West", null, null, "Mumbai", "Maharashtra", "000000");
+        listing.setAddress(legacyAddress);
+        listing = billboardListingRepository.save(listing);
+
+        // Send PATCH omitting pincode (only updating startPrice)
+        String patchJson = "{\"startPrice\": 450000.00}";
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.startPrice").value(450000.00))
+                .andExpect(jsonPath("$.pincode").value("000000"));
+
+        // Assert directly against the persisted entity in the real database
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getAddress().getPincode()).isEqualTo("000000");
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} explicitly sending pincode=000000 returns 400 VALIDATION_FAILED")
+    void updateListing_pincode000000_explicitlySent_rejectsWith400() throws Exception {
+        BillboardListing listing = createListing(owner1, "Valid Pin Listing");
+
+        String patchJson = "{\"pincode\": \"000000\"}";
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.pincode").value(ValidationPatterns.PINCODE_MESSAGE));
     }
 
     @Test

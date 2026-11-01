@@ -47,7 +47,7 @@ public record BillboardListingRequest(
         String state,
         @SanitizeText
         @NotBlank(message = "PIN code is required.")
-        @Pattern(regexp = ValidationPatterns.PINCODE, message = "Enter a valid 6-digit PIN code.")
+        @Pattern(regexp = ValidationPatterns.PINCODE, message = ValidationPatterns.PINCODE_MESSAGE)
         String pincode,
         @SanitizeText
         @NotBlank(message = "Billboard type is required.")

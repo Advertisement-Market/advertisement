@@ -375,6 +375,9 @@ export function mapListingToFormData(dto) {
   const trafficType = resolveTrafficOption(dto.trafficType ?? dto.f_trafficType);
   const audienceType = resolveAudienceOption(dto.audienceType ?? dto.f_audience);
 
+  const rawPin = String(dto.pincode ?? dto.f_bbPin ?? '').trim();
+  const f_bbPin = rawPin === '000000' ? '' : rawPin;
+
   return {
     f_bbName: dto.name ?? dto.f_bbName ?? '',
     f_bbAddr: dto.addressLine1 ?? dto.address ?? dto.f_bbAddr ?? '',
@@ -382,7 +385,7 @@ export function mapListingToFormData(dto) {
     f_bbLandmark: dto.landmark ?? dto.f_bbLandmark ?? '',
     f_bbCity: dto.city ?? dto.f_bbCity ?? '',
     f_bbState: dto.state ?? dto.f_bbState ?? '',
-    f_bbPin: dto.pincode ?? dto.f_bbPin ?? '',
+    f_bbPin,
     f_bbType: dto.type ?? dto.f_bbType ?? '',
     f_bbTypeOther: dto.typeOther ?? dto.f_bbTypeOther ?? '',
     f_bbWidth:

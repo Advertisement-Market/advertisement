@@ -130,7 +130,7 @@ export function Field({
     );
   } else {
     // Only pass min/max to DOM when native input type supports it (e.g. type="number")
-    const { min, max, ...inputRest } = rest;
+    const { min: _min, max: _max, ...inputRest } = rest;
     const domProps = type === 'number' ? rest : inputRest;
     control = (
       <input

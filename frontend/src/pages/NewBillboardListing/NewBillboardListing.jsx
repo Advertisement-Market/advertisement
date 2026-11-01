@@ -12,7 +12,7 @@ import {
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { LISTINGS } from '@/pages/OwnerDashboard/data';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther, isBlank, FieldFormatError, decimalRange } from '@/lib/validators';
+import { isOther, isBlank, FieldFormatError, decimalRange, isValidPincode } from '@/lib/validators';
 import './NewBillboardListing.css';
 
 const STEPS = [
@@ -96,8 +96,9 @@ export function validate(step, { data, showToast }) {
     if (!d('f_bbAddr')) return fail('Please enter the billboard address.');
     if (!d('f_bbCity')) return fail('Please enter the billboard city.');
     if (!d('f_bbState')) return fail('Please enter the billboard state.');
-    if (!d('f_bbPin') || !/^[1-9]\d{5}$/.test(d('f_bbPin')))
-      return fail('Please enter a valid 6-digit billboard pincode.');
+    if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
+    if (!isValidPincode(d('f_bbPin')))
+      return fail('Please enter a valid 6-digit billboard pincode (cannot start with 0).');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
     if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
       return fail('Please describe the billboard type.');
@@ -152,6 +153,7 @@ function WizardBody({ isEdit }) {
   return <Step />;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function createSubmitHandler({
   isEdit,
   id,
