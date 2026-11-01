@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchPincode, sanitizePincode } from '@/features/auth/pincodeLookup';
 import * as v from '@/lib/validators';
@@ -77,6 +77,19 @@ export function usePincode(name, cityField, stateField, areaField) {
     },
     [cityField, stateField, areaField, field, setField],
   );
+
+  // Re-hydrate the badge and locality list when the field remounts (e.g. navigating back to an
+  // earlier wizard step) and the stored PIN is already a complete 6 digits, so the dropdown and
+  // confirmation badge don't vanish until the user manually re-focuses the input.
+  useEffect(() => {
+    const pin = sanitizePincode(val);
+    if (pin.length !== 6) return undefined;
+    // Defer past the mount commit so the lookup's state updates don't cascade synchronously;
+    // lookup() dedupes via lastPinRef so a later blur won't re-fetch.
+    const id = setTimeout(() => lookup(pin), 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onBlur = (e) => {
     err.onBlur(e);
