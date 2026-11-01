@@ -379,6 +379,7 @@ export function mapListingToFormData(dto) {
   const f_bbPin = rawPin === '000000' ? '' : rawPin;
 
   return {
+    status: dto.status ?? '',
     f_bbName: dto.name ?? dto.f_bbName ?? '',
     f_bbAddr: dto.addressLine1 ?? dto.address ?? dto.f_bbAddr ?? '',
     f_bbAddr2: dto.addressLine2 ?? dto.f_bbAddr2 ?? '',

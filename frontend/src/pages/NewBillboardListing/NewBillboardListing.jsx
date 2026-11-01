@@ -140,19 +140,24 @@ export function validate(step, { data, showToast }) {
 
 const STEP_COMPONENTS = [ListingStep1, ListingStep2, ListingStep3];
 
-function WizardBody({ isEdit }) {
+function WizardBody({ isEdit, initialStatus }) {
   const { currentStep, submitted } = useRegister();
   if (submitted) {
+    const isResubmitted = isEdit && initialStatus === 'REJECTED';
     return (
       <SuccessScreen
         accent="var(--teal)"
         title={isEdit ? 'Billboard Updated!' : 'Billboard Listed!'}
         desc={
-          isEdit
-            ? 'Your billboard listing has been successfully updated.'
-            : 'Your billboard listing has been created and submitted for verification. It will be live on the marketplace once verified.'
+          isResubmitted
+            ? 'Your billboard listing has been updated and submitted for verification. It will be live on the marketplace once verified.'
+            : isEdit
+              ? 'Your billboard listing has been successfully updated.'
+              : 'Your billboard listing has been created and submitted for verification. It will be live on the marketplace once verified.'
         }
-        timeline={isEdit ? EDIT_SUCCESS_TIMELINE : SUCCESS_TIMELINE}
+        timeline={
+          isResubmitted ? SUCCESS_TIMELINE : isEdit ? EDIT_SUCCESS_TIMELINE : SUCCESS_TIMELINE
+        }
         dashboardTo={ROUTES.ownerListingsTab}
         dashboardLabel="Back to Dashboard"
       />
@@ -299,6 +304,27 @@ export function NewBillboardListing() {
           };
           await ownerListingApi.syncMedia(id, manifest, filesToSend);
         }
+
+        // If the listing was previously REJECTED, re-queue for moderation review
+        // to prevent fixing and saving from leaving it stranded in DRAFT status.
+        // DRAFT edits do not auto-submit so owners can save partial progress.
+        const prevStatus = initialData?.status || stateListing?.status;
+        if (prevStatus === 'REJECTED') {
+          try {
+            await ownerListingApi.submitListing(id);
+          } catch (submitErr) {
+            const submitMsg = apiErrorMessage(
+              submitErr,
+              'Failed to submit listing for verification.',
+            );
+            const submissionError = new Error(
+              `Changes saved, but submitting for review failed: ${submitMsg} Please retry.`,
+              { cause: submitErr },
+            );
+            submissionError.isSubmissionFailure = true;
+            throw submissionError;
+          }
+        }
       } else {
         const payload = mapBillboardListing(data);
         const res = await ownerListingApi.createListing(payload);
@@ -323,6 +349,9 @@ export function NewBillboardListing() {
         await ownerListingApi.submitListing(newListingId);
       }
     } catch (err) {
+      if (err.isSubmissionFailure) {
+        throw err;
+      }
       if (err instanceof FieldFormatError) {
         throw new Error(err.userMessage, { cause: err });
       }
@@ -371,7 +400,7 @@ export function NewBillboardListing() {
           signInTo={ROUTES.ownerListingsTab}
           cancelTo={ROUTES.ownerListingsTab}
         >
-          <WizardBody isEdit={isEdit} />
+          <WizardBody isEdit={isEdit} initialStatus={initialData?.status || stateListing?.status} />
         </RegisterShell>
       </RegisterProvider>
     </div>

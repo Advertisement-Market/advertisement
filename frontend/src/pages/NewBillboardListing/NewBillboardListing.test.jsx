@@ -456,6 +456,518 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
     });
 
+    it('invokes submitListing on edit submit when listing status was REJECTED', async () => {
+      const stateListing = {
+        id: 90,
+        name: 'Rejected Billboard To Fix',
+        status: 'REJECTED',
+        addressLine1: 'Near Metro Station',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400053',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 350000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 90, status: 'DRAFT' });
+      const submitSpy = vi
+        .spyOn(ownerListingApi, 'submitListing')
+        .mockResolvedValueOnce({ id: 90, status: 'PENDING_APPROVAL' });
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/90/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('90', expect.any(Object));
+        expect(submitSpy).toHaveBeenCalledWith('90');
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(
+          screen.getByText(
+            'Your billboard listing has been updated and submitted for verification. It will be live on the marketplace once verified.',
+          ),
+        ).toBeDefined();
+      });
+    });
+
+    it('does not invoke submitListing on edit submit when listing status is DRAFT (preserves partial draft progress)', async () => {
+      const stateListing = {
+        id: 91,
+        name: 'Draft Billboard Progress',
+        status: 'DRAFT',
+        addressLine1: 'Linking Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400050',
+        type: 'UNIPOLE',
+        widthFt: 25,
+        heightFt: 12,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 250000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 91, status: 'DRAFT' });
+      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing');
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/91/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('91', expect.any(Object));
+        expect(submitSpy).not.toHaveBeenCalled();
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(
+          screen.getByText('Your billboard listing has been successfully updated.'),
+        ).toBeDefined();
+      });
+    });
+
+    it('does not invoke submitListing on edit submit when listing status is ACTIVE', async () => {
+      const stateListing = {
+        id: 92,
+        name: 'Active Billboard Edit',
+        status: 'ACTIVE',
+        addressLine1: 'Worli Sea Face',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400018',
+        type: 'LED_DIGITAL',
+        widthFt: 40,
+        heightFt: 20,
+        facing: 'North',
+        trafficType: 'Highway',
+        audienceType: 'Commuters',
+        startPrice: 500000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 92, status: 'ACTIVE' });
+      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing');
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/92/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('92', expect.any(Object));
+        expect(submitSpy).not.toHaveBeenCalled();
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(
+          screen.getByText('Your billboard listing has been successfully updated.'),
+        ).toBeDefined();
+      });
+    });
+
+    it('surfaces distinct retry error when submitListing fails after updateListing succeeded on REJECTED listing', async () => {
+      const stateListing = {
+        id: 93,
+        name: 'Rejected Billboard Submit Failure',
+        status: 'REJECTED',
+        addressLine1: 'Near Metro Station',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400053',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 350000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 93, status: 'DRAFT' });
+      vi.spyOn(ownerListingApi, 'submitListing').mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: { message: 'At least 2 day photos are required to submit a billboard listing' },
+        },
+      });
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/93/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('93', expect.any(Object));
+        expect(screen.getByText(/Changes saved, but submitting for review failed/i)).toBeDefined();
+        expect(screen.getByText(/At least 2 day photos are required/i)).toBeDefined();
+        // Success screen must NOT be displayed
+        expect(screen.queryByText('Billboard Updated!')).toBeNull();
+      });
+    });
+
+    it('does not invoke submitListing on edit submit when listing status is DRAFT (preserves partial draft progress)', async () => {
+      const stateListing = {
+        id: 91,
+        name: 'Draft Billboard Progress',
+        status: 'DRAFT',
+        addressLine1: 'Linking Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400050',
+        type: 'UNIPOLE',
+        widthFt: 25,
+        heightFt: 12,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 250000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 91, status: 'DRAFT' });
+      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing');
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/91/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('91', expect.any(Object));
+        expect(submitSpy).not.toHaveBeenCalled();
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(
+          screen.getByText('Your billboard listing has been successfully updated.'),
+        ).toBeDefined();
+      });
+    });
+
+    it('does not invoke submitListing on edit submit when listing status is ACTIVE', async () => {
+      const stateListing = {
+        id: 92,
+        name: 'Active Billboard Edit',
+        status: 'ACTIVE',
+        addressLine1: 'Worli Sea Face',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400018',
+        type: 'LED_DIGITAL',
+        widthFt: 40,
+        heightFt: 20,
+        facing: 'North',
+        trafficType: 'Highway',
+        audienceType: 'Commuters',
+        startPrice: 500000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({
+        id: 92,
+        status: 'ACTIVE',
+      });
+      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing');
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/92/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('92', expect.any(Object));
+        expect(submitSpy).not.toHaveBeenCalled();
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(
+          screen.getByText('Your billboard listing has been successfully updated.'),
+        ).toBeDefined();
+      });
+    });
+
+    it('surfaces distinct retry error when submitListing fails after updateListing succeeded on REJECTED listing', async () => {
+      const stateListing = {
+        id: 93,
+        name: 'Rejected Billboard Submit Failure',
+        status: 'REJECTED',
+        addressLine1: 'Near Metro Station',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400053',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Shoppers',
+        startPrice: 350000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 93, status: 'DRAFT' });
+      vi.spyOn(ownerListingApi, 'submitListing').mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: { message: 'At least 2 day photos are required to submit a billboard listing' },
+        },
+      });
+      window.scrollTo = vi.fn();
+
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/93/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      // Step 2 -> Step 3
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3 -> Submit
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('93', expect.any(Object));
+        expect(screen.getByText(/Changes saved, but submitting for review failed/i)).toBeDefined();
+        expect(screen.getByText(/At least 2 day photos are required/i)).toBeDefined();
+        // Success screen must NOT be displayed
+        expect(screen.queryByText('Billboard Updated!')).toBeNull();
+      });
+    });
+
     it('propagates network errors on submit and does not display success screen', async () => {
       const stateListing = {
         id: 99,
