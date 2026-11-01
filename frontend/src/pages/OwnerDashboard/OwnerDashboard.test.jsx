@@ -179,5 +179,73 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       cleanup();
       vi.restoreAllMocks();
     });
+
+    it('renders cover image using coverPhotoUrl, fallback to coverUrl, or BillboardIcon', async () => {
+      const { cleanup, render, screen, waitFor } = await import('@testing-library/react');
+      const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+      const { OwnerDashboard } = await import('./OwnerDashboard');
+      const { AuthContext } = await import('@/context/AuthContext');
+      const { ToastProvider } = await import('@/context/ToastProvider');
+      const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
+      const { notificationApi } = await import('@/features/notification/notificationApi');
+
+      cleanup();
+
+      const mockListings = [
+        {
+          id: 201,
+          name: 'Listing With coverPhotoUrl',
+          type: 'UNIPOLE',
+          status: 'Available',
+          coverPhotoUrl: 'https://example.com/cover-photo.jpg',
+        },
+        {
+          id: 202,
+          name: 'Listing With coverUrl',
+          type: 'GANTRY',
+          status: 'Available',
+          coverUrl: 'https://example.com/legacy-cover.jpg',
+        },
+        {
+          id: 203,
+          name: 'Listing Without Cover',
+          type: 'ROOFTOP',
+          status: 'Available',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard?tab=listings']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Listing With coverPhotoUrl')).toBeDefined();
+      });
+
+      const imgWithCoverPhoto = screen.getByAltText('Listing With coverPhotoUrl');
+      expect(imgWithCoverPhoto.getAttribute('src')).toBe('https://example.com/cover-photo.jpg');
+
+      const imgWithLegacyCover = screen.getByAltText('Listing With coverUrl');
+      expect(imgWithLegacyCover.getAttribute('src')).toBe('https://example.com/legacy-cover.jpg');
+
+      expect(screen.queryByAltText('Listing Without Cover')).toBeNull();
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
   });
 });

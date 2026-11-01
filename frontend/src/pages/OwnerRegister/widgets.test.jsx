@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RegisterProvider, useRegister } from '@/features/register';
-import { TypeGrid, SelectWithOther } from './widgets';
+import { TypeGrid, SelectWithOther, UploadZone } from './widgets';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
 import { validate as validateOwner } from './OwnerRegister';
@@ -216,6 +216,55 @@ describe('OwnerRegister and Wizard Widgets', () => {
 
       expect(pinInput.classList.contains('invalid')).toBe(true);
       expect(screen.getByText(MSG.pincode)).toBeDefined();
+    });
+  });
+
+  describe('UploadZone video validation', () => {
+    it('rejects video exceeding 50MB and accepts valid MP4 and MOV within 50MB', () => {
+      const showToast = vi.fn();
+      const onChange = vi.fn();
+
+      render(
+        <RegisterProvider value={{ showToast }}>
+          <UploadZone sectionTitle="Short Video" category="VIDEO" files={[]} onChange={onChange} />
+        </RegisterProvider>,
+      );
+
+      const fileInput = document.querySelector('input[type="file"]');
+      expect(fileInput).toBeDefined();
+
+      // 1. File > 50MB rejected
+      const oversizedFile = new File([new ArrayBuffer(1024)], 'walkthrough.mp4', {
+        type: 'video/mp4',
+      });
+      Object.defineProperty(oversizedFile, 'size', { value: 55 * 1024 * 1024 });
+
+      fireEvent.change(fileInput, { target: { files: [oversizedFile] } });
+      // In UploadZone, validateFile shows toast and does not call onChange with the invalid file
+      expect(onChange).not.toHaveBeenCalled();
+
+      // 2. Unsupported video format rejected (e.g. .avi)
+      const aviFile = new File([new ArrayBuffer(1024)], 'clip.avi', {
+        type: 'video/x-msvideo',
+      });
+      fireEvent.change(fileInput, { target: { files: [aviFile] } });
+      expect(onChange).not.toHaveBeenCalled();
+
+      // 3. Valid MP4 within 50MB accepted
+      const validMp4 = new File([new ArrayBuffer(1024)], 'clip.mp4', {
+        type: 'video/mp4',
+      });
+      Object.defineProperty(validMp4, 'size', { value: 25 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [validMp4] } });
+      expect(onChange).toHaveBeenCalledWith([validMp4]);
+
+      // 4. Valid MOV within 50MB accepted
+      const validMov = new File([new ArrayBuffer(1024)], 'iphone_clip.mov', {
+        type: 'video/quicktime',
+      });
+      Object.defineProperty(validMov, 'size', { value: 35 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [validMov] } });
+      expect(onChange).toHaveBeenCalledWith([validMov]);
     });
   });
 });

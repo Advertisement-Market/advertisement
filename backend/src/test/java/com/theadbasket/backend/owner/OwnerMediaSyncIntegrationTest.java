@@ -87,7 +87,7 @@ class OwnerMediaSyncIntegrationTest {
 
     @BeforeEach
     @SuppressWarnings("unused")
-    void setUp() {
+    void setUp() throws IOException {
         billboardMediaRepository.deleteAll();
         billboardListingRepository.deleteAll();
         addressRepository.deleteAll();
@@ -116,20 +116,27 @@ class OwnerMediaSyncIntegrationTest {
         listing.setMinBookingDays(30);
         listing.setStatus(BillboardStatus.DRAFT);
         listing = billboardListingRepository.save(listing);
+        deleteListingFiles();
     }
 
     @AfterEach
     @SuppressWarnings("unused")
     void tearDown() throws IOException {
-        Path listingUploadPath = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
-        if (Files.exists(listingUploadPath)) {
-            try (var stream = Files.walk(listingUploadPath)) {
-                stream.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                    try {
-                        Files.deleteIfExists(p);
-                    } catch (IOException ignored) {
-                    }
-                });
+        deleteListingFiles();
+    }
+
+    private void deleteListingFiles() throws IOException {
+        if (listing != null && listing.getId() != null) {
+            Path listingUploadPath = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
+            if (Files.exists(listingUploadPath)) {
+                try (var stream = Files.walk(listingUploadPath)) {
+                    stream.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+                }
             }
         }
     }

@@ -972,7 +972,7 @@ export function Step5() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub="MP4, MOV · Max 100MB"
+          sub="MP4, MOV · Max 50MB"
           accept="video/*"
           multiple={false}
           single

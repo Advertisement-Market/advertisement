@@ -49,7 +49,7 @@ export const ownerListingApi = {
     api.put(`/api/owner/listings/${id}/media/${mediaId}/cover`).then((r) => r.data),
 
   reorderMedia: (id, mediaIds) =>
-    api.put(`/api/owner/listings/${id}/media/order`, { mediaIds }).then((r) => r.data),
+    api.put(`/api/owner/listings/${id}/media/reorder`, { mediaIds }).then((r) => r.data),
 
   submitListing: (id) => api.post(`/api/owner/listings/${id}/submit`).then((r) => r.data),
 };

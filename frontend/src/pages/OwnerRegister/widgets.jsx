@@ -392,8 +392,8 @@ export function UploadZone({
         );
         return false;
       }
-      if (file.size > 100 * 1024 * 1024) {
-        showToast(`Video "${file.name}" exceeds the 100MB limit.`, 'error');
+      if (file.size > 50 * 1024 * 1024) {
+        showToast(`Video "${file.name}" exceeds the 50MB limit.`, 'error');
         return false;
       }
       return true;

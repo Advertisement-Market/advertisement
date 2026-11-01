@@ -696,7 +696,7 @@ export function ListingStep3() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub="MP4, MOV · Max 100MB"
+          sub="MP4, MOV · Max 50MB"
           accept=".mp4,.mov,video/mp4,video/quicktime"
           category="VIDEO"
           multiple={false}

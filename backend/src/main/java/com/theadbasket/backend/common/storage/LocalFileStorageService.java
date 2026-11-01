@@ -90,7 +90,7 @@ public class LocalFileStorageService implements FileStorageService {
 
         String mimeType;
         try {
-            mimeType = tika.detect(headerBytes);
+            mimeType = tika.detect(headerBytes, file.getOriginalFilename());
         } catch (Exception e) {
             throw new BadRequestException(ErrorCode.INVALID_FILE, "Could not detect MIME type");
         }
@@ -297,19 +297,22 @@ public class LocalFileStorageService implements FileStorageService {
 
         String mimeType;
         try {
-            mimeType = tika.detect(headerBytes);
+            mimeType = tika.detect(headerBytes, file.getOriginalFilename());
         } catch (Exception e) {
             throw new BadRequestException(ErrorCode.INVALID_FILE, "Could not detect MIME type");
         }
-        if (!"video/mp4".equalsIgnoreCase(mimeType)) {
+        boolean isMp4 = "video/mp4".equalsIgnoreCase(mimeType);
+        boolean isQuickTime = "video/quicktime".equalsIgnoreCase(mimeType);
+        if (!isMp4 && !isQuickTime) {
             throw new BadRequestException(ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-                    "Unsupported video format: " + mimeType + ". Only MP4 video is supported.");
+                    "Unsupported video format: " + mimeType + ". Only MP4 and MOV (QuickTime) videos are supported.");
         }
 
+        String extension = isQuickTime ? ".mov" : ".mp4";
         String uuid = (preferredFilename != null && !preferredFilename.isBlank())
                 ? preferredFilename
                 : UUID.randomUUID().toString();
-        String storageKey = subDirectory + "/" + uuid + ".mp4";
+        String storageKey = subDirectory + "/" + uuid + extension;
         Path targetPath = resolvePath(storageKey);
 
         try {
@@ -319,7 +322,7 @@ public class LocalFileStorageService implements FileStorageService {
             }
             long writtenSize = Files.size(targetPath);
             String originalName = sanitizeOriginalName(file.getOriginalFilename());
-            return new StoredFile(storageKey, originalName, "video/mp4", writtenSize, null, null);
+            return new StoredFile(storageKey, originalName, mimeType, writtenSize, null, null);
         } catch (IOException e) {
             deleteQuietly(storageKey);
             throw new IllegalStateException("Failed to write video to disk", e);
