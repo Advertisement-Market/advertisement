@@ -277,7 +277,7 @@ class OwnerListingServiceTest {
     @DisplayName("deleteListing deletes entity and cleans directory when no transaction active")
     void deleteListing_whenOwned_deletesListing() {
         BillboardListing listing = createSampleListing("Delete Me", owner);
-        when(billboardListingRepository.findByIdForUpdate(15L)).thenReturn(Optional.of(listing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
 
         ownerListingService.deleteListing(15L, 1L);
 
@@ -289,7 +289,7 @@ class OwnerListingServiceTest {
     @DisplayName("deleteListing defers physical directory cleanup until after transaction commit")
     void deleteListing_whenTransactionActive_defersDirectoryDeletionUntilAfterCommit() {
         BillboardListing listing = createSampleListing("Delete Me", owner);
-        when(billboardListingRepository.findByIdForUpdate(15L)).thenReturn(Optional.of(listing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
 
         TransactionSynchronizationManager.initSynchronization();
         try {
@@ -315,7 +315,7 @@ class OwnerListingServiceTest {
     @DisplayName("deleteListing does not delete physical directory when transaction rolls back")
     void deleteListing_whenTransactionRollsBack_doesNotDeletePhysicalDirectory() {
         BillboardListing listing = createSampleListing("Rollback Me", owner);
-        when(billboardListingRepository.findByIdForUpdate(15L)).thenReturn(Optional.of(listing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
 
         TransactionSynchronizationManager.initSynchronization();
         try {
@@ -339,7 +339,7 @@ class OwnerListingServiceTest {
     @DisplayName("deleteListing swallows exception in afterCommit to avoid turning committed delete into 500")
     void deleteListing_whenAfterCommitThrows_doesNotPropagateException() {
         BillboardListing listing = createSampleListing("Delete Error", owner);
-        when(billboardListingRepository.findByIdForUpdate(15L)).thenReturn(Optional.of(listing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
         doThrow(new RuntimeException("Disk I/O error")).when(fileStorageService).deleteDirectory("billboards/15");
 
         TransactionSynchronizationManager.initSynchronization();
@@ -360,24 +360,9 @@ class OwnerListingServiceTest {
     @Test
     @DisplayName("deleteListing throws ResourceNotFoundException and does not delete when not owned")
     void deleteListing_whenNotOwned_throwsException() {
-        when(billboardListingRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(99L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> ownerListingService.deleteListing(99L, 1L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .satisfies(ex -> assertThat(((ResourceNotFoundException) ex).getErrorCode()).isEqualTo(ErrorCode.BILLBOARD_NOT_FOUND));
-
-        verify(billboardListingRepository, never()).delete(any());
-    }
-
-    @Test
-    @DisplayName("deleteListing throws ResourceNotFoundException and does not delete when owned by another user")
-    void deleteListing_whenOwnedByAnotherUser_throwsException() {
-        User otherOwner = new User("Someone", "Else", "other@example.com", "hash", "9876543211", Role.OWNER);
-        org.springframework.test.util.ReflectionTestUtils.setField(otherOwner, "id", 2L);
-        BillboardListing otherUserListing = createSampleListing("Someone Else", otherOwner);
-        when(billboardListingRepository.findByIdForUpdate(15L)).thenReturn(Optional.of(otherUserListing));
-
-        assertThatThrownBy(() -> ownerListingService.deleteListing(15L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .satisfies(ex -> assertThat(((ResourceNotFoundException) ex).getErrorCode()).isEqualTo(ErrorCode.BILLBOARD_NOT_FOUND));
 

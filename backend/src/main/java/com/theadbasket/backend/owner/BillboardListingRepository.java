@@ -17,10 +17,17 @@ public interface BillboardListingRepository extends JpaRepository<BillboardListi
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.QueryHints({
-            @jakarta.persistence.QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
+            @jakarta.persistence.QueryHint(name = "jakarta.persistence.lock.timeout", value = "5000")
     })
     @org.springframework.data.jpa.repository.Query("SELECT b FROM BillboardListing b WHERE b.id = :id")
     Optional<BillboardListing> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.QueryHints({
+            @jakarta.persistence.QueryHint(name = "jakarta.persistence.lock.timeout", value = "5000")
+    })
+    @org.springframework.data.jpa.repository.Query("SELECT b FROM BillboardListing b WHERE b.id = :id AND b.user.id = :userId")
+    Optional<BillboardListing> findByIdAndUserIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id, @org.springframework.data.repository.query.Param("userId") Long userId);
 
     long countByUserId(Long userId);
 
