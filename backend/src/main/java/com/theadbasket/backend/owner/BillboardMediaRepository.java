@@ -25,8 +25,8 @@ public interface BillboardMediaRepository extends JpaRepository<BillboardMedia, 
     @Query("SELECT m FROM BillboardMedia m WHERE m.billboard.id = :billboardId AND m.isCover = true")
     Optional<BillboardMedia> findCoverByBillboardId(@Param("billboardId") Long billboardId);
 
-    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM BillboardMedia m WHERE m.billboard.id = :billboardId AND m.category = :category")
-    int findMaxDisplayOrderByBillboardIdAndCategory(@Param("billboardId") Long billboardId, @Param("category") MediaCategory category);
+    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM BillboardMedia m WHERE m.billboard.id = :billboardId")
+    int findMaxDisplayOrderByBillboardId(@Param("billboardId") Long billboardId);
 
     void deleteByIdAndBillboardId(Long id, Long billboardId);
 }

@@ -333,8 +333,12 @@ public class OwnerListingService {
 
     @Transactional
     public void deleteListing(Long id, Long userId) {
-        BillboardListing listing = billboardListingRepository.findByIdAndUserId(id, userId)
+        BillboardListing listing = billboardListingRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found"));
+
+        if (!listing.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found");
+        }
 
         billboardListingRepository.delete(listing);
         log.info("Deleted billboard listing entity id={} for user id={}", id, userId);

@@ -11,6 +11,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
@@ -466,5 +472,145 @@ class OwnerMediaSyncIntegrationTest {
 
         // Assert physical directory on disk was removed by afterCommit hook
         assertThat(Files.exists(listingDir)).isFalse();
+    }
+
+    private byte[] createMp4Header() {
+        byte[] mp4Header = new byte[64];
+        byte[] header = new byte[] {
+                0x00, 0x00, 0x00, 0x20,
+                'f', 't', 'y', 'p',
+                'i', 's', 'o', 'm',
+                0x00, 0x00, 0x02, 0x00,
+                'i', 's', 'o', 'm',
+                'm', 'p', '4', '1'
+        };
+        System.arraycopy(header, 0, mp4Header, 0, header.length);
+        return mp4Header;
+    }
+
+    @Test
+    @DisplayName("Display Order Monotonicity: new uploads across mixed categories increment globally without collision")
+    void mixedCategoriesIncrementDisplayOrderGloballyWithoutCollision() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        byte[] img3 = createTestJpeg(400, 300);
+        byte[] videoBytes = createMp4Header();
+
+        // ── Batch 1: Upload DAY_PHOTO (order 1) and NIGHT_PHOTO (order 2) ──
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest batch1 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.NIGHT_PHOTO, id2)
+                )
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                        .file(new MockMultipartFile("files", "day1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "night1.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].displayOrder").value(1))
+                .andExpect(jsonPath("$[1].displayOrder").value(2));
+
+        // ── Batch 2: Upload multi-file batch (NIGHT_PHOTO and VIDEO) dense incrementing from global max (order 3, 4) ──
+        String id3 = UUID.randomUUID().toString();
+        String id4 = UUID.randomUUID().toString();
+        SyncManifest batch2 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, id3),
+                        new SyncFileMapping(1, MediaCategory.VIDEO, id4)
+                )
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch2)))
+                        .file(new MockMultipartFile("files", "night2.jpg", "image/jpeg", img3))
+                        .file(new MockMultipartFile("files", "drone.mp4", "video/mp4", videoBytes))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[2].category").value("NIGHT_PHOTO"))
+                .andExpect(jsonPath("$[2].displayOrder").value(3))
+                .andExpect(jsonPath("$[3].category").value("VIDEO"))
+                .andExpect(jsonPath("$[3].displayOrder").value(4));
+
+        // ── Batch 3: Upload DAY_PHOTO when the highest order belongs to non-day category (VIDEO=4) ──
+        // The old buggy code would query MAX(displayOrder) WHERE category = 'DAY_PHOTO' (= 1), colliding at 2.
+        // The fix queries global MAX(displayOrder) (= 4), assigning 5.
+        String id5 = UUID.randomUUID().toString();
+        byte[] img4 = createTestJpeg(400, 300);
+        SyncManifest batch3 = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id5))
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch3)))
+                        .file(new MockMultipartFile("files", "day2.jpg", "image/jpeg", img4))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$[4].category").value("DAY_PHOTO"))
+                .andExpect(jsonPath("$[4].displayOrder").value(5));
+
+        // Verify ordering in database directly
+        List<BillboardMedia> allMedia = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(allMedia).extracting(BillboardMedia::getDisplayOrder)
+                .containsExactly(1, 2, 3, 4, 5);
+    }
+
+    @Test
+    @DisplayName("Concurrency: two concurrent sync requests serialize via pessimistic row lock without duplicate display orders")
+    void concurrentSyncRequestsSerializeWithoutDisplayOrderCollision() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest batch1 = new SyncManifest(List.of(), List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1)));
+        SyncManifest batch2 = new SyncManifest(List.of(), List.of(new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, id2)));
+
+        CountDownLatch startLatch = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Callable<Integer> task1 = () -> {
+            startLatch.await();
+            return mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                            .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                            .file(new MockMultipartFile("files", "day.jpg", "image/jpeg", img1))
+                            .header("Authorization", "Bearer " + ownerToken))
+                    .andReturn().getResponse().getStatus();
+        };
+
+        Callable<Integer> task2 = () -> {
+            startLatch.await();
+            return mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                            .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch2)))
+                            .file(new MockMultipartFile("files", "night.jpg", "image/jpeg", img2))
+                            .header("Authorization", "Bearer " + ownerToken))
+                    .andReturn().getResponse().getStatus();
+        };
+
+        Future<Integer> f1 = executor.submit(task1);
+        Future<Integer> f2 = executor.submit(task2);
+
+        startLatch.countDown();
+
+        int s1 = f1.get(10, TimeUnit.SECONDS);
+        int s2 = f2.get(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertThat(s1).isIn(200, 409);
+        assertThat(s2).isIn(200, 409);
+
+        List<BillboardMedia> media = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        List<Integer> orders = media.stream().map(BillboardMedia::getDisplayOrder).toList();
+        assertThat(orders).doesNotHaveDuplicates();
     }
 }

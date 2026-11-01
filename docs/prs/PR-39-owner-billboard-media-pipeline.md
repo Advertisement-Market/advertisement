@@ -1,6 +1,6 @@
-# Technical Document: PR-38 Owner Billboard Media Pipeline & Inventory Lifecycle
+# Technical Document: PR-39 Owner Billboard Media Pipeline & Inventory Lifecycle
 
-- **PR Link / Ticket:** [PR #38](https://github.com/Advertisement-Market/advertisement/pull/38)
+- **PR Link / Ticket:** [PR #39](https://github.com/Advertisement-Market/advertisement/pull/39)
 - **Author:** @vedafactor
 - **Date:** 2026-10-23
 - **Module / Package:** `backend/src/main/java/com/theadbasket/backend/owner`, `backend/src/main/java/com/theadbasket/backend/common/storage`, `frontend/src/pages/NewBillboardListing`, `frontend/src/pages/OwnerDashboard`, `frontend/src/pages/OwnerRegister`
@@ -250,7 +250,76 @@ The following test suite covers all critical paths and edge cases:
 
 ---
 
-## 8. Commit Strategy & Review Progression
+## 9. Operational Remediation & Concurrency Specifications
+
+### 9.1 Diagnostic & Data Repair for Display Order Duplicates
+Prior to PR-39's global display order calculation, display orders were queried per category (`DAY_PHOTO`), which could produce duplicate `display_order` sequences across different categories for the same billboard.
+
+1. **Diagnostic Query (Run against Staging / Production):**
+   ```sql
+   SELECT billboard_id, display_order, COUNT(*) AS duplicate_count
+   FROM billboard_media
+   GROUP BY billboard_id, display_order
+   HAVING COUNT(*) > 1;
+   ```
+
+2. **One-Time Data Repair Script (PostgreSQL-Specific):**
+   If duplicate rows exist, run the following transaction-wrapped script during a deployment maintenance window or low-traffic quiet period. It strictly targets billboards with collisions and normalizes their media sequences to dense, 1-based order by `(display_order, created_ts, id)`:
+   ```sql
+   BEGIN;
+
+   WITH affected_billboards AS (
+       SELECT billboard_id
+       FROM billboard_media
+       GROUP BY billboard_id, display_order
+       HAVING COUNT(*) > 1
+   ),
+   renumbered AS (
+       SELECT id,
+              ROW_NUMBER() OVER (
+                  PARTITION BY billboard_id 
+                  ORDER BY display_order ASC, created_ts ASC, id ASC
+              ) AS dense_order
+       FROM billboard_media
+       WHERE billboard_id IN (SELECT billboard_id FROM affected_billboards)
+   )
+   UPDATE billboard_media bm
+   SET display_order = r.dense_order
+   FROM renumbered r
+   WHERE bm.id = r.id
+     AND bm.display_order != r.dense_order;
+
+   COMMIT;
+   ```
+   > [!NOTE]
+   > This query is documented as an operational one-off for PostgreSQL staging/production and is omitted from H2 Flyway migrations due to engine-specific `UPDATE ... FROM` syntax. Listings with collisions are compacted to dense sequential values `(1, 2, 3...)`.
+   > 
+   > **Follow-Up Ticket:** Once the repair script is verified on production, open a follow-up ticket to enforce an immediate/deferrable database constraint on `(billboard_id, display_order)`.
+
+### 9.2 Concurrency Architecture & Lock Isolation
+- **Pessimistic Row Lock:** `BillboardListingRepository.findByIdForUpdate` executes `SELECT ... FOR UPDATE` with a 3000ms bounded timeout hint (`@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")`).
+- **Protected Writers:** All media mutation endpoints (`executeSync`, `reorderMedia`, `setCover`, `deleteSingleMedia`) as well as `OwnerListingService.deleteListing` acquire this row lock before altering media records, computing `display_order`, or cascading deletions.
+- **Validation Guard in `reorderMedia`:** Validates that submitted `mediaIds` contains exactly the complete set of existing media IDs for the listing, preventing partial reorders from creating stale sequences.
+- **Zero Disk I/O inside Lock Boundary:** Ingestion, Tika MIME detection, decompression bomb guards, and disk file writes are performed upfront in `OwnerMediaSyncService` *outside* the `@Transactional` boundary. The locked phase in `OwnerMediaTransactionalService` executes only fast database metadata operations (sub-millisecond).
+- **Lock Timeout / Failure Mapping:** Spring's `PessimisticLockingFailureException` and `CannotAcquireLockException` are mapped to HTTP 409 Conflict (`CONCURRENT_MODIFICATION`) via `GlobalExceptionHandler` with user-friendly retry guidance.
+- **Frontend Error UX:** Handled cleanly by `apiErrorMessage()`, rendering the backend's explicit `"The resource is currently locked by another concurrent operation. Please retry in a moment."` toast rather than treating it as a validation error.
+- **Mutation & Multi-Thread Verification:**
+  - Mutation check verified: reverting to category-based query failed the integration test with `JSON path "$[2].displayOrder" expected:<3> but was:<2>`.
+  - Concurrency test `concurrentSyncRequestsSerializeWithoutDisplayOrderCollision` in `OwnerMediaSyncIntegrationTest` exercises 2 concurrent threads executing sync on the same listing with a `CountDownLatch`, proving serial execution without order duplication.
+
+---
+
+## 10. Deployment Checklist & Operational Tasks
+
+| Step | Action | Environment | Assigned Owner | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | Run Diagnostic Query for duplicate `display_order` | Staging / Prod | @vedafactor | Pre-Deploy |
+| 2 | Execute One-Time Repair Script if duplicates are detected | Staging / Prod | @vedafactor | Maintenance Window |
+| 3 | Run Diagnostic Query to confirm zero remaining duplicates | Staging / Prod | @vedafactor | Post-Repair |
+| 4 | Deploy backend artifact (V9 migration + global displayOrder calculation) | Staging / Prod | @vedafactor | Deploy |
+| 5 | Verify Nginx `client_max_body_size 65M;` configuration | Ingress / Proxy | Infra / DevOps | Completed |
+| 6 | Open follow-up ticket for `uq_billboard_media_display_order` | Backlog | @vedafactor | Post-Merge |
+
 
 To ensure high reviewability across this substantial feature, commits are structured strictly in implementation dependency order:
 
@@ -259,4 +328,4 @@ To ensure high reviewability across this substantial feature, commits are struct
 3. `feat(owner): add atomic media sync and transactional services with row locking and disk rollback`
 4. `feat(lifecycle): implement submit listing, admin moderation endpoints, and marketplace status filtering`
 5. `feat(frontend): upgrade UploadZone, wire listing wizard step 3, and add dashboard status badges`
-6. `docs: add PR-38 technical specification and update architecture guidelines`
+6. `docs: add PR-39 technical specification and update architecture guidelines`

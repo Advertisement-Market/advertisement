@@ -16,6 +16,9 @@ public interface BillboardListingRepository extends JpaRepository<BillboardListi
     Optional<BillboardListing> findByIdAndUserId(Long id, Long userId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.QueryHints({
+            @jakarta.persistence.QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
+    })
     @org.springframework.data.jpa.repository.Query("SELECT b FROM BillboardListing b WHERE b.id = :id")
     Optional<BillboardListing> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
 

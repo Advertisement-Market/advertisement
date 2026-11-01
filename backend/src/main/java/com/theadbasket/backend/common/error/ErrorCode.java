@@ -68,6 +68,7 @@ public enum ErrorCode {
     LISTING_SUSPENDED("error.listing.suspended"),
     INVALID_STATUS_TRANSITION("error.listing.invalidTransition"),
     SERVICE_UNAVAILABLE("error.service.unavailable"),
+    CONCURRENT_MODIFICATION("error.concurrency.conflict"),
 
     // Generic
     VALIDATION_FAILED("error.validation.failed"),

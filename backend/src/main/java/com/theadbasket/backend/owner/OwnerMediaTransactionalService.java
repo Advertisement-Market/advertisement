@@ -134,7 +134,7 @@ public class OwnerMediaTransactionalService {
         boolean hasCover = !coverDeleted && existingById.values().stream().anyMatch(BillboardMedia::isCover);
 
         // 7. Insert new files in clientIndex order
-        int maxDisplayOrder = billboardMediaRepository.findMaxDisplayOrderByBillboardIdAndCategory(listingId, MediaCategory.DAY_PHOTO);
+        int maxDisplayOrder = billboardMediaRepository.findMaxDisplayOrderByBillboardId(listingId);
 
         for (IngestedMedia item : toInsert) {
             maxDisplayOrder++;
