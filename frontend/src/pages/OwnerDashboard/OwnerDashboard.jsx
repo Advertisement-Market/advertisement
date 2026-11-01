@@ -8,6 +8,7 @@ import { LogoMark } from '@/components/layout/Logo';
 import { notificationApi } from '@/features/notification/notificationApi';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { apiErrorMessage } from '@/lib/apiClient';
+import { Toast } from '@/components/ui/Toast/Toast';
 import {
   NAV,
   TITLES,
@@ -1006,6 +1007,8 @@ function Listings({
   onAddListing,
   onEditListing,
   onDeleteListing,
+  onSubmitForReview,
+  submittingId = null,
 }) {
   const { showToast } = useToast();
   const [q, setQ] = useState('');
@@ -1197,6 +1200,15 @@ function Listings({
                     <button className="btn-ghost btn-sm" onClick={() => onEditListing(l)}>
                       Edit
                     </button>
+                    {statusUpper === 'DRAFT' && (
+                      <button
+                        className="btn-teal btn-sm"
+                        onClick={() => onSubmitForReview && onSubmitForReview(l)}
+                        disabled={submittingId === l.id}
+                      >
+                        {submittingId === l.id ? 'Submitting...' : 'Submit for Review'}
+                      </button>
+                    )}
                     <button
                       className="btn-teal btn-sm"
                       onClick={() => showToast(`"${l.name}" boosted for 7 days!`, 'success')}
@@ -2407,6 +2419,22 @@ export function OwnerDashboard() {
     }
   };
 
+  const [submittingReviewId, setSubmittingReviewId] = useState(null);
+
+  const handleSubmitForReview = async (listing) => {
+    if (!listing?.id || submittingReviewId === listing.id) return;
+    setSubmittingReviewId(listing.id);
+    try {
+      await ownerListingApi.submitListing(listing.id);
+      showToast(`"${listing.name}" submitted for review!`, 'success');
+      refreshListings();
+    } catch (err) {
+      showToast(apiErrorMessage(err, 'Failed to submit listing for review.'), 'error');
+    } finally {
+      setSubmittingReviewId(null);
+    }
+  };
+
   return (
     <div className="owner-dashboard-page">
       <Sidebar active={page} onNav={nav} userName={userName} listingsCount={listings.length} />
@@ -2430,6 +2458,8 @@ export function OwnerDashboard() {
               }
             }}
             onDeleteListing={(listing) => setModal({ type: 'deleteListing', listing })}
+            onSubmitForReview={handleSubmitForReview}
+            submittingId={submittingReviewId}
           />
         )}
         {page === 'calendar' && <CalendarPage calData={calData} setCalData={setCalData} />}
@@ -2576,6 +2606,7 @@ export function OwnerDashboard() {
           </div>
         </Modal>
       )}
+      <Toast />
     </div>
   );
 }

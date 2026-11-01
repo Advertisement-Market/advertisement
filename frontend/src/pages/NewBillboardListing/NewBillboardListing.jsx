@@ -127,12 +127,16 @@ export function validate(step, { data, showToast }) {
       return fail('Please select a valid booking duration unit.');
   }
   if (step === 3) {
-    const existingDay = Array.isArray(data.f_existingDayPhotos)
-      ? data.f_existingDayPhotos.length
-      : 0;
-    const newDay = Array.isArray(data.f_dayPhotos) ? data.f_dayPhotos.length : 0;
-    if (existingDay + newDay < 2) {
-      return fail('At least 2 daylight photos are required to submit a billboard listing.');
+    const isDraft = data.status === 'DRAFT';
+    const isSavingDraftOnly = isDraft && !data.f_submitForReview;
+    if (!isSavingDraftOnly) {
+      const existingDay = Array.isArray(data.f_existingDayPhotos)
+        ? data.f_existingDayPhotos.length
+        : 0;
+      const newDay = Array.isArray(data.f_dayPhotos) ? data.f_dayPhotos.length : 0;
+      if (existingDay + newDay < 2) {
+        return fail('At least 2 daylight photos are required to submit a billboard listing.');
+      }
     }
   }
   return true;
@@ -141,9 +145,12 @@ export function validate(step, { data, showToast }) {
 const STEP_COMPONENTS = [ListingStep1, ListingStep2, ListingStep3];
 
 function WizardBody({ isEdit, initialStatus }) {
-  const { currentStep, submitted } = useRegister();
+  const { currentStep, submitted, field } = useRegister();
   if (submitted) {
-    const isResubmitted = isEdit && initialStatus === 'REJECTED';
+    const isResubmitted =
+      isEdit &&
+      (initialStatus === 'REJECTED' ||
+        (initialStatus === 'DRAFT' && Boolean(field('f_submitForReview'))));
     return (
       <SuccessScreen
         accent="var(--teal)"
@@ -305,11 +312,13 @@ export function NewBillboardListing() {
           await ownerListingApi.syncMedia(id, manifest, filesToSend);
         }
 
-        // If the listing was previously REJECTED, re-queue for moderation review
-        // to prevent fixing and saving from leaving it stranded in DRAFT status.
-        // DRAFT edits do not auto-submit so owners can save partial progress.
-        const prevStatus = initialData?.status || stateListing?.status;
-        if (prevStatus === 'REJECTED') {
+        // If the listing was previously REJECTED, or DRAFT with submit requested,
+        // submit for moderation review to prevent leaving listings stranded in DRAFT status.
+        const prevStatus = data?.status || initialData?.status || stateListing?.status;
+        const shouldSubmitForReview =
+          prevStatus === 'REJECTED' || (prevStatus === 'DRAFT' && Boolean(data?.f_submitForReview));
+
+        if (shouldSubmitForReview) {
           try {
             await ownerListingApi.submitListing(id);
           } catch (submitErr) {

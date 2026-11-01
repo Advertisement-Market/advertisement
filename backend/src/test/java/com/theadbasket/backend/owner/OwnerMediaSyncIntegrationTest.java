@@ -613,4 +613,112 @@ class OwnerMediaSyncIntegrationTest {
         List<Integer> orders = media.stream().map(BillboardMedia::getDisplayOrder).toList();
         assertThat(orders).doesNotHaveDuplicates();
     }
+
+    @Test
+    @DisplayName("Active listing: media insertion or deletion transitions status to PENDING_APPROVAL for re-review")
+    void mediaChangeOnActiveListingTransitionsStatusToPendingApproval() throws Exception {
+        // Arrange listing with initial 2 day photos
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest initBatch = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(initBatch)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Make listing ACTIVE
+        listing.setStatus(BillboardStatus.ACTIVE);
+        billboardListingRepository.save(listing);
+
+        // Upload a 3rd media photo
+        byte[] img3 = createTestJpeg(400, 300);
+        String id3 = UUID.randomUUID().toString();
+        SyncManifest manifest = new SyncManifest(List.of(), List.of(new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, id3)));
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)))
+                        .file(new MockMultipartFile("files", "new_night.jpg", "image/jpeg", img3))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(BillboardStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    @DisplayName("Active listing: metadata-only PATCH leaves status as ACTIVE without requiring re-review")
+    void metadataOnlyEditOnActiveListingKeepsStatusActive() throws Exception {
+        // Arrange listing in ACTIVE status
+        listing.setStatus(BillboardStatus.ACTIVE);
+        billboardListingRepository.save(listing);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Updated Active Name\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.name").value("Updated Active Name"));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(BillboardStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("Active listing: reordering media and setting cover leaves status as ACTIVE without requiring re-review")
+    void reorderAndCoverOnActiveListingKeepsStatusActive() throws Exception {
+        // Upload initial 2 day photos
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest initBatch = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(initBatch)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Make listing ACTIVE
+        listing.setStatus(BillboardStatus.ACTIVE);
+        billboardListingRepository.save(listing);
+
+        List<BillboardMedia> media = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        Long m1 = media.get(0).getId();
+        Long m2 = media.get(1).getId();
+
+        // 1. Set cover on m2
+        mockMvc.perform(put("/api/owner/listings/" + listing.getId() + "/media/" + m2 + "/cover")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isCover").value(true));
+
+        // 2. Reorder media: [m2, m1]
+        mockMvc.perform(put("/api/owner/listings/" + listing.getId() + "/media/reorder")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ReorderMediaRequest(List.of(m2, m1)))))
+                .andExpect(status().isOk());
+
+        // Verify listing is STILL ACTIVE
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(BillboardStatus.ACTIVE);
+    }
 }

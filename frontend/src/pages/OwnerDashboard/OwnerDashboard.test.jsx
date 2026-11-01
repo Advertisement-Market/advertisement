@@ -237,5 +237,186 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       cleanup();
       vi.restoreAllMocks();
     });
+
+    it('renders Submit for Review button on DRAFT listings and calls submitListing on click', async () => {
+      const { cleanup, render, screen, waitFor, fireEvent } =
+        await import('@testing-library/react');
+      const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+      const { OwnerDashboard } = await import('./OwnerDashboard');
+      const { AuthContext } = await import('@/context/AuthContext');
+      const { ToastProvider } = await import('@/context/ToastProvider');
+      const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
+      const { notificationApi } = await import('@/features/notification/notificationApi');
+
+      cleanup();
+
+      const mockListings = [
+        {
+          id: 301,
+          name: 'Draft Billboard Incomplete',
+          type: 'UNIPOLE',
+          status: 'DRAFT',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+      const submitSpy = vi
+        .spyOn(ownerListingApi, 'submitListing')
+        .mockResolvedValue({ id: 301, status: 'PENDING_APPROVAL' });
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard?tab=listings']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Draft Billboard Incomplete')).toBeDefined();
+        expect(screen.getByRole('button', { name: /submit for review/i })).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /submit for review/i }));
+
+      await waitFor(() => {
+        expect(submitSpy).toHaveBeenCalledWith(301);
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('guards against double-clicks when submitting a draft for review', async () => {
+      const { cleanup, render, screen, waitFor, fireEvent } =
+        await import('@testing-library/react');
+      const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+      const { OwnerDashboard } = await import('./OwnerDashboard');
+      const { AuthContext } = await import('@/context/AuthContext');
+      const { ToastProvider } = await import('@/context/ToastProvider');
+      const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
+      const { notificationApi } = await import('@/features/notification/notificationApi');
+
+      cleanup();
+
+      const mockListings = [
+        {
+          id: 302,
+          name: 'Draft Billboard Double Click',
+          type: 'UNIPOLE',
+          status: 'DRAFT',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+      // Simulate an in-flight network promise that doesn't resolve immediately
+      let resolveSubmit;
+      const submitPromise = new Promise((resolve) => {
+        resolveSubmit = resolve;
+      });
+      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing').mockReturnValue(submitPromise);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard?tab=listings']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit for review/i })).toBeDefined();
+      });
+
+      const btn = screen.getByRole('button', { name: /submit for review/i });
+      fireEvent.click(btn);
+      // Second immediate click while first is in flight
+      fireEvent.click(btn);
+
+      expect(submitSpy).toHaveBeenCalledTimes(1);
+
+      // Cleanly resolve the in-flight promise
+      resolveSubmit({ id: 302, status: 'PENDING_APPROVAL' });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('displays error toast when submit for review fails on dashboard', async () => {
+      const { cleanup, render, screen, waitFor, fireEvent } =
+        await import('@testing-library/react');
+      const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+      const { OwnerDashboard } = await import('./OwnerDashboard');
+      const { AuthContext } = await import('@/context/AuthContext');
+      const { ToastProvider } = await import('@/context/ToastProvider');
+      const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
+      const { notificationApi } = await import('@/features/notification/notificationApi');
+
+      cleanup();
+
+      const mockListings = [
+        {
+          id: 303,
+          name: 'Draft Billboard Incomplete Photos',
+          type: 'UNIPOLE',
+          status: 'DRAFT',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+      vi.spyOn(ownerListingApi, 'submitListing').mockRejectedValue({
+        response: {
+          data: {
+            message: 'At least 2 daylight photos are required to submit for review.',
+            errorCode: 'MINIMUM_DAY_PHOTOS_REQUIRED',
+          },
+        },
+      });
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard?tab=listings']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit for review/i })).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /submit for review/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/at least 2 daylight photos are required/i)).toBeDefined();
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
   });
 });

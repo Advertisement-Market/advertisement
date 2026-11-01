@@ -11,6 +11,7 @@ import {
   FormRow,
   StepHeader,
   RegNav,
+  WarningBanner,
 } from '@/features/register';
 import {
   TypeGrid,
@@ -521,6 +522,19 @@ export function ListingStep3() {
 
   const stagedDeleteIds = field('f_stagedDeleteIds') || [];
 
+  const hasPendingMediaChanges =
+    dayPhotos.length > 0 ||
+    nightPhotos.length > 0 ||
+    surroundingPhotos.length > 0 ||
+    video.length > 0 ||
+    stagedDeleteIds.length > 0;
+
+  const totalDayPhotos = existingDayPhotos.length + dayPhotos.length;
+  const isDraft = field('status') === 'DRAFT';
+  const submitForReview = Boolean(field('f_submitForReview'));
+  const hasMinDayPhotos = totalDayPhotos >= 2;
+  const isSubmitDisabled = submitting || (isDraft && submitForReview && !hasMinDayPhotos);
+
   const handleRemoveExisting = (id, categoryField) => {
     setField('f_stagedDeleteIds', [...stagedDeleteIds, id]);
     const currentExisting = field(categoryField) || [];
@@ -595,6 +609,65 @@ export function ListingStep3() {
           </div>
         </div>
       </div>
+
+      {field('status') === 'ACTIVE' && hasPendingMediaChanges && (
+        <div style={{ marginBottom: 20 }}>
+          <WarningBanner>
+            <strong>Live Listing Notice:</strong> You have staged media changes (added or deleted
+            files). Saving will unpublish this active billboard from the marketplace and move it to{' '}
+            <em>Pending Review</em> until re-verified by an administrator. Reordering media or
+            changing the cover photo does not require re-review.
+          </WarningBanner>
+        </div>
+      )}
+
+      {isDraft && (
+        <div
+          style={{
+            background: 'var(--cream-warm)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 12,
+            padding: '14px 18px',
+            marginBottom: 20,
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={submitForReview}
+              onChange={(e) => setField('f_submitForReview', e.target.checked)}
+            />
+            <span>Submit for Review once saved</span>
+          </label>
+          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 4, marginLeft: 24 }}>
+            Check this box to submit your billboard for moderation review (requires at least 2 day
+            photos). Leave unchecked to save as draft.
+          </div>
+          {submitForReview && !hasMinDayPhotos && (
+            <div
+              style={{
+                marginTop: 8,
+                marginLeft: 24,
+                fontSize: 12,
+                color: 'var(--red, #dc2626)',
+                fontWeight: 600,
+              }}
+            >
+              ⚠️ At least 2 daylight photos are required to submit for review (currently{' '}
+              {totalDayPhotos}). Upload more photos below or uncheck to save as draft.
+            </div>
+          )}
+        </div>
+      )}
 
       <FormSection title="Location Pin Verification">
         <div
@@ -716,9 +789,15 @@ export function ListingStep3() {
           type="button"
           className="btn-next btn-submit"
           onClick={submit}
-          disabled={submitting}
+          disabled={isSubmitDisabled}
         >
-          {submitting ? 'Submitting...' : 'Submit Billboard Listing →'}
+          {submitting
+            ? 'Submitting...'
+            : isDraft && !submitForReview
+              ? 'Save Draft Changes →'
+              : isDraft
+                ? 'Save & Submit for Review →'
+                : 'Submit Billboard Listing →'}
         </button>
       </RegNav>
     </div>

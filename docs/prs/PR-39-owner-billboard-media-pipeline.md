@@ -195,11 +195,19 @@ CREATE INDEX idx_billboard_media_upload_id ON billboard_media (billboard_id, upl
    - Tracks staged removals via `f_stagedDeleteIds`.
 3. **`NewBillboardListing.jsx` Submit Flow:**
    - **Creation:** `createListing` (DRAFT) $\rightarrow$ `syncMedia` (upload files) $\rightarrow$ `submitListing` (PENDING_APPROVAL) $\rightarrow$ `SuccessScreen`.
-   - **Edit:** `updateListing` (metadata PATCH) $\rightarrow$ `syncMedia` (staged deletions & new files) $\rightarrow$ `SuccessScreen`.
+   - **Edit:** `updateListing` (metadata PATCH) $\rightarrow$ `syncMedia` (staged deletions & new files) $\rightarrow$ conditional submit:
+     - If `prevStatus === 'REJECTED'`: auto-invokes `submitListing` $\rightarrow$ transitions to `PENDING_APPROVAL`, clears `rejection_reason`.
+     - If `prevStatus === 'DRAFT'`: owner has an explicit choice to either save progress in DRAFT ("Save Draft Changes") or submit for review ("Save & Submit for Review").
+     - If `prevStatus === 'ACTIVE'`: warning banner alerts owner that changing media (photos added/deleted) automatically unpublishes the listing to `PENDING_APPROVAL` for admin re-verification upon save.
+     - If `submitListing` fails after a successful update/sync: specific error toast with retry action keeps the user on Step 3 with changes preserved.
 4. **`OwnerDashboard.jsx`:**
    - Displays real cover photo from `l.coverPhotoUrl` on billboard cards.
    - Distinct status badges: `Draft`, `Pending Review`, `Active`, `Rejected`, and `Suspended`.
    - Banner displaying `rejectionReason` or `suspensionReason` when applicable.
+   - Primary action buttons:
+     - "Submit for Review" on `DRAFT` listings (invokes `submitListing` with success toast and reload).
+     - "Fix Listing" on `REJECTED` listings.
+     - "Edit Listing" / "View Listing" based on lifecycle state.
 
 ---
 
@@ -209,8 +217,9 @@ CREATE INDEX idx_billboard_media_upload_id ON billboard_media (billboard_id, upl
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/owner/listings/{id}/media/sync` | `OWNER` | Synchronizes media files, staged deletions, and ordering |
 | `POST` | `/api/owner/listings/{id}/media` | `OWNER` | Uploads a single media file (delegates to sync service) |
+| `DELETE` | `/api/owner/listings/{id}/media/{mediaId}` | `OWNER` | Deletes a single media file and updates listing status if active |
 | `PUT` | `/api/owner/listings/{id}/media/{mediaId}/cover` | `OWNER` | Sets the designated photo as the listing cover |
-| `PUT` | `/api/owner/listings/{id}/media/order` | `OWNER` | Reorders media display order |
+| `PUT` | `/api/owner/listings/{id}/media/reorder` | `OWNER` | Reorders media display order |
 | `POST` | `/api/owner/listings/{id}/submit` | `OWNER` | Submits a `DRAFT` or `REJECTED` listing for admin approval |
 | `GET` | `/api/owner/listings/{id}` | `OWNER` | Retrieves listing details (including DRAFT, REJECTED, SUSPENDED) |
 | `POST` | `/api/admin/listings/{id}/approve` | `ADMIN` | Approves listing, transitioning to `ACTIVE` |
@@ -247,12 +256,26 @@ The following test suite covers all critical paths and edge cases:
     - `PATCH /api/owner/listings/{id}` ignores injected `status` or `rejectionReason`.
     - Staged delete IDs from another listing are rejected/ignored.
 11. **Static Media Security Headers:** Verifying final HTTP response headers on `/api/media/**` contain `nosniff`, `sandbox` CSP, `inline` Content-Disposition, and `Cache-Control: public, max-age=86400`.
+12. **PostgreSQL Connection-Level Lock Timeout & MVC Translation (`PostgresLockTimeoutIT`):**
+    - *Status:* **Not yet verified locally (gated on Docker execution in CI).**
+    - Configured against real PostgreSQL 16 container with Hikari `connectionInitSql = "SET lock_timeout = '5s'"` and dedicated Flyway datasource (`spring.flyway.url/user/password`) with `init-sqls: ["SET lock_timeout = 0"]`.
+    - Proves Transaction A holding row lock blocks Transaction B calling `DELETE /api/owner/listings/{id}` until PostgreSQL aborts waiting query with `55P03`, translating to `CannotAcquireLockException` and HTTP 409 `CONCURRENT_MODIFICATION`.
+    - Verification gate: Requires a green CI run reporting `PostgresLockTimeoutIT` executed (not skipped), plus mutation check (removing `connection-init-sql` to confirm test failure).
+13. **Profile Configuration & Placeholder Resolution (`ProfileYamlConfigTest`):**
+    - Verifies that both `application-prod.yml` and `application-staging.yml` load valid YAML and successfully resolve datasource and dedicated Flyway properties without unresolvable placeholder errors, even when `DB_PASSWORD` is empty or unset.
+14. **Active Listing Re-moderation Scenarios (`OwnerMediaSyncIntegrationTest`):**
+    - `mediaChangeOnActiveListingTransitionsStatusToPendingApproval`: Adding a photo to an `ACTIVE` listing transitions status to `PENDING_APPROVAL`.
+    - `metadataOnlyEditOnActiveListingKeepsStatusActive`: Updating non-media metadata preserves `ACTIVE` status.
+    - `reorderAndCoverOnActiveListingKeepsStatusActive`: Reordering photos and designating a cover on an `ACTIVE` listing preserves `ACTIVE` status.
+15. **Multi-Threaded Serialization & Lock Mutation Proof (`OwnerMediaSyncIntegrationTest`):**
+    - Two threads with `CountDownLatch` executing concurrent syncs serialize cleanly without duplicate display orders.
+    - Mutation check: removing the row lock yields immediate collision (`Found duplicate(s): [1] in: [1, 1]`), proving the lock is active and non-trivial.
 
 ---
 
-## 9. Operational Remediation & Concurrency Specifications
+## 8. Operational Remediation & Concurrency Specifications
 
-### 9.1 Diagnostic & Data Repair for Display Order Duplicates
+### 8.1 Diagnostic & Data Repair for Display Order Duplicates
 Prior to PR-39's global display order calculation, display orders were queried per category (`DAY_PHOTO`), which could produce duplicate `display_order` sequences across different categories for the same billboard.
 
 1. **Diagnostic Query (Run against Staging / Production):**
@@ -294,22 +317,46 @@ Prior to PR-39's global display order calculation, display orders were queried p
    > [!NOTE]
    > This query is documented as an operational one-off for PostgreSQL staging/production and is omitted from H2 Flyway migrations due to engine-specific `UPDATE ... FROM` syntax. Listings with collisions are compacted to dense sequential values `(1, 2, 3...)`.
    > 
-   > **Follow-Up Ticket:** Once the repair script is verified on production, open a follow-up ticket to enforce an immediate/deferrable database constraint on `(billboard_id, display_order)`.
+   > **Follow-Up Ticket 1:** Once the repair script is verified on production, open a follow-up ticket to enforce an immediate/deferrable database constraint on `(billboard_id, display_order)`.
+   > 
+   > **Follow-Up Ticket 2 (Server-Side Atomic Resubmit):** Currently, editing a `REJECTED` listing performs `updateListing` $\rightarrow$ `syncMedia` $\rightarrow$ `submitListing` on the client. In a follow-up, `updateListing` can support an atomic `submit=true` parameter to transition directly to `PENDING_APPROVAL` server-side, removing any dependence on client-side status state and eliminating the two-call gap.
 
-### 9.2 Concurrency Architecture & Lock Isolation
-- **Pessimistic Row Lock:** `BillboardListingRepository.findByIdForUpdate` executes `SELECT ... FOR UPDATE` with a 3000ms bounded timeout hint (`@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")`).
+### 8.2 Concurrency Architecture & Lock Isolation
+- **Pessimistic Row Lock & Hint Portability:** `BillboardListingRepository.findByIdForUpdate` and `findByIdAndUserIdForUpdate` execute `SELECT ... FOR UPDATE` with a 5000ms bounded timeout query hint (`@QueryHint(name = "jakarta.persistence.lock.timeout", value = "5000")`). Because Hibernate's PostgreSQL dialect ignores positive numeric lock hints in SQL (Postgres syntax only supports `NOWAIT` and `SKIP LOCKED`), the repository documents that actual lock timeout is enforced at the connection level.
+- **Connection-Level Lock Timeout Across PostgreSQL Profiles:** Connection-level timeout is configured via HikariCP's `connection-init-sql: "SET lock_timeout = '5s'"` across all PostgreSQL profiles (`application-prod.yml` and `application-staging.yml`). Local development under H2 remains unaffected.
+- **Dedicated Flyway Datasource & Pool Isolation:** To ensure database migrations and table DDL are never aborted by the 5-second lock timeout, Flyway is provisioned with its own isolated datasource referencing `${spring.datasource.url/username/password}` (guaranteeing coordinate synchronization without variable drift) and executing `spring.flyway.init-sqls: ["SET lock_timeout = 0"]`. This guarantees Flyway's session-scoped reset never touches or leaks into the application's Hikari connection pool, which uniformly enforces 5s lock timeouts.
+- **End-to-End Testcontainers Verification (`PostgresLockTimeoutIT`):** Configured with `@ActiveProfiles("staging")` against real PostgreSQL 16 container, with `@DynamicPropertySource` injecting only the container's `spring.datasource.url/username/password` coordinates so that Hikari's `connection-init-sql` and Flyway's dedicated datasource settings are tested directly from `application-staging.yml`. Picked up by Maven Surefire (`<include>**/*IT.java</include>` in `pom.xml`) and CI (`mvn clean verify`).
+  1. Asserts application pool connection reports `SHOW lock_timeout` as `5s`.
+  2. Transaction A holds row lock via `findByIdForUpdate` and signals `lockAcquiredLatch` once the query returns (with a 30s holder latch timeout to prevent timing flakiness on loaded CI runners).
+  3. Transaction B calls `DELETE /api/owner/listings/{id}` (`OwnerListingService.deleteListing`).
+  4. At ~5000ms, PostgreSQL aborts the waiting query with SQLState `55P03` (`ERRCODE_LOCK_NOT_AVAILABLE`). Spring's `SQLErrorCodeSQLExceptionTranslator` maps it to `CannotAcquireLockException` and `GlobalExceptionHandler` returns HTTP 409 Conflict (`CONCURRENT_MODIFICATION`).
+  5. Transaction A releases the lock, and a retry of `DELETE /api/owner/listings/{id}` immediately succeeds with 204 No Content, confirming the listing is deleted.
+  > [!NOTE]
+  > **CI vs Local Test Execution & Mutation Verification:** In local environments without a running Docker daemon, Testcontainers tests (`UserRepositoryIT`, `V9MigrationPostgresTest`, `PostgresLockTimeoutIT`) skip cleanly via `disabledWithoutDocker = true`. The PostgreSQL lock timeout and error translation chain must be verified in CI on a Docker-enabled runner. The mutation check (removing `connection-init-sql: "SET lock_timeout = '5s'"` from `application-staging.yml` on a throwaway branch) must confirm test failure (`SHOW lock_timeout` fails or the query hangs without timing out into 409).
+  > 
+  > **Residual Operational Risk:** The 5-second lock timeout is global to the Hikari connection pool in staging and production. Any statement that waits on a locked row for $> 5$ seconds will be cancelled with SQLState `55P03` and map to HTTP 409. Large operational maintenance scripts (such as the display order repair script) must be executed directly via `psql` in a dedicated session rather than through the application datasource.
 - **Protected Writers:** All media mutation endpoints (`executeSync`, `reorderMedia`, `setCover`, `deleteSingleMedia`) as well as `OwnerListingService.deleteListing` acquire this row lock before altering media records, computing `display_order`, or cascading deletions.
 - **Validation Guard in `reorderMedia`:** Validates that submitted `mediaIds` contains exactly the complete set of existing media IDs for the listing, preventing partial reorders from creating stale sequences.
 - **Zero Disk I/O inside Lock Boundary:** Ingestion, Tika MIME detection, decompression bomb guards, and disk file writes are performed upfront in `OwnerMediaSyncService` *outside* the `@Transactional` boundary. The locked phase in `OwnerMediaTransactionalService` executes only fast database metadata operations (sub-millisecond).
-- **Lock Timeout / Failure Mapping:** Spring's `PessimisticLockingFailureException` and `CannotAcquireLockException` are mapped to HTTP 409 Conflict (`CONCURRENT_MODIFICATION`) via `GlobalExceptionHandler` with user-friendly retry guidance.
-- **Frontend Error UX:** Handled cleanly by `apiErrorMessage()`, rendering the backend's explicit `"The resource is currently locked by another concurrent operation. Please retry in a moment."` toast rather than treating it as a validation error.
+- **Active Listing Re-moderation & `changesMade` Definition:**
+  - `changesMade` is defined as `!toDelete.isEmpty() || !toInsert.isEmpty();`.
+  - Adding or deleting media on an `ACTIVE` listing modifies the underlying creative material and unpublishes the listing to `PENDING_APPROVAL` for admin re-verification.
+  - Reordering existing approved media (`reorderMedia`) and selecting an approved day photo cover (`setCover`) do *not* alter media content and maintain `ACTIVE` status without re-review.
+  - Metadata-only PATCH updates (`updateListing`) preserve `ACTIVE` status.
+  - Warning banner on step 3 only displays for `ACTIVE` listings when pending media changes exist (`hasPendingMediaChanges`), avoiding alarming owners who only edit metadata.
+  - Verified in `OwnerMediaSyncIntegrationTest` via `mediaChangeOnActiveListingTransitionsStatusToPendingApproval`, `metadataOnlyEditOnActiveListingKeepsStatusActive`, and `reorderAndCoverOnActiveListingKeepsStatusActive`.
+- **Draft Submission Control & Double-Click Guard:**
+  - `OwnerDashboard.jsx` displays a direct "Submit for Review" button on all cards in `DRAFT` status with a submitting lock state (`submittingReviewId`) preventing double-clicks.
+  - On submit failure, error message surfaces in a visible toast without changing status; on success, toast confirms submission and listings refresh automatically.
+  - `NewBillboardListing` step 3 features a unified submission control for `DRAFT` listings: checking "Submit for Review once saved" dynamically switches the action to "Save & Submit for Review →" (validated against $\ge 2$ day photos and disabled if incomplete), while leaving it unchecked enables "Save Draft Changes →" for partial progress.
+  - If submission fails after a successful update/sync, changes remain saved in `DRAFT` and an actionable retry error is surfaced.
 - **Mutation & Multi-Thread Verification:**
-  - Mutation check verified: reverting to category-based query failed the integration test with `JSON path "$[2].displayOrder" expected:<3> but was:<2>`.
-  - Concurrency test `concurrentSyncRequestsSerializeWithoutDisplayOrderCollision` in `OwnerMediaSyncIntegrationTest` exercises 2 concurrent threads executing sync on the same listing with a `CountDownLatch`, proving serial execution without order duplication.
+  - Concurrency latch mutation check: removing the row lock resulted in immediate collision: `Found duplicate(s): [1] in: [1, 1]`. Row lock ensures complete serialization.
+  - Category query mutation check: reverting to category-based query failed with `JSON path "$[2].displayOrder" expected:<3> but was:<2>`.
 
 ---
 
-## 10. Deployment Checklist & Operational Tasks
+## 9. Deployment Checklist & Operational Tasks
 
 | Step | Action | Environment | Assigned Owner | Status |
 | :--- | :--- | :--- | :--- | :--- |
@@ -319,6 +366,10 @@ Prior to PR-39's global display order calculation, display orders were queried p
 | 4 | Deploy backend artifact (V9 migration + global displayOrder calculation) | Staging / Prod | @vedafactor | Deploy |
 | 5 | Verify Nginx `client_max_body_size 65M;` configuration | Ingress / Proxy | Infra / DevOps | Completed |
 | 6 | Open follow-up ticket for `uq_billboard_media_display_order` | Backlog | @vedafactor | Post-Merge |
+
+---
+
+## 10. Implementation & Review Strategy
 
 
 To ensure high reviewability across this substantial feature, commits are structured strictly in implementation dependency order:

@@ -588,9 +588,9 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
 
       // Step 3 -> Submit
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /save draft changes/i })).toBeDefined();
       });
-      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+      fireEvent.click(screen.getByRole('button', { name: /save draft changes/i }));
 
       await waitFor(() => {
         expect(ownerListingApi.updateListing).toHaveBeenCalledWith('91', expect.any(Object));
@@ -602,82 +602,11 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
     });
 
-    it('does not invoke submitListing on edit submit when listing status is ACTIVE', async () => {
+    it('reloading into a DRAFT listing allows checking review submission to submit for review on save', async () => {
       const stateListing = {
-        id: 92,
-        name: 'Active Billboard Edit',
-        status: 'ACTIVE',
-        addressLine1: 'Worli Sea Face',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400018',
-        type: 'LED_DIGITAL',
-        widthFt: 40,
-        heightFt: 20,
-        facing: 'North',
-        trafficType: 'Highway',
-        audienceType: 'Commuters',
-        startPrice: 500000,
-        minBookingValue: 1,
-        minBookingUnit: 'MONTHS',
-      };
-
-      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
-      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 92, status: 'ACTIVE' });
-      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing');
-      window.scrollTo = vi.fn();
-
-      const { fireEvent } = await import('@testing-library/react');
-
-      render(
-        <MemoryRouter
-          initialEntries={[
-            {
-              pathname: '/owners/listings/92/edit',
-              state: { listing: stateListing },
-            },
-          ]}
-        >
-          <Routes>
-            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
-          </Routes>
-        </MemoryRouter>,
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
-      });
-
-      // Step 1 -> Step 2
-      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
-
-      // Step 2 -> Step 3
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
-      });
-      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
-
-      // Step 3 -> Submit
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
-      });
-      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
-
-      await waitFor(() => {
-        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('92', expect.any(Object));
-        expect(submitSpy).not.toHaveBeenCalled();
-        expect(screen.getByText('Billboard Updated!')).toBeDefined();
-        expect(
-          screen.getByText('Your billboard listing has been successfully updated.'),
-        ).toBeDefined();
-      });
-    });
-
-    it('surfaces distinct retry error when submitListing fails after updateListing succeeded on REJECTED listing', async () => {
-      const stateListing = {
-        id: 93,
-        name: 'Rejected Billboard Submit Failure',
-        status: 'REJECTED',
+        id: 94,
+        name: 'Reloaded Draft Listing',
+        status: 'DRAFT',
         addressLine1: 'Near Metro Station',
         city: 'Mumbai',
         state: 'Maharashtra',
@@ -687,29 +616,28 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         heightFt: 15,
         facing: 'North',
         trafficType: 'City / Urban',
-        audienceType: 'Shoppers',
-        startPrice: 350000,
+        audienceType: 'Commuters',
+        startPrice: 85000,
         minBookingValue: 1,
-        minBookingUnit: 'MONTHS',
+        minBookingUnit: 'WEEKS',
+        media: [
+          { id: 101, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 102, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
-      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 93, status: 'DRAFT' });
-      vi.spyOn(ownerListingApi, 'submitListing').mockRejectedValueOnce({
-        response: {
-          status: 400,
-          data: { message: 'At least 2 day photos are required to submit a billboard listing' },
-        },
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 94, status: 'DRAFT' });
+      vi.spyOn(ownerListingApi, 'submitListing').mockResolvedValueOnce({
+        id: 94,
+        status: 'PENDING_APPROVAL',
       });
-      window.scrollTo = vi.fn();
-
-      const { fireEvent } = await import('@testing-library/react');
 
       render(
         <MemoryRouter
           initialEntries={[
             {
-              pathname: '/owners/listings/93/edit',
+              pathname: '/owners/listings/94/edit',
               state: { listing: stateListing },
             },
           ]}
@@ -733,53 +661,213 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
 
-      // Step 3 -> Submit
+      // Step 3: verify DRAFT review submission toggle is present, check it, and submit
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+        expect(screen.getByLabelText(/submit for review once saved/i)).toBeDefined();
       });
-      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+      const checkbox = screen.getByLabelText(/submit for review once saved/i);
+      expect(checkbox.checked).toBe(false);
+      fireEvent.click(checkbox);
+      expect(checkbox.checked).toBe(true);
+
+      const submitBtn = screen.getByRole('button', { name: /save & submit for review/i });
+      expect(submitBtn).toBeDefined();
+      expect(submitBtn.disabled).toBe(false);
+      fireEvent.click(submitBtn);
 
       await waitFor(() => {
-        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('93', expect.any(Object));
-        expect(screen.getByText(/Changes saved, but submitting for review failed/i)).toBeDefined();
-        expect(screen.getByText(/At least 2 day photos are required/i)).toBeDefined();
-        // Success screen must NOT be displayed
+        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('94', expect.any(Object));
+        expect(ownerListingApi.submitListing).toHaveBeenCalledWith('94');
+        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+      });
+    });
+
+    it('editing a DRAFT listing with fewer than 2 day photos disables Save & Submit for Review and displays requirement notice', async () => {
+      const stateListing = {
+        id: 95,
+        name: 'Incomplete Draft Billboard',
+        status: 'DRAFT',
+        addressLine1: 'Near Metro Station',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400053',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Commuters',
+        startPrice: 85000,
+        minBookingValue: 1,
+        minBookingUnit: 'WEEKS',
+        media: [],
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/95/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Advance to Step 3
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Step 3: By default checkbox is unchecked, button is "Save Draft Changes ->" and ENABLED
+      await waitFor(() => {
+        expect(screen.getByLabelText(/submit for review once saved/i)).toBeDefined();
+      });
+      const saveDraftBtn = screen.getByRole('button', { name: /save draft changes/i });
+      expect(saveDraftBtn.disabled).toBe(false);
+
+      // Check "Submit for Review once saved"
+      const checkbox = screen.getByLabelText(/submit for review once saved/i);
+      fireEvent.click(checkbox);
+      expect(checkbox.checked).toBe(true);
+
+      // Verify requirement warning appears and button becomes disabled
+      await waitFor(() => {
+        expect(
+          screen.getByText(/at least 2 daylight photos are required to submit for review/i),
+        ).toBeDefined();
+      });
+      const submitBtn = screen.getByRole('button', { name: /save & submit for review/i });
+      expect(submitBtn.disabled).toBe(true);
+
+      // Uncheck box -> returns to enabled draft save
+      fireEvent.click(checkbox);
+      expect(checkbox.checked).toBe(false);
+      expect(
+        screen.queryByText(/at least 2 daylight photos are required to submit for review/i),
+      ).toBeNull();
+      expect(screen.getByRole('button', { name: /save draft changes/i }).disabled).toBe(false);
+    });
+
+    it('surfaces error banner and remains on Step 3 when submitListing fails after updating a draft', async () => {
+      const stateListing = {
+        id: 97,
+        name: 'Draft Billboard Submit Fail',
+        status: 'DRAFT',
+        addressLine1: 'Near Metro Station',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400053',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Commuters',
+        startPrice: 85000,
+        minBookingValue: 1,
+        minBookingUnit: 'WEEKS',
+        media: [
+          { id: 201, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 202, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 97, status: 'DRAFT' });
+      vi.spyOn(ownerListingApi, 'submitListing').mockRejectedValueOnce({
+        response: {
+          data: {
+            message: 'Server verification rejected submit.',
+            errorCode: 'INVALID_STATE',
+          },
+        },
+      });
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/97/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2 -> Step 3
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/submit for review once saved/i)).toBeDefined();
+      });
+      fireEvent.click(screen.getByLabelText(/submit for review once saved/i));
+
+      const submitBtn = screen.getByRole('button', { name: /save & submit for review/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/changes saved, but submitting for review failed/i)).toBeDefined();
+        // User remains on Step 3, success screen is not shown
         expect(screen.queryByText('Billboard Updated!')).toBeNull();
       });
     });
 
-    it('does not invoke submitListing on edit submit when listing status is DRAFT (preserves partial draft progress)', async () => {
+    it('editing an ACTIVE listing displays live listing notice warning only when media changes are pending', async () => {
       const stateListing = {
-        id: 91,
-        name: 'Draft Billboard Progress',
-        status: 'DRAFT',
-        addressLine1: 'Linking Road',
+        id: 96,
+        name: 'Live Active Billboard',
+        status: 'ACTIVE',
+        addressLine1: 'Near Metro Station',
         city: 'Mumbai',
         state: 'Maharashtra',
-        pincode: '400050',
+        pincode: '400053',
         type: 'UNIPOLE',
-        widthFt: 25,
-        heightFt: 12,
+        widthFt: 30,
+        heightFt: 15,
         facing: 'North',
         trafficType: 'City / Urban',
-        audienceType: 'Shoppers',
-        startPrice: 250000,
+        audienceType: 'Commuters',
+        startPrice: 85000,
         minBookingValue: 1,
-        minBookingUnit: 'MONTHS',
+        minBookingUnit: 'WEEKS',
+        media: [
+          { id: 301, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 302, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
-      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 91, status: 'DRAFT' });
-      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing');
-      window.scrollTo = vi.fn();
-
-      const { fireEvent } = await import('@testing-library/react');
 
       render(
         <MemoryRouter
           initialEntries={[
             {
-              pathname: '/owners/listings/91/edit',
+              pathname: '/owners/listings/96/edit',
               state: { listing: stateListing },
             },
           ]}
@@ -794,27 +882,29 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
       });
 
-      // Step 1 -> Step 2
+      // Advance to Step 3
       fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
-
-      // Step 2 -> Step 3
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
       });
       fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
 
-      // Step 3 -> Submit
+      // Step 3: verify WarningBanner for ACTIVE listing is NOT present initially (zero pending changes)
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
       });
-      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+      expect(screen.queryByText(/Live Listing Notice:/i)).toBeNull();
 
+      // Stage a removal of an existing photo
+      const removeButtons = screen.getAllByRole('button', { name: /remove photo/i });
+      expect(removeButtons.length).toBeGreaterThan(0);
+      fireEvent.click(removeButtons[0]);
+
+      // Now pending changes exist -> WarningBanner appears!
       await waitFor(() => {
-        expect(ownerListingApi.updateListing).toHaveBeenCalledWith('91', expect.any(Object));
-        expect(submitSpy).not.toHaveBeenCalled();
-        expect(screen.getByText('Billboard Updated!')).toBeDefined();
+        expect(screen.getByText(/Live Listing Notice:/i)).toBeDefined();
         expect(
-          screen.getByText('Your billboard listing has been successfully updated.'),
+          screen.getByText(/unpublish this active billboard from the marketplace/i),
         ).toBeDefined();
       });
     });

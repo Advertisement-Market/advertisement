@@ -221,7 +221,7 @@ public class OwnerMediaTransactionalService {
         // Clear existing cover
         billboardMediaRepository.findCoverByBillboardId(listingId).ifPresent(c -> {
             c.setIsCover(null);
-            billboardMediaRepository.save(c);
+            billboardMediaRepository.saveAndFlush(c);
         });
 
         target.setIsCover(Boolean.TRUE);

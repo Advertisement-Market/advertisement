@@ -14,6 +14,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -154,6 +161,50 @@ class V9MigrationPostgresTest {
                 assertThatThrownBy(ps::executeUpdate)
                         .isInstanceOf(SQLException.class);
             }
+        }
+
+        // 5. Verify PostgreSQL row-level pessimistic write lock (FOR UPDATE), Hikari connectionInitSql timeout,
+        // and Spring exception translation to PessimisticLockingFailureException / CannotAcquireLockException
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(POSTGRES.getJdbcUrl());
+        hikariConfig.setUsername(POSTGRES.getUsername());
+        hikariConfig.setPassword(POSTGRES.getPassword());
+        hikariConfig.setConnectionInitSql("SET lock_timeout = '500ms'");
+        try (HikariDataSource hikariDs = new HikariDataSource(hikariConfig);
+             Connection conn1 = hikariDs.getConnection();
+             Connection conn2 = hikariDs.getConnection()) {
+            conn1.setAutoCommit(false);
+            conn2.setAutoCommit(false);
+
+            // conn1 acquires row-level pessimistic write lock
+            try (Statement s1 = conn1.createStatement()) {
+                s1.execute("SELECT * FROM billboard_listings WHERE id = 301 FOR UPDATE");
+            }
+
+            // conn2 attempts to acquire FOR UPDATE on the same row.
+            // Because Hibernate's PostgreSQL dialect ignores positive numeric lock hints in SQL,
+            // the connection-level 'SET lock_timeout' (configured via Hikari connectionInitSql in application-prod.yml)
+            // guarantees PostgreSQL aborts the waiting query with SQLState 55P03 (ERRCODE_LOCK_NOT_AVAILABLE).
+            SQLException lockEx = null;
+            try (Statement s2 = conn2.createStatement()) {
+                s2.execute("SELECT * FROM billboard_listings WHERE id = 301 FOR UPDATE");
+            } catch (SQLException e) {
+                lockEx = e;
+            }
+
+            assertThat((Throwable) lockEx).isNotNull();
+            assertThat(lockEx.getSQLState()).isEqualTo("55P03");
+            assertThat(lockEx.getMessage()).containsIgnoringCase("lock timeout");
+
+            // Verify Spring's PostgreSQL SQLException translator translates SQLState 55P03
+            // into PessimisticLockingFailureException or CannotAcquireLockException,
+            // which GlobalExceptionHandler catches and maps to HTTP 409 CONCURRENT_MODIFICATION.
+            SQLErrorCodeSQLExceptionTranslator translator = new SQLErrorCodeSQLExceptionTranslator(hikariDs);
+            DataAccessException dae = translator.translate("Pessimistic lock", "SELECT * FROM billboard_listings WHERE id = 301 FOR UPDATE", lockEx);
+            assertThat((Throwable) dae).isInstanceOfAny(PessimisticLockingFailureException.class, CannotAcquireLockException.class);
+
+            conn1.rollback();
+            conn2.rollback();
         }
     }
 }
