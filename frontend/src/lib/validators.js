@@ -157,3 +157,39 @@ export const isBlank = (v) => {
 
 /** Inverse of isBlank. */
 export const isNotBlank = (v) => !isBlank(v);
+
+const TAG_REGEX = /<\/?[a-zA-Z][^>]*>|<!--[\s\S]*?-->/g;
+const TAG_START = /<+(?=[a-zA-Z/!])/g;
+const INVISIBLE_OR_BIDI = /[\u200B\u200C\u200D\u2060\uFEFF\u202A-\u202E\u2066-\u2069]/g;
+const MAX_RAW_LENGTH = 10_000;
+
+/**
+ * Strips HTML and XML tags from free-form text.
+ * Truncates raw inputs exceeding 10,000 characters to prevent quadratic ReDoS regex scanning.
+ * Neutralizes zero-width code points and bidi overrides before tag scanning to prevent evasion (e.g. <s\u200Bcript>).
+ * Loops iteratively (up to 10 passes) to defeat nested tag evasion (e.g. <<script>script>).
+ * Fails closed by disarming any unclosed tag markers (< followed by a tag start character [a-zA-Z/!]).
+ */
+export function stripHtmlTags(v) {
+  if (v == null) return '';
+  let str = String(v);
+  if (str.length > MAX_RAW_LENGTH) {
+    str = str.slice(0, MAX_RAW_LENGTH);
+  }
+  str = str.replace(INVISIBLE_OR_BIDI, '');
+  for (let i = 0; i < 10; i++) {
+    const next = str.replace(TAG_REGEX, '');
+    if (next === str) break;
+    str = next;
+  }
+  return str.replace(TAG_START, '');
+}
+
+/**
+ * Combines HTML tag stripping, invisible Unicode stripping, and whitespace trimming.
+ */
+export function sanitizeText(v) {
+  if (v == null) return '';
+  return cleanText(stripHtmlTags(v));
+}
+

@@ -620,5 +620,20 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(patchPayload.trafficTypeOther).toBe('Terminal 2 Airport Route');
       expect(patchPayload.audienceTypeOther).toBe('Gate 4 Commuters');
     });
+
+    it('sanitizes markup and HTML tags from free-form text inputs in patch payload', () => {
+      const formData = mapListingToFormData(sampleDto);
+      formData.f_bbName = '<<script>script>Cyber Towers Mega Board</script>';
+      formData.f_bbAddr = '12 MG Road <script>alert(1)</script>';
+      formData.f_bbLandmark = '<img src=x onerror=alert(1) Near Metro Station';
+      formData.f_discountNote = '<b>10% off</b> for > 3 months';
+
+      const patchPayload = mapFormDataToPatchPayload(formData);
+
+      expect(patchPayload.name).toBe('Cyber Towers Mega Board');
+      expect(patchPayload.addressLine1).toBe('12 MG Road alert(1)');
+      expect(patchPayload.landmark).toBe('img src=x onerror=alert(1) Near Metro Station');
+      expect(patchPayload.discountNote).toBe('10% off for > 3 months');
+    });
   });
 });

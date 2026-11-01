@@ -2,6 +2,7 @@ package com.theadbasket.backend.registration.dto;
 
 import java.util.List;
 
+import com.theadbasket.backend.common.validation.SanitizeText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
 import jakarta.validation.Valid;
@@ -27,12 +28,15 @@ public record AdvertiserRegistrationRequest(
         @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
         // ── Company ──
+        @SanitizeText
         @NotBlank(message = "Company name is required.")
         @Size(max = 150)
         String companyName,
+        @SanitizeText
         @NotBlank(message = "Business type is required.")
         @Size(max = 80)
         String businessType,
+        @SanitizeText
         @Size(max = 255)
         String website,
         @Pattern(regexp = ValidationPatterns.GST_OPTIONAL, message = "GST number must be 15 characters.")
@@ -42,11 +46,14 @@ public record AdvertiserRegistrationRequest(
         @NotEmpty(message = "Select at least one industry.")
         List<@NotBlank String> industries,
         // ── Primary contact ──
+        @SanitizeText
         @NotBlank(message = "First name is required.")
         @Size(max = 80)
         String firstName,
+        @SanitizeText
         @Size(max = 80)
         String lastName,
+        @SanitizeText
         @NotBlank(message = "Designation is required.")
         @Size(max = 120)
         String contactDesignation,
@@ -58,20 +65,25 @@ public record AdvertiserRegistrationRequest(
         @Pattern(regexp = ValidationPatterns.PHONE, message = "Enter a valid phone number.")
         String contactPhone,
         // ──  address ──
-
+        @SanitizeText
         @NotBlank(message = "Address line 1 is required.")
         @Size(max = 300)
         String addressLine1,
+        @SanitizeText
         @Size(max = 300)
         String addressLine2,
+        @SanitizeText
         @Size(max = 200)
         String landmark,
+        @SanitizeText
         @NotBlank(message = "City is required.")
         @Size(max = 100)
         String city,
+        @SanitizeText
         @NotBlank(message = "State is required.")
         @Size(max = 100)
         String state,
+        @SanitizeText
         @NotBlank(message = "PIN code is required.")
         @Pattern(regexp = ValidationPatterns.PINCODE, message = "Enter a valid 6-digit PIN code.")
         String pincode,
@@ -82,5 +94,5 @@ public record AdvertiserRegistrationRequest(
         @AssertTrue(message = "You must accept the Terms & Conditions.")
         boolean acceptedTerms
         ) {
-
 }
+

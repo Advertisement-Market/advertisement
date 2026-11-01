@@ -16,3 +16,6 @@ target/
 
 # Local env / secrets
 .env
+
+# Local runtime file uploads
+uploads/

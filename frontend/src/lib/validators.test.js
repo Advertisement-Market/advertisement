@@ -11,7 +11,10 @@ import {
   isBlank,
   isNotBlank,
   cleanText,
+  stripHtmlTags,
+  sanitizeText,
 } from './validators';
+import sharedFixtures from '../../../backend/src/test/resources/fixtures/sanitization-fixtures.json';
 
 describe('Frontend Field Validators', () => {
   it('validates required fields', () => {
@@ -87,5 +90,65 @@ describe('Frontend Field Validators', () => {
     expect(cleanText('560001\u200B')).toBe('560001');
     expect(cleanText('\u200B560001\u200B')).toBe('560001');
     expect(cleanText(' \u00A0\u200C Special Landmark \u200D\uFEFF ')).toBe('Special Landmark');
+  });
+
+  describe('HTML Tag Stripping and Sanitization', () => {
+    it('strips HTML tags and handles null/undefined with stripHtmlTags', () => {
+      expect(stripHtmlTags(null)).toBe('');
+      expect(stripHtmlTags(undefined)).toBe('');
+      expect(stripHtmlTags('<b>Bold</b>')).toBe('Bold');
+    });
+
+    it('executes all shared test fixtures with expected outputs', () => {
+      for (const fixture of sharedFixtures) {
+        const actual = sanitizeText(fixture.input);
+        expect(actual, `Fixture failed: ${fixture.name}`).toBe(fixture.expected);
+      }
+    });
+
+    it('enforces idempotency: sanitizeText(sanitizeText(x)) === sanitizeText(x)', () => {
+      const samples = [
+        '<<script>script>alert(1)</script>',
+        '<img src=x onerror=alert(1) Main Road',
+        '   \u200B<b>Hello World</b>\uFEFF  ',
+        '10% off for > 3 months',
+        'Clearance < 15 ft',
+      ];
+      for (const sample of samples) {
+        const pass1 = sanitizeText(sample);
+        const pass2 = sanitizeText(pass1);
+        expect(pass2).toBe(pass1);
+      }
+    });
+
+    it('satisfies invariant: output never contains < followed by a letter, /, or ! (property fuzz test)', () => {
+      const tagStarts = ['a', 'div', 'SCRIPT', 'img', 'svg', 'iframe', '/', '!doctype', '!--'];
+      const payloads = [
+        '<b>bold</b>',
+        '<script>alert(1)</script>',
+        '<<<nested>>>',
+        '<img src=x onerror=alert(1)',
+        'text <a href="test">link</a> more',
+        '10% off for > 3 months and < 5 days',
+      ];
+
+      // Fuzz with synthetic permutations of tag starts, brackets, and random characters
+      const fuzzed = [...payloads];
+      for (let i = 0; i < 50; i++) {
+        const tag = tagStarts[i % tagStarts.length];
+        fuzzed.push(`<${tag}>content<${tag}/>`);
+        fuzzed.push(`prefix <${tag} attr="val" dangling`);
+        fuzzed.push(`<<<${tag}>>nested`);
+      }
+
+      const INVARIANT_VIOLATION = /<[a-zA-Z/!]/;
+      for (const input of fuzzed) {
+        const sanitized = sanitizeText(input);
+        expect(
+          INVARIANT_VIOLATION.test(sanitized),
+          `Invariant violated for input: "${input}" -> got "${sanitized}"`,
+        ).toBe(false);
+      }
+    });
   });
 });

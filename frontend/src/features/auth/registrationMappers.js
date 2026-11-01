@@ -3,10 +3,10 @@
  * into the backend registration DTOs. Field names mirror the frontend wizard fields.
  */
 
-import { isOther, cleanText } from '@/lib/validators';
+import { isOther, sanitizeText } from '@/lib/validators';
 
 const trimOrNull = (v) => {
-  const s = v == null ? '' : String(v).trim();
+  const s = v == null ? '' : sanitizeText(v);
   return s === '' ? null : s;
 };
 
@@ -406,8 +406,8 @@ export function mapFormDataToPatchPayload(d) {
   const isTrafficOther = isOther(d.f_trafficType);
   const isAudienceOther = isOther(d.f_audience);
 
-  // cleanText strips leading/trailing whitespace plus \u200B \u200C \u200D \u2060 \uFEFF
-  const trimToString = (v) => (v == null ? '' : cleanText(v));
+  // sanitizeText strips HTML tags, invisible Unicode code points, and trims whitespace
+  const trimToString = (v) => (v == null ? '' : sanitizeText(v));
 
   return {
     name: trimToString(d.f_bbName),

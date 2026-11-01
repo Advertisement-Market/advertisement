@@ -1,5 +1,6 @@
 package com.theadbasket.backend.registration.dto;
 
+import com.theadbasket.backend.common.validation.SanitizeText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 
 import jakarta.validation.Valid;
@@ -14,9 +15,11 @@ import jakarta.validation.constraints.Size;
  * Full owner registration: account + business + first billboard listing.
  */
 public record OwnerRegistrationRequest(
+        @SanitizeText
         @NotBlank(message = "First name is required.")
         @Size(max = 80)
         String firstName,
+        @SanitizeText
         @NotBlank(message = "Last name is required.")
         @Size(max = 80)
         String lastName,
@@ -32,36 +35,47 @@ public record OwnerRegistrationRequest(
         @Size(max = 72, message = "Password must be at most 72 characters.")
         String password,
         // ── Business ──
+        @SanitizeText
         @NotBlank(message = "Company name is required.")
         @Size(max = 150)
         String companyName,
         @Pattern(regexp = ValidationPatterns.PHONE_OPTIONAL, message = "Enter a valid phone number.")
         String companyPhone,
+        @SanitizeText
         @Size(max = 60)
         String companyRegNumber,
         @Pattern(regexp = ValidationPatterns.GST_OPTIONAL, message = "GST number must be 15 characters.")
         String gstNumber,
         // ──  address ──
+        @SanitizeText
         @NotBlank(message = "Address line 1 is required.")
         @Size(max = 300)
         String addressLine1,
+        @SanitizeText
         @Size(max = 300)
         String addressLine2,
+        @SanitizeText
         @Size(max = 200)
         String landmark,
+        @SanitizeText
         @NotBlank(message = "City is required.")
         @Size(max = 100)
         String city,
+        @SanitizeText
         @NotBlank(message = "State is required.")
         @Size(max = 100)
         String state,
+        @SanitizeText
         @NotBlank(message = "PIN code is required.")
         @Pattern(regexp = ValidationPatterns.PINCODE, message = "Enter a valid 6-digit PIN code.")
         String pincode,
+        @SanitizeText
         @Size(max = 80)
         String tradeLicenseNo,
+        @SanitizeText
         @Size(max = 60)
         String ownershipType,
+        @SanitizeText
         @Size(max = 120)
         String regulatoryApprovals,
         // ── First billboard ──
@@ -70,6 +84,5 @@ public record OwnerRegistrationRequest(
         BillboardListingRequest billboard,
         @AssertTrue(message = "You must accept the Terms of Service.")
         boolean acceptedTerms
-        ) {
-
+) {
 }
