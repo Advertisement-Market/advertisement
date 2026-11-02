@@ -11,3 +11,8 @@ export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 /** Whether Google sign-in is configured. */
 export const GOOGLE_ENABLED = GOOGLE_CLIENT_ID.length > 0;
+
+/** Maximum video upload limit in bytes (50MB) and user-facing label. */
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+export const MAX_VIDEO_LABEL = 'MP4, MOV · Max 50MB';
+export const VIDEO_ACCEPT_TYPES = '.mp4,.mov,video/mp4,video/quicktime';

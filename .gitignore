@@ -46,3 +46,9 @@ Thumbs.db
 
 # ── Antigravity ──
 .agents/
+
+# ── Local File Uploads / Media Storage ──
+uploads/
+**/uploads/
+!**/uploads/.gitkeep
+

@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -41,10 +43,19 @@ public class GlobalExceptionHandler {
         this.authCookieService = authCookieService;
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ApiError> handleEmailExists(EmailAlreadyExistsException ex, HttpServletRequest request) {
+    @ExceptionHandler({ EmailAlreadyExistsException.class, com.theadbasket.backend.common.exception.ConflictException.class })
+    public ResponseEntity<ApiError> handleEmailExists(AppException ex, HttpServletRequest request) {
         log.warn("Conflict on {}: {}", request.getRequestURI(), ex.getErrorCode());
         return build(HttpStatus.CONFLICT, ex, request);
+    }
+
+    @ExceptionHandler(com.theadbasket.backend.common.exception.ServiceUnavailableException.class)
+    public ResponseEntity<ApiError> handleServiceUnavailable(com.theadbasket.backend.common.exception.ServiceUnavailableException ex, HttpServletRequest request) {
+        log.warn("Service unavailable on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, "5")
+                .body(ApiError.of(HttpStatus.SERVICE_UNAVAILABLE.value(), HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                        ex.getErrorCode().name(), resolve(ex.getErrorCode(), ex.getArgs()), request.getRequestURI()));
     }
 
     @ExceptionHandler(TokenRefreshException.class)
@@ -104,6 +115,15 @@ public class GlobalExceptionHandler {
                 ErrorCode.VALIDATION_FAILED.name(), resolve(ErrorCode.VALIDATION_FAILED),
                 request.getRequestURI(), fieldErrors);
         return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler({
+            PessimisticLockingFailureException.class,
+            CannotAcquireLockException.class
+    })
+    public ResponseEntity<ApiError> handleLockConflict(Exception ex, HttpServletRequest request) {
+        log.warn("Database lock acquisition failed on {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION, request);
     }
 
     @ExceptionHandler(Exception.class)

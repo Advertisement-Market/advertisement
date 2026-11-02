@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RegisterProvider, useRegister } from '@/features/register';
-import { TypeGrid, SelectWithOther } from './widgets';
+import { TypeGrid, SelectWithOther, UploadZone } from './widgets';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
 import { validate as validateOwner } from './OwnerRegister';
@@ -216,6 +216,54 @@ describe('OwnerRegister and Wizard Widgets', () => {
 
       expect(pinInput.classList.contains('invalid')).toBe(true);
       expect(screen.getByText(MSG.pincode)).toBeDefined();
+    });
+  });
+
+  describe('UploadZone video validation', () => {
+    it('rejects video exceeding 50MB and accepts valid MP4 and MOV within 50MB', () => {
+      const showToast = vi.fn();
+      const onChange = vi.fn();
+
+      render(
+        <RegisterProvider value={{ showToast }}>
+          <UploadZone sectionTitle="Short Video" category="VIDEO" files={[]} onChange={onChange} />
+        </RegisterProvider>,
+      );
+
+      const fileInput = document.querySelector('input[type="file"]');
+      expect(fileInput).toBeDefined();
+
+      // 1. Boundary: 50MB + 1 byte rejected
+      const oversizedFile = new File([new ArrayBuffer(1024)], 'walkthrough.mp4', {
+        type: 'video/mp4',
+      });
+      Object.defineProperty(oversizedFile, 'size', { value: 50 * 1024 * 1024 + 1 });
+
+      fireEvent.change(fileInput, { target: { files: [oversizedFile] } });
+      expect(onChange).not.toHaveBeenCalled();
+
+      // 2. Unsupported video format rejected (e.g. .avi)
+      const aviFile = new File([new ArrayBuffer(1024)], 'clip.avi', {
+        type: 'video/x-msvideo',
+      });
+      fireEvent.change(fileInput, { target: { files: [aviFile] } });
+      expect(onChange).not.toHaveBeenCalled();
+
+      // 3. Boundary: exactly 50MB accepted
+      const boundaryMp4 = new File([new ArrayBuffer(1024)], 'boundary.mp4', {
+        type: 'video/mp4',
+      });
+      Object.defineProperty(boundaryMp4, 'size', { value: 50 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [boundaryMp4] } });
+      expect(onChange).toHaveBeenCalledWith([boundaryMp4]);
+
+      // 4. Browser quirk: .mov with empty MIME type ('') is accepted based on extension
+      const movEmptyMime = new File([new ArrayBuffer(1024)], 'iphone_clip.mov', {
+        type: '',
+      });
+      Object.defineProperty(movEmptyMime, 'size', { value: 35 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [movEmptyMime] } });
+      expect(onChange).toHaveBeenCalledWith([movEmptyMime]);
     });
   });
 });

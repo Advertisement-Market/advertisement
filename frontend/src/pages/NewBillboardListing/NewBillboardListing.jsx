@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { ROUTES } from '@/lib/routes';
@@ -126,24 +126,45 @@ export function validate(step, { data, showToast }) {
     if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
       return fail('Please select a valid booking duration unit.');
   }
+  if (step === 3) {
+    const isDraft = data.status === 'DRAFT';
+    const isSavingDraftOnly = isDraft && !data.f_submitForReview;
+    if (!isSavingDraftOnly) {
+      const existingDay = Array.isArray(data.f_existingDayPhotos)
+        ? data.f_existingDayPhotos.length
+        : 0;
+      const newDay = Array.isArray(data.f_dayPhotos) ? data.f_dayPhotos.length : 0;
+      if (existingDay + newDay < 2) {
+        return fail('At least 2 daylight photos are required to submit a billboard listing.');
+      }
+    }
+  }
   return true;
 }
 
 const STEP_COMPONENTS = [ListingStep1, ListingStep2, ListingStep3];
 
-function WizardBody({ isEdit }) {
-  const { currentStep, submitted } = useRegister();
+function WizardBody({ isEdit, initialStatus }) {
+  const { currentStep, submitted, field } = useRegister();
   if (submitted) {
+    const isResubmitted =
+      isEdit &&
+      (initialStatus === 'REJECTED' ||
+        (initialStatus === 'DRAFT' && Boolean(field('f_submitForReview'))));
     return (
       <SuccessScreen
         accent="var(--teal)"
         title={isEdit ? 'Billboard Updated!' : 'Billboard Listed!'}
         desc={
-          isEdit
-            ? 'Your billboard listing has been successfully updated.'
-            : 'Your billboard listing has been created and submitted for verification. It will be live on the marketplace once verified.'
+          isResubmitted
+            ? 'Your billboard listing has been updated and submitted for verification. It will be live on the marketplace once verified.'
+            : isEdit
+              ? 'Your billboard listing has been successfully updated.'
+              : 'Your billboard listing has been created and submitted for verification. It will be live on the marketplace once verified.'
         }
-        timeline={isEdit ? EDIT_SUCCESS_TIMELINE : SUCCESS_TIMELINE}
+        timeline={
+          isResubmitted ? SUCCESS_TIMELINE : isEdit ? EDIT_SUCCESS_TIMELINE : SUCCESS_TIMELINE
+        }
         dashboardTo={ROUTES.ownerListingsTab}
         dashboardLabel="Back to Dashboard"
       />
@@ -257,10 +278,102 @@ export function NewBillboardListing() {
     };
   }, [id, isEdit, navigate, stateListing]);
 
-  const onSubmit = useMemo(
-    () => createSubmitHandler({ isEdit, id, apiClient: ownerListingApi }),
-    [isEdit, id],
-  );
+  const onSubmit = async ({ data }) => {
+    try {
+      const stagedDeleteIds = data.f_stagedDeleteIds || [];
+      const dayPhotos = data.f_dayPhotos || [];
+      const nightPhotos = data.f_nightPhotos || [];
+      const surroundingPhotos = data.f_surroundingPhotos || [];
+      const video = data.f_video || [];
+
+      const allNewFiles = [
+        ...dayPhotos.map((f) => ({ file: f, category: 'DAY_PHOTO' })),
+        ...nightPhotos.map((f) => ({ file: f, category: 'NIGHT_PHOTO' })),
+        ...surroundingPhotos.map((f) => ({ file: f, category: 'SURROUNDING_PHOTO' })),
+        ...video.map((f) => ({ file: f, category: 'VIDEO' })),
+      ];
+
+      if (isEdit) {
+        const payload = mapFormDataToPatchPayload(data);
+        await ownerListingApi.updateListing(id, payload);
+
+        // Synchronize media if any staged deletions or new files exist
+        if (stagedDeleteIds.length > 0 || allNewFiles.length > 0) {
+          const fileMappings = allNewFiles.map((item, idx) => ({
+            clientIndex: idx,
+            category: item.category,
+            uploadId: crypto.randomUUID(),
+          }));
+          const filesToSend = allNewFiles.map((item) => item.file);
+          const manifest = {
+            stagedDeleteIds,
+            fileMappings,
+          };
+          await ownerListingApi.syncMedia(id, manifest, filesToSend);
+        }
+
+        // If the listing was previously REJECTED, or DRAFT with submit requested,
+        // submit for moderation review to prevent leaving listings stranded in DRAFT status.
+        const prevStatus = data?.status || initialData?.status || stateListing?.status;
+        const shouldSubmitForReview =
+          prevStatus === 'REJECTED' || (prevStatus === 'DRAFT' && Boolean(data?.f_submitForReview));
+
+        if (shouldSubmitForReview) {
+          try {
+            await ownerListingApi.submitListing(id);
+          } catch (submitErr) {
+            const submitMsg = apiErrorMessage(
+              submitErr,
+              'Failed to submit listing for verification.',
+            );
+            const submissionError = new Error(
+              `Changes saved, but submitting for review failed: ${submitMsg} Please retry.`,
+              { cause: submitErr },
+            );
+            submissionError.isSubmissionFailure = true;
+            throw submissionError;
+          }
+        }
+      } else {
+        const payload = mapBillboardListing(data);
+        const res = await ownerListingApi.createListing(payload);
+        const newListingId = res?.id ?? res?.data?.id;
+
+        // Upload media files if any
+        if (allNewFiles.length > 0) {
+          const fileMappings = allNewFiles.map((item, idx) => ({
+            clientIndex: idx,
+            category: item.category,
+            uploadId: crypto.randomUUID(),
+          }));
+          const filesToSend = allNewFiles.map((item) => item.file);
+          const manifest = {
+            stagedDeleteIds: [],
+            fileMappings,
+          };
+          await ownerListingApi.syncMedia(newListingId, manifest, filesToSend);
+        }
+
+        // Submit listing for moderation approval
+        await ownerListingApi.submitListing(newListingId);
+      }
+    } catch (err) {
+      if (err.isSubmissionFailure) {
+        throw err;
+      }
+      if (err instanceof FieldFormatError) {
+        throw new Error(err.userMessage, { cause: err });
+      }
+      if (import.meta.env.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
+        console.warn('[DEV] Auth error suppressed on edit submit.');
+        return;
+      }
+      const fallback = isEdit
+        ? 'Failed to update billboard listing.'
+        : 'Failed to create billboard listing.';
+      throw new Error(apiErrorMessage(err, fallback), { cause: err });
+    }
+  };
 
   if (loading || !initialData) {
     return (
@@ -296,7 +409,7 @@ export function NewBillboardListing() {
           signInTo={ROUTES.ownerListingsTab}
           cancelTo={ROUTES.ownerListingsTab}
         >
-          <WizardBody isEdit={isEdit} />
+          <WizardBody isEdit={isEdit} initialStatus={initialData?.status || stateListing?.status} />
         </RegisterShell>
       </RegisterProvider>
     </div>

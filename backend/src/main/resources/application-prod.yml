@@ -6,6 +6,17 @@ spring:
     username: ${DB_USERNAME:adbasket}
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: "SET lock_timeout = '5s'"
+  flyway:
+    # Dedicated Flyway connection ensures session-scoped 'lock_timeout = 0'
+    # never touches or leaks into the application's Hikari connection pool.
+    # Uses spring.datasource.* properties to guarantee identical target coordinates.
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password:${DB_PASSWORD:}}
+    init-sqls:
+      - "SET lock_timeout = 0"
 
 management:
   endpoint:

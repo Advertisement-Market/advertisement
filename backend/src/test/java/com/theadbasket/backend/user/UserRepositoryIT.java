@@ -20,7 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DataJpaTest
 @Import(JpaConfig.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class UserRepositoryIT {
 
     @Container

@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,11 +14,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
@@ -47,6 +51,12 @@ class OwnerListingServiceTest {
     private BillboardListingRepository billboardListingRepository;
 
     @Mock
+    private BillboardMediaRepository billboardMediaRepository;
+
+    @Mock
+    private com.theadbasket.backend.common.storage.FileStorageService fileStorageService;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -66,8 +76,25 @@ class OwnerListingServiceTest {
         messages.setUseCodeAsDefaultMessage(true);
         lovService = new LovService(messages);
 
-        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, notificationService, lovService);
+        ownerListingService = new OwnerListingService(
+                billboardListingRepository,
+                billboardMediaRepository,
+                fileStorageService,
+                userRepository,
+                notificationService,
+                lovService,
+                true,
+                "/api/media"
+        );
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
+        org.springframework.test.util.ReflectionTestUtils.setField(owner, "id", 1L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     private BillboardListing createSampleListing(String name, User user) {
@@ -247,20 +274,93 @@ class OwnerListingServiceTest {
     }
 
     @Test
-    @DisplayName("deleteListing deletes entity when owned by caller")
+    @DisplayName("deleteListing deletes entity and cleans directory when no transaction active")
     void deleteListing_whenOwned_deletesListing() {
         BillboardListing listing = createSampleListing("Delete Me", owner);
-        when(billboardListingRepository.findByIdAndUserId(15L, 1L)).thenReturn(Optional.of(listing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
 
         ownerListingService.deleteListing(15L, 1L);
 
         verify(billboardListingRepository).delete(listing);
+        verify(fileStorageService).deleteDirectory("billboards/15");
+    }
+
+    @Test
+    @DisplayName("deleteListing defers physical directory cleanup until after transaction commit")
+    void deleteListing_whenTransactionActive_defersDirectoryDeletionUntilAfterCommit() {
+        BillboardListing listing = createSampleListing("Delete Me", owner);
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            ownerListingService.deleteListing(15L, 1L);
+
+            verify(billboardListingRepository).delete(listing);
+            // Before commit: physical files should NOT be deleted yet
+            verify(fileStorageService, never()).deleteDirectory(any());
+
+            // Simulate transaction commit
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCommit();
+            }
+
+            // After commit: physical files deleted
+            verify(fileStorageService).deleteDirectory("billboards/15");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("deleteListing does not delete physical directory when transaction rolls back")
+    void deleteListing_whenTransactionRollsBack_doesNotDeletePhysicalDirectory() {
+        BillboardListing listing = createSampleListing("Rollback Me", owner);
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            ownerListingService.deleteListing(15L, 1L);
+
+            verify(billboardListingRepository).delete(listing);
+
+            // Simulate transaction rollback (afterCompletion with STATUS_ROLLED_BACK)
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+            }
+
+            // On rollback: deleteDirectory must NEVER be called
+            verify(fileStorageService, never()).deleteDirectory(any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("deleteListing swallows exception in afterCommit to avoid turning committed delete into 500")
+    void deleteListing_whenAfterCommitThrows_doesNotPropagateException() {
+        BillboardListing listing = createSampleListing("Delete Error", owner);
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
+        doThrow(new RuntimeException("Disk I/O error")).when(fileStorageService).deleteDirectory("billboards/15");
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            ownerListingService.deleteListing(15L, 1L);
+
+            // Trigger afterCommit: should catch and log exception without throwing
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCommit();
+            }
+
+            verify(fileStorageService).deleteDirectory("billboards/15");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
     @DisplayName("deleteListing throws ResourceNotFoundException and does not delete when not owned")
     void deleteListing_whenNotOwned_throwsException() {
-        when(billboardListingRepository.findByIdAndUserId(99L, 1L)).thenReturn(Optional.empty());
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(99L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> ownerListingService.deleteListing(99L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class)
