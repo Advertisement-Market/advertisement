@@ -533,7 +533,10 @@ export function ListingStep3() {
   const isDraft = field('status') === 'DRAFT';
   const submitForReview = Boolean(field('f_submitForReview'));
   const hasMinDayPhotos = totalDayPhotos >= 2;
-  const isSubmitDisabled = submitting || (isDraft && submitForReview && !hasMinDayPhotos);
+  const isSubmitDisabled =
+    submitting ||
+    (!isDraft && !hasMinDayPhotos) ||
+    (isDraft && submitForReview && !hasMinDayPhotos);
 
   const handleRemoveExisting = (id, categoryField) => {
     setField('f_stagedDeleteIds', [...stagedDeleteIds, id]);

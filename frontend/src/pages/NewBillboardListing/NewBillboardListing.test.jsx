@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS } from './steps';
+import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep3 } from './steps';
+import { RegisterProvider } from '@/features/register';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS } from '../OwnerRegister/steps';
 import { validate, NewBillboardListing, createSubmitHandler } from './NewBillboardListing';
 import { FieldFormatError, MSG } from '@/lib/validators';
@@ -387,6 +388,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       const stateListing = {
         id: 88,
         name: 'Juhu Tara Road Unipole',
+        status: 'ACTIVE',
         addressLine1: 'Near Juhu Beach',
         city: 'Mumbai',
         state: 'Maharashtra',
@@ -400,6 +402,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         startPrice: 350000,
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
+        media: [
+          { id: 801, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 802, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
@@ -474,6 +480,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         startPrice: 350000,
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
+        media: [
+          { id: 901, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 902, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
@@ -761,6 +771,38 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       expect(screen.getByRole('button', { name: /save draft changes/i }).disabled).toBe(false);
     });
 
+    it('disables submit button proactively on brand-new listing until at least 2 day photos are uploaded', () => {
+      globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock');
+      globalThis.URL.revokeObjectURL = vi.fn();
+
+      const { unmount } = render(
+        <RegisterProvider totalSteps={3} initialData={{ status: '' }}>
+          <ListingStep3 />
+        </RegisterProvider>,
+      );
+
+      const submitBtn = screen.getByRole('button', { name: /submit billboard listing/i });
+      expect(submitBtn.disabled).toBe(true);
+
+      unmount();
+
+      // When 2 day photos are provided, the submit button is enabled
+      render(
+        <RegisterProvider
+          totalSteps={3}
+          initialData={{
+            status: '',
+            f_dayPhotos: [new File(['a'], 'day1.jpg'), new File(['b'], 'day2.jpg')],
+          }}
+        >
+          <ListingStep3 />
+        </RegisterProvider>,
+      );
+
+      const enabledBtn = screen.getByRole('button', { name: /submit billboard listing/i });
+      expect(enabledBtn.disabled).toBe(false);
+    });
+
     it('surfaces error banner and remains on Step 3 when submitListing fails after updating a draft', async () => {
       const stateListing = {
         id: 97,
@@ -927,6 +969,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         startPrice: 500000,
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
+        media: [
+          { id: 901, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 902, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
@@ -1001,6 +1047,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         startPrice: 350000,
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
+        media: [
+          { id: 931, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 932, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
@@ -1075,6 +1125,10 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         startPrice: 200000,
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
+        media: [
+          { id: 991, category: 'DAY_PHOTO', storageKey: 'k1', isCover: true, displayOrder: 1 },
+          { id: 992, category: 'DAY_PHOTO', storageKey: 'k2', isCover: false, displayOrder: 2 },
+        ],
       };
 
       vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
