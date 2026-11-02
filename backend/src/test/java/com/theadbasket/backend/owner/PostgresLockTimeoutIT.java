@@ -34,7 +34,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.theadbasket.backend.common.address.Address;
-import com.theadbasket.backend.common.address.AddressRepository;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.BookingDurationUnit;
@@ -83,9 +82,6 @@ class PostgresLockTimeoutIT {
     private UserRepository userRepository;
 
     @Autowired
-    private AddressRepository addressRepository;
-
-    @Autowired
     private JwtService jwtService;
 
     @Autowired
@@ -104,7 +100,7 @@ class PostgresLockTimeoutIT {
         }
 
         User owner = userRepository.save(new User("Lock", "Owner", "lock_owner@example.com", "hash", "+919999999999", Role.OWNER));
-        Address address = addressRepository.save(Address.of("Lock St", "Landmark", "City", "Bangalore", "Karnataka", "560001"));
+        Address address = Address.of("Lock St", "Landmark", "City", "Bangalore", "Karnataka", "560001");
 
         BillboardListing listing = new BillboardListing();
         listing.setUser(owner);
