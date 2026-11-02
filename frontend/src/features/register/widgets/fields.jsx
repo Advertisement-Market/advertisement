@@ -70,7 +70,7 @@ export function FieldLabel({ label, required, optional }) {
 /**
  * Controlled form field bound to RegisterProvider by `name`.
  * Supports text-like inputs, textarea and select, with built-in validation:
- * `required` + format checks inferred from `type` (email / tel / url / number),
+ * `required` + format checks inferred from `type` (email / tel / url / number / decimal),
  * plus any extra `rules` passed in.
  */
 export function Field({
@@ -80,6 +80,7 @@ export function Field({
   optional,
   hint,
   type = 'text',
+  validateAs,
   placeholder,
   options,
   rows,
@@ -91,9 +92,10 @@ export function Field({
   const value = field(name);
   const onChange = (e) => setField(name, e.target.value);
 
+  const validationType = validateAs || type;
   const validators = [
     ...(required ? [requiredRule()] : []),
-    ...validatorsForType(type, { min: rest.min, max: rest.max }),
+    ...validatorsForType(validationType, { min: rest.min, max: rest.max }),
     ...rules,
   ];
   const { error, show, invalidClass, onBlur } = useFieldError(name, validators);
@@ -127,6 +129,9 @@ export function Field({
       </select>
     );
   } else {
+    // Only pass min/max to DOM when native input type supports it (e.g. type="number")
+    const { min: _min, max: _max, ...inputRest } = rest;
+    const domProps = type === 'number' ? rest : inputRest;
     control = (
       <input
         type={type}
@@ -135,7 +140,7 @@ export function Field({
         value={value}
         onChange={onChange}
         onBlur={onBlur}
-        {...rest}
+        {...domProps}
       />
     );
   }

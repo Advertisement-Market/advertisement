@@ -1,0 +1,72 @@
+[
+  {
+    "name": "basic HTML tag stripping",
+    "input": "<b>Cyber Towers</b>",
+    "expected": "Cyber Towers"
+  },
+  {
+    "name": "nested tag recursive evasion",
+    "input": "<<script>script>alert(1)</script>",
+    "expected": "alert(1)"
+  },
+  {
+    "name": "unclosed tag with trailing text disarms tag marker",
+    "input": "<img src=x onerror=alert(1) Main Road",
+    "expected": "img src=x onerror=alert(1) Main Road"
+  },
+  {
+    "name": "unclosed tag at end of string disarms tag marker",
+    "input": "Cyber Towers <svg onload=alert(1)",
+    "expected": "Cyber Towers svg onload=alert(1)"
+  },
+  {
+    "name": "HTML comment stripping",
+    "input": "<!-- sensitive comment -->Koramangala",
+    "expected": "Koramangala"
+  },
+  {
+    "name": "preserves legitimate greater-than comparison",
+    "input": "10% off for > 3 months",
+    "expected": "10% off for > 3 months"
+  },
+  {
+    "name": "preserves legitimate less-than comparison",
+    "input": "Ground height < 15 ft",
+    "expected": "Ground height < 15 ft"
+  },
+  {
+    "name": "preserves multiple inequality comparisons",
+    "input": "1 < 2 && 3 > 2",
+    "expected": "1 < 2 && 3 > 2"
+  },
+  {
+    "name": "strips invisible Unicode and whitespace padding",
+    "input": " \u200B<b>Skywalk</b> \uFEFF ",
+    "expected": "Skywalk"
+  },
+  {
+    "name": "neutralizes zero-width character evasion inside tag names",
+    "input": "<s\u200Bcript>alert(1)</script>",
+    "expected": "alert(1)"
+  },
+  {
+    "name": "strips embedded zero-width and bidi override characters from text",
+    "input": "Cyber\u200B Towers \u202EBoard",
+    "expected": "Cyber Towers Board"
+  },
+  {
+    "name": "collapses only-markup input to empty string",
+    "input": "<b><i></i></b>",
+    "expected": ""
+  },
+  {
+    "name": "strips script tag keeping inner text",
+    "input": "<script>alert(1)</script>",
+    "expected": "alert(1)"
+  },
+  {
+    "name": "handles empty and blank strings",
+    "input": "   ",
+    "expected": ""
+  }
+]

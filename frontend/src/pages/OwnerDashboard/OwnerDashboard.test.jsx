@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { DEFAULT_BILLBOARD_TYPES, resolveInitialType, formatBillboardType } from './data';
 
 describe('OwnerDashboard Billboard Type LOV helpers', () => {
@@ -67,6 +67,117 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
 
     it('returns original label if already formatted', () => {
       expect(formatBillboardType('LED Digital')).toBe('LED Digital');
+    });
+  });
+
+  describe('VALID_TABS and URL Tab Query Param', () => {
+    it('defines VALID_TABS containing all supported dashboard tabs', async () => {
+      const { VALID_TABS } = await import('./data');
+      expect(VALID_TABS).toEqual([
+        'overview',
+        'listings',
+        'calendar',
+        'quotes',
+        'tenders',
+        'analytics',
+        'settings',
+      ]);
+    });
+
+    it('initializes tab from ?tab=listings query param and navigates to edit listing', async () => {
+      const { cleanup, render, screen, fireEvent, waitFor } =
+        await import('@testing-library/react');
+      const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+      const { OwnerDashboard } = await import('./OwnerDashboard');
+      const { AuthContext } = await import('@/context/AuthContext');
+      const { ToastProvider } = await import('@/context/ToastProvider');
+      const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
+      const { notificationApi } = await import('@/features/notification/notificationApi');
+      const { ROUTES } = await import('@/lib/routes');
+
+      const mockListings = [
+        {
+          id: 101,
+          name: 'Bandra Reclamation Unipole',
+          type: 'UNIPOLE',
+          status: 'Available',
+          price: '₹2.5L',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard?tab=listings']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+                <Route
+                  path={ROUTES.editBillboardListingPath}
+                  element={<div data-testid="edit-page">Edit Page</div>}
+                />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // Verify the Listings page is active, not Overview
+      await waitFor(() => {
+        expect(screen.getByText('Bandra Reclamation Unipole')).toBeDefined();
+      });
+
+      // Click Edit button on the listing card
+      const editBtn = screen.getByRole('button', { name: /^edit$/i });
+      fireEvent.click(editBtn);
+
+      // Verify it navigated to edit page with ID 101
+      await waitFor(() => {
+        expect(screen.getByTestId('edit-page')).toBeDefined();
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('safely falls back to overview when ?tab contains an invalid tab name', async () => {
+      const { cleanup, render, screen } = await import('@testing-library/react');
+      const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+      const { OwnerDashboard } = await import('./OwnerDashboard');
+      const { AuthContext } = await import('@/context/AuthContext');
+      const { ToastProvider } = await import('@/context/ToastProvider');
+      const { ownerListingApi } = await import('@/features/owner/ownerListingApi');
+      const { notificationApi } = await import('@/features/notification/notificationApi');
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue([]);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: { id: 1, firstName: 'Ramesh', role: 'OWNER' } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard?tab=invalid_tab_name']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // In overview, the Topbar title is "Overview"
+      expect(screen.getByText('Overview', { selector: '.topbar-title' })).toBeDefined();
+      expect(screen.getByRole('button', { name: /^overview$/i }).className).toContain('active');
+
+      cleanup();
+      vi.restoreAllMocks();
     });
   });
 });

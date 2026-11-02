@@ -3,10 +3,10 @@
  * into the backend registration DTOs. Field names mirror the frontend wizard fields.
  */
 
-import { isOther } from '@/lib/validators';
+import { isOther, sanitizeText, DECIMAL_RE, FieldFormatError } from '@/lib/validators';
 
 const trimOrNull = (v) => {
-  const s = v == null ? '' : String(v).trim();
+  const s = v == null ? '' : sanitizeText(v);
   return s === '' ? null : s;
 };
 
@@ -20,6 +20,37 @@ const toInt = (v) => {
   if (v == null || String(v).trim() === '') return null;
   const n = parseInt(String(v).replace(/\D/g, ''), 10);
   return Number.isFinite(n) ? n : null;
+};
+
+export function toPlainDecimalString(v) {
+  if (v == null || v === '') return '';
+  const num = Number(v);
+  if (Number.isNaN(num)) return String(v);
+  // Format up to 2 decimal places (matching NUMERIC(8,2)) and strip trailing zeroes
+  const fixed = num.toFixed(2);
+  return fixed.replace(/\.?0+$/, '') || '0';
+}
+
+const toDecimalOrNull = (v, fieldName) => {
+  if (v == null || String(v).trim() === '') return null;
+  const str = String(v).trim();
+  if (!DECIMAL_RE.test(str)) {
+    throw new FieldFormatError(
+      fieldName,
+      `Invalid numeric value for ${fieldName}: "${v}"`,
+      'Ground height must be a valid number (e.g. 15 or 24.5).',
+    );
+  }
+  const n = Number(str);
+  // Guard against absurdly large digit strings evaluating to Infinity
+  if (!Number.isFinite(n)) {
+    throw new FieldFormatError(
+      fieldName,
+      `Overflow numeric value for ${fieldName}: "${v}"`,
+      'Ground height is too large. Enter a value between 0 and 300.',
+    );
+  }
+  return n;
 };
 
 const splitTags = (v) =>
@@ -151,7 +182,7 @@ export function mapOwner(d) {
       typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
       widthFt: toNumber(d.f_bbWidth),
       heightFt: toNumber(d.f_bbHeight),
-      groundHeightFt: toNumber(d.f_bbGroundHeight),
+      groundHeightFt: toDecimalOrNull(d.f_bbGroundHeight, 'f_bbGroundHeight'),
       facing: d.f_facing,
       trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
       trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
@@ -215,18 +246,18 @@ export function mapBillboardListing(d) {
   const isAudienceOther = isOther(d.f_audience);
 
   return {
-    name: d.f_bbName,
-    addressLine1: d.f_bbAddr,
+    name: trimOrNull(d.f_bbName),
+    addressLine1: trimOrNull(d.f_bbAddr),
     addressLine2: trimOrNull(d.f_bbAddr2),
     landmark: trimOrNull(d.f_bbLandmark),
-    city: d.f_bbCity,
-    state: d.f_bbState,
-    pincode: d.f_bbPin,
-    type: isTypeOther ? 'OTHER' : d.f_bbType,
+    city: trimOrNull(d.f_bbCity),
+    state: trimOrNull(d.f_bbState),
+    pincode: trimOrNull(d.f_bbPin),
+    type: isTypeOther ? 'OTHER' : trimOrNull(d.f_bbType),
     typeOther: isTypeOther ? trimOrNull(d.f_bbTypeOther) : null,
     widthFt: toNumber(d.f_bbWidth),
     heightFt: toNumber(d.f_bbHeight),
-    groundHeightFt: toNumber(d.f_bbGroundHeight),
+    groundHeightFt: toDecimalOrNull(d.f_bbGroundHeight, 'f_bbGroundHeight'),
     facing: d.f_facing,
     trafficType: isTrafficOther ? 'OTHER' : d.f_trafficType,
     trafficTypeOther: isTrafficOther ? trimOrNull(d.f_trafficOther) : null,
@@ -238,4 +269,213 @@ export function mapBillboardListing(d) {
     minBookingUnit,
     discountNote: trimOrNull(d.f_discountNote),
   };
+}
+
+export const FACING_OPTIONS = [
+  'North',
+  'North-East',
+  'East',
+  'South-East',
+  'South',
+  'South-West',
+  'West',
+  'North-West',
+];
+
+export const TRAFFIC_OPTIONS = [
+  { code: 'CITY_URBAN', label: 'City / Urban' },
+  { code: 'HIGHWAY', label: 'Highway' },
+  { code: 'COMMERCIAL_ZONE', label: 'Commercial Zone' },
+  { code: 'RESIDENTIAL_AREA', label: 'Residential Area' },
+  { code: 'INDUSTRIAL', label: 'Industrial' },
+  { code: 'OTHER', label: 'Other', value: 'other' },
+];
+
+export const AUDIENCE_OPTIONS = [
+  { code: 'IT_TECH_PROFESSIONALS', label: 'IT Crowd / Tech Professionals' },
+  { code: 'COMMUTERS', label: 'Commuters' },
+  { code: 'HIGHWAY_TRAVELERS', label: 'Highway Travelers' },
+  { code: 'LOCAL_RESIDENTS', label: 'Local Residents' },
+  { code: 'SHOPPERS', label: 'Shoppers' },
+  { code: 'STUDENTS', label: 'Students' },
+  { code: 'MIXED', label: 'Mixed' },
+  { code: 'OTHER', label: 'Other', value: 'other' },
+];
+
+export function resolveFacingOption(val) {
+  if (!val) return '';
+  const normalized = String(val)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '_');
+  const found = FACING_OPTIONS.find(
+    (opt) => opt.toUpperCase().replace(/[^A-Z]/g, '_') === normalized,
+  );
+  return found || String(val);
+}
+
+export function formatFacingCode(val) {
+  if (!val) return null;
+  return String(val)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '_');
+}
+
+export function resolveTrafficOption(val) {
+  if (!val) return '';
+  if (isOther(val)) return 'other';
+  const str = String(val).trim();
+  const normalized = str.toUpperCase().replace(/[^A-Z]/g, '_');
+  const found = TRAFFIC_OPTIONS.find(
+    (o) => o.code === normalized || o.label.toUpperCase().replace(/[^A-Z]/g, '_') === normalized,
+  );
+  return found ? found.label : str;
+}
+
+export function formatTrafficCode(val) {
+  if (!val) return null;
+  if (isOther(val)) return 'OTHER';
+  const str = String(val).trim();
+  const normalized = str.toUpperCase().replace(/[^A-Z]/g, '_');
+  const found = TRAFFIC_OPTIONS.find(
+    (o) => o.code === normalized || o.label.toUpperCase().replace(/[^A-Z]/g, '_') === normalized,
+  );
+  return found ? found.code : normalized;
+}
+
+export function resolveAudienceOption(val) {
+  if (!val) return '';
+  if (isOther(val)) return 'other';
+  const str = String(val).trim();
+  const normalized = str.toUpperCase().replace(/[^A-Z]/g, '_');
+  const found = AUDIENCE_OPTIONS.find(
+    (o) => o.code === normalized || o.label.toUpperCase().replace(/[^A-Z]/g, '_') === normalized,
+  );
+  return found ? found.label : str;
+}
+
+export function formatAudienceCode(val) {
+  if (!val) return null;
+  if (isOther(val)) return 'OTHER';
+  const str = String(val).trim();
+  const normalized = str.toUpperCase().replace(/[^A-Z]/g, '_');
+  const found = AUDIENCE_OPTIONS.find(
+    (o) => o.code === normalized || o.label.toUpperCase().replace(/[^A-Z]/g, '_') === normalized,
+  );
+  return found ? found.code : normalized;
+}
+
+/**
+ * Maps a backend BillboardListingDto into the wizard's f_* form fields.
+ * Supports DTO fields as well as fallback property names (address, f_*) for resilience.
+ */
+export function mapListingToFormData(dto) {
+  if (!dto) return {};
+
+  const facing = resolveFacingOption(dto.facing ?? dto.f_facing);
+  const trafficType = resolveTrafficOption(dto.trafficType ?? dto.f_trafficType);
+  const audienceType = resolveAudienceOption(dto.audienceType ?? dto.f_audience);
+
+  const rawPin = String(dto.pincode ?? dto.f_bbPin ?? '').trim();
+  const f_bbPin = rawPin === '000000' ? '' : rawPin;
+
+  return {
+    f_bbName: dto.name ?? dto.f_bbName ?? '',
+    f_bbAddr: dto.addressLine1 ?? dto.address ?? dto.f_bbAddr ?? '',
+    f_bbAddr2: dto.addressLine2 ?? dto.f_bbAddr2 ?? '',
+    f_bbLandmark: dto.landmark ?? dto.f_bbLandmark ?? '',
+    f_bbCity: dto.city ?? dto.f_bbCity ?? '',
+    f_bbState: dto.state ?? dto.f_bbState ?? '',
+    f_bbPin,
+    f_bbType: dto.type ?? dto.f_bbType ?? '',
+    f_bbTypeOther: dto.typeOther ?? dto.f_bbTypeOther ?? '',
+    f_bbWidth:
+      dto.widthFt != null
+        ? String(dto.widthFt)
+        : dto.f_bbWidth != null && dto.f_bbWidth !== ''
+          ? String(dto.f_bbWidth)
+          : '',
+    f_bbHeight:
+      dto.heightFt != null
+        ? String(dto.heightFt)
+        : dto.f_bbHeight != null && dto.f_bbHeight !== ''
+          ? String(dto.f_bbHeight)
+          : '',
+    f_bbGroundHeight: toPlainDecimalString(dto.groundHeightFt),
+    f_facing: facing,
+    f_trafficType: trafficType,
+    f_trafficOther: dto.trafficTypeOther ?? dto.f_trafficOther ?? '',
+    f_audience: audienceType,
+    f_audienceOther: dto.audienceTypeOther ?? dto.f_audienceOther ?? '',
+    f_footfall: dto.footfall ?? dto.f_footfall ?? '',
+    f_startPrice:
+      dto.startPrice != null
+        ? String(dto.startPrice)
+        : dto.f_startPrice != null && dto.f_startPrice !== ''
+          ? String(dto.f_startPrice)
+          : '',
+    f_minBookingValue:
+      dto.minBookingValue != null
+        ? dto.minBookingValue
+        : dto.f_minBookingValue != null
+          ? dto.f_minBookingValue
+          : 1,
+    f_minBookingUnit: dto.minBookingUnit || dto.f_minBookingUnit || 'MONTHS',
+    f_discountNote: dto.discountNote ?? dto.f_discountNote ?? '',
+  };
+}
+
+/**
+ * Maps wizard f_* form fields into a BillboardListingUpdateRequest (PATCH payload).
+ * Trims all strings before transmission and sends "" for blanked optional fields
+ * so the backend explicitly clears them.
+ */
+export function mapFormDataToPatchPayload(d) {
+  const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
+  const isTypeOther = isOther(d.f_bbType);
+  const isTrafficOther = isOther(d.f_trafficType);
+  const isAudienceOther = isOther(d.f_audience);
+
+  // sanitizeText strips HTML tags, invisible Unicode code points, and trims whitespace
+  const trimToString = (v) => (v == null ? '' : sanitizeText(v));
+
+  const payload = {
+    name: trimToString(d.f_bbName),
+    addressLine1: trimToString(d.f_bbAddr),
+    // Optional fields: '' = clear, null = untouched
+    addressLine2: trimToString(d.f_bbAddr2),
+    landmark: trimToString(d.f_bbLandmark),
+    city: trimToString(d.f_bbCity),
+    state: trimToString(d.f_bbState),
+    pincode: trimToString(d.f_bbPin),
+    type: isTypeOther ? 'OTHER' : trimToString(d.f_bbType),
+    typeOther: isTypeOther ? trimToString(d.f_bbTypeOther) : null,
+    widthFt: toNumber(d.f_bbWidth),
+    heightFt: toNumber(d.f_bbHeight),
+    facing: formatFacingCode(d.f_facing),
+    trafficType: isTrafficOther ? 'OTHER' : formatTrafficCode(d.f_trafficType),
+    trafficTypeOther: isTrafficOther ? trimToString(d.f_trafficOther) : null,
+    audienceType: isAudienceOther ? 'OTHER' : formatAudienceCode(d.f_audience),
+    audienceTypeOther: isAudienceOther ? trimToString(d.f_audienceOther) : null,
+    // Optional fields: '' = clear, null = untouched
+    footfall: trimToString(d.f_footfall),
+    startPrice: toNumber(d.f_startPrice),
+    minBookingValue,
+    minBookingUnit,
+    discountNote: trimToString(d.f_discountNote),
+  };
+
+  if (d.f_bbGroundHeight !== undefined) {
+    const raw = d.f_bbGroundHeight;
+    const str = raw == null ? '' : String(raw).trim();
+
+    if (str === '') {
+      payload.groundHeightFt = null;
+      payload.clearGroundHeight = true;
+    } else {
+      payload.groundHeightFt = toDecimalOrNull(raw, 'f_bbGroundHeight');
+      payload.clearGroundHeight = false;
+    }
+  }
+
+  return payload;
 }

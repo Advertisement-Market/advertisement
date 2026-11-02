@@ -5,6 +5,9 @@ spring:
     name: theadbasket-backend
   profiles:
     default: dev
+  jackson:
+    generator:
+      write-bigdecimal-as-plain: true
   messages:
     # Error/message catalog resolved by MessageSource (see common/error/ErrorCode).
     basename: messages

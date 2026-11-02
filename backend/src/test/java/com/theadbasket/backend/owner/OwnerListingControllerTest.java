@@ -20,11 +20,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.nullValue;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.address.AddressRepository;
+import com.theadbasket.backend.common.validation.ValidationPatterns;
 import com.theadbasket.backend.lov.AudienceType;
 import com.theadbasket.backend.lov.BillboardType;
 import com.theadbasket.backend.lov.BookingDurationUnit;
@@ -248,7 +250,44 @@ class OwnerListingControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.fieldErrors.pincode").exists());
+                .andExpect(jsonPath("$.fieldErrors.pincode").value(ValidationPatterns.PINCODE_MESSAGE));
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with leading-zero pincode (012345) returns 400 VALIDATION_FAILED")
+    void createListing_leadingZeroPincode_returns400() throws Exception {
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Invalid Pin Listing",
+                "Central Avenue",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "012345", // leading zero
+                "LED Digital",
+                null,
+                new BigDecimal("35.00"),
+                new BigDecimal("18.00"),
+                null,
+                "East",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                null,
+                new BigDecimal("220000.00"),
+                1,
+                "Months",
+                null
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.pincode").value(ValidationPatterns.PINCODE_MESSAGE));
     }
 
     @Test
@@ -637,6 +676,46 @@ class OwnerListingControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/owner/listings/{id} on legacy row with pincode=000000 succeeds and preserves pincode when omitted")
+    void updateListing_legacyPincode000000_omittedOnPatch_preservesStoredValue() throws Exception {
+        BillboardListing listing = createListing(owner1, "Legacy Pin Listing");
+        Address legacyAddress = Address.of("100 Bandra West", null, null, "Mumbai", "Maharashtra", "000000");
+        listing.setAddress(legacyAddress);
+        listing = billboardListingRepository.save(listing);
+
+        // Send PATCH omitting pincode (only updating startPrice)
+        String patchJson = "{\"startPrice\": 450000.00}";
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.startPrice").value(450000.00))
+                .andExpect(jsonPath("$.pincode").value("000000"));
+
+        // Assert directly against the persisted entity in the real database
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getAddress().getPincode()).isEqualTo("000000");
+    }
+
+    @Test
+    @DisplayName("PATCH /api/owner/listings/{id} explicitly sending pincode=000000 returns 400 VALIDATION_FAILED")
+    void updateListing_pincode000000_explicitlySent_rejectsWith400() throws Exception {
+        BillboardListing listing = createListing(owner1, "Valid Pin Listing");
+
+        String patchJson = "{\"pincode\": \"000000\"}";
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patchJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.pincode").value(ValidationPatterns.PINCODE_MESSAGE));
+    }
+
+    @Test
     @DisplayName("PATCH /api/owner/listings/{id} transitioning from OTHER to standard nulls typeOther")
     void updateListing_transitionFromOtherToStandard_nullsCompanionText() throws Exception {
         BillboardListing listing = createListing(owner1, "Other Listing");
@@ -849,5 +928,228 @@ class OwnerListingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.typeOther").exists());
+    }
+
+    @Test
+    @DisplayName("PATCH clearing optional fields with empty string nulls database values and returns 200 OK")
+    void updateListing_clearingOptionalFields_nullsValuesAndReturns200() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Listing");
+        listing.setDiscountNote("10% off for 6+ months");
+        listing.setFootfall("50,000/day");
+        listing.getAddress().setLine2("Suite 400");
+        listing.getAddress().setLandmark("Near Metro");
+        billboardListingRepository.save(listing);
+
+        // Send empty strings to clear the optional fields
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null,
+                null,
+                "", // addressLine2 -> clear
+                "", // landmark -> clear
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "", // footfall -> clear
+                null,
+                null,
+                null,
+                ""  // discountNote -> clear
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discountNote").doesNotExist())
+                .andExpect(jsonPath("$.footfall").doesNotExist());
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getDiscountNote()).isNull();
+        assertThat(updated.getFootfall()).isNull();
+        assertThat(updated.getAddress().getLine2()).isNull();
+        assertThat(updated.getAddress().getLandmark()).isNull();
+    }
+
+    @Test
+    @DisplayName("PATCH blanking required fields returns 400 VALIDATION_FAILED with field errors")
+    void updateListing_blankingRequiredFields_returns400ValidationFailed() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Listing");
+
+        // Blank name and addressLine1
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "   \u00A0  ", // blank name
+                "   ",        // blank addressLine1
+                null,
+                null,
+                "  ",         // blank city
+                "  ",         // blank state
+                "      ",     // blank pincode
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    @DisplayName("PATCH persisting touched required fields with whitespace strips padding cleanly")
+    void updateListing_persistingRequiredFieldsWithPadding_trimsCleanly() throws Exception {
+        BillboardListing listing = createListing(owner1, "Old Name");
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "  New Name  ",
+                "123 Highway Ave  ",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "400001",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("New Name"))
+                .andExpect(jsonPath("$.addressLine1").value("123 Highway Ave"));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("New Name");
+        assertThat(updated.getAddress().getLine1()).isEqualTo("123 Highway Ave");
+    }
+
+    @Test
+    @DisplayName("PATCH with clearGroundHeight=true unsets groundHeightFt to null")
+    void updateListing_clearGroundHeight_unsetsToNull() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+        listing.setGroundHeightFt(new BigDecimal("15.00"));
+        billboardListingRepository.save(listing);
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearGroundHeight\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(nullValue()));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getGroundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("PATCH with both clearGroundHeight=true and groundHeightFt rejects with 400")
+    void updateListing_contradictoryGroundHeight_rejects() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearGroundHeight\": true, \"groundHeightFt\": 15.0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.groundHeightConsistent")
+                        .value("Ground height cannot be set and cleared in the same request."));
+    }
+
+    @Test
+    @DisplayName("PATCH with groundHeightFt > 300 rejects with 400")
+    void updateListing_groundHeightAbove300_rejects() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"groundHeightFt\": 300.1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.groundHeightFt")
+                        .value("Ground height must be at most 300 ft."));
+    }
+
+    @Test
+    @DisplayName("PATCH with clearGroundHeight absent or null preserves existing ground height")
+    void updateListing_clearGroundHeightAbsentOrNull_preservesExisting() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board");
+        listing.setGroundHeightFt(new BigDecimal("18.00"));
+        billboardListingRepository.save(listing);
+
+        // Key absent
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Updated Name 1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(18.0));
+
+        // Key present as null
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Updated Name 2\", \"clearGroundHeight\": null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(18.0));
+    }
+
+    @Test
+    @DisplayName("PATCH with clearGroundHeight=true and groundHeightFt key literally absent clears stored value to null")
+    void updateListing_clearGroundHeightTrue_absentGroundHeightKey_clearsToNull() throws Exception {
+        BillboardListing listing = createListing(owner1, "Initial Board for Clear");
+        listing.setGroundHeightFt(new BigDecimal("22.50"));
+        billboardListingRepository.save(listing);
+
+        mockMvc.perform(patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearGroundHeight\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groundHeightFt").value(nullValue()));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getGroundHeightFt()).isNull();
     }
 }

@@ -4,6 +4,7 @@ import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
 import { useAuth } from '@/context/AuthContext';
 import { mapAdvertiser } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
+import { isValidPincode } from '@/lib/validators';
 import './AdvertiserRegister.css';
 
 const STEPS = [
@@ -59,7 +60,8 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, selections, showToast, user }) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function validate(step, { data, selections, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
@@ -96,7 +98,9 @@ function validate(step, { data, selections, showToast, user }) {
     if (!d('f_addressLine1')) return fail('Please enter your office address.');
     if (!d('f_city')) return fail('Please enter your city.');
     if (!d('f_state')) return fail('Please enter your state.');
-    if (!d('f_pincode')) return fail('Please enter your PIN code.');
+    if (!d('f_pincode')) return fail('Please enter your pincode.');
+    if (!isValidPincode(d('f_pincode')))
+      return fail('Please enter a valid 6-digit PIN code (cannot start with 0).');
   }
   if (step === 4) {
     if (!d('f_projectTitle')) return fail('Please enter a project title.');
