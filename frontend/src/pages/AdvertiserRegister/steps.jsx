@@ -4,6 +4,7 @@ import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
 import {
   useRegister,
+  usePincode,
   useFieldError,
   FieldError,
   Field,
@@ -103,21 +104,6 @@ const FLEX_OPTIONS = [
   { value: 'yes', label: 'Yes — open to adjusting based on proposals' },
   { value: 'no', label: 'No — fixed budget' },
 ];
-
-const PINCODE_MAP = {
-  400001: 'Mumbai, Maharashtra',
-  400063: 'Mumbai, Maharashtra',
-  110001: 'New Delhi, Delhi',
-  560001: 'Bengaluru, Karnataka',
-  600001: 'Chennai, Tamil Nadu',
-  700001: 'Kolkata, West Bengal',
-  411001: 'Pune, Maharashtra',
-  380001: 'Ahmedabad, Gujarat',
-  500001: 'Hyderabad, Telangana',
-  302001: 'Jaipur, Rajasthan',
-  226001: 'Lucknow, Uttar Pradesh',
-  160001: 'Chandigarh, Punjab',
-};
 
 const EnvelopeIcon = (
   <svg
@@ -369,12 +355,10 @@ export function Step2() {
 export function Step3() {
   const { field, setField, showToast } = useRegister();
   const phone = field('f_phone');
-  const pincode = field('f_pincode');
   const phoneOk = phone.replace(/\D/g, '').length === 10;
-  const suggestion = pincode.length === 6 ? PINCODE_MAP[pincode] || '' : '';
+  const pin = usePincode('f_pincode', 'f_city', 'f_state');
   const emailErr = useFieldError('f_email', [v.required(), v.email()]);
   const phoneErr = useFieldError('f_phone', [v.required(), v.phone()]);
-  const pincodeErr = useFieldError('f_pincode', [v.required(), v.pincode()]);
   const line1Err = useFieldError('f_addressLine1', [v.required()]);
   const cityErr = useFieldError('f_city', [v.required()]);
   const stateErr = useFieldError('f_state', [v.required()]);
@@ -387,16 +371,6 @@ export function Step3() {
     }
     setField('f_email', login);
     showToast('Login email copied to contact email.', 'success');
-  };
-
-  const handlePincodeBlur = (e) => {
-    pincodeErr.onBlur(e);
-    const match = PINCODE_MAP[pincode];
-    if (match) {
-      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
-      if (!field('f_city').trim() && autoCity) setField('f_city', autoCity);
-      if (!field('f_state').trim() && autoState) setField('f_state', autoState);
-    }
   };
 
   return (
@@ -578,15 +552,15 @@ export function Step3() {
           </label>
           <input
             type="text"
-            className={cn('form-control', pincodeErr.invalidClass)}
+            className={cn('form-control', pin.err.invalidClass)}
             maxLength={6}
             placeholder="400001"
-            value={pincode}
-            onChange={(e) => setField('f_pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-            onBlur={handlePincodeBlur}
+            value={pin.val}
+            onChange={(e) => pin.set(e.target.value)}
+            onBlur={pin.onBlur}
           />
-          <div className={cn('pincode-autofill', suggestion && 'show')}>{suggestion}</div>
-          <FieldError show={pincodeErr.show} error={pincodeErr.error} />
+          <div className={cn('pincode-autofill', pin.status && 'show')}>{pin.status}</div>
+          <FieldError show={pin.err.show} error={pin.err.error} />
         </div>
       </FormSection>
 

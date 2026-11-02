@@ -3,6 +3,7 @@ import * as vr from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
 import {
   useRegister,
+  usePincode,
   useFieldError,
   FieldError,
   Field,
@@ -25,16 +26,6 @@ import {
 import { CategoryAccordion, KeyClients, Portfolio } from './widgets';
 
 const TOTAL = 7;
-
-const PINCODE_MAP = {
-  400001: 'Mumbai, Maharashtra',
-  400093: 'Mumbai, Maharashtra',
-  110001: 'New Delhi, Delhi',
-  560001: 'Bengaluru, Karnataka',
-  600001: 'Chennai, Tamil Nadu',
-  411001: 'Pune, Maharashtra',
-  500001: 'Hyderabad, Telangana',
-};
 
 const AGENCY_TYPES = [
   { value: '', label: 'Select type' },
@@ -332,22 +323,10 @@ export function Step1() {
 /* ── STEP 2: AGENCY INFO ── */
 export function Step2() {
   const { field, setField } = useRegister();
-  const pin = field('f_pincode');
-  const suggestion = pin.length === 6 ? PINCODE_MAP[pin] || '' : '';
-  const pinErr = useFieldError('f_pincode', [vr.required(), vr.pincode()]);
+  const pin = usePincode('f_pincode', 'f_city', 'f_state');
   const line1Err = useFieldError('f_addressLine1', [vr.required()]);
   const cityErr = useFieldError('f_city', [vr.required()]);
   const stateErr = useFieldError('f_state', [vr.required()]);
-
-  const handlePincodeBlur = (e) => {
-    pinErr.onBlur(e);
-    const match = PINCODE_MAP[pin];
-    if (match) {
-      const [autoCity, autoState] = match.split(',').map((s) => s.trim());
-      if (!field('f_city').trim() && autoCity) setField('f_city', autoCity);
-      if (!field('f_state').trim() && autoState) setField('f_state', autoState);
-    }
-  };
 
   return (
     <div className="step-panel active">
@@ -425,15 +404,15 @@ export function Step2() {
             </label>
             <input
               type="text"
-              className={cn('form-control', pinErr.invalidClass)}
+              className={cn('form-control', pin.err.invalidClass)}
               maxLength={6}
               placeholder="400001"
-              value={pin}
-              onChange={(e) => setField('f_pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onBlur={handlePincodeBlur}
+              value={pin.val}
+              onChange={(e) => pin.set(e.target.value)}
+              onBlur={pin.onBlur}
             />
-            <div className={cn('pincode-autofill', suggestion && 'show')}>{suggestion}</div>
-            <FieldError show={pinErr.show} error={pinErr.error} />
+            <div className={cn('pincode-autofill', pin.status && 'show')}>{pin.status}</div>
+            <FieldError show={pin.err.show} error={pin.err.error} />
           </div>
         </FormRow>
 

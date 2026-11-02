@@ -41,15 +41,15 @@ vi.mock('@/context/AuthContext', () => ({
 
 import { ROUTES } from '@/lib/routes';
 import { ToastProvider } from '@/context/ToastProvider';
-import { Toast } from '@/components/ui/Toast/Toast';
 import { OwnerDashboard } from './OwnerDashboard';
 
 function renderDashboard() {
+  // OwnerDashboard renders its own <Toast/> internally, so we don't add another one here
+  // (a second Toast would double-render the toast message and break getByText).
   return render(
     <MemoryRouter>
       <ToastProvider>
         <OwnerDashboard />
-        <Toast />
       </ToastProvider>
     </MemoryRouter>,
   );
