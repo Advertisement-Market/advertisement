@@ -11,7 +11,8 @@ public enum Role {
     MEMBER,
     ADVERTISER,
     OWNER,
-    AGENCY;
+    AGENCY,
+    ADMIN;
 
     /** True for the three marketplace roles that own a role profile + dashboard. */
     public boolean isOnboarded() {

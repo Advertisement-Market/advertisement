@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
+import { MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/config';
 import {
   useRegister,
   usePincode,
@@ -11,8 +12,15 @@ import {
   FormRow,
   StepHeader,
   RegNav,
+  WarningBanner,
 } from '@/features/register';
-import { TypeGrid, SelectWithOther, UploadZone } from '../OwnerRegister/widgets';
+import {
+  TypeGrid,
+  SelectWithOther,
+  UploadZone,
+  MinBookingInput,
+  BOOKING_DURATION_UNITS,
+} from '../OwnerRegister/widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from '../OwnerRegister/calendar';
 
 const TOTAL = 3;
@@ -143,58 +151,6 @@ const AUDIENCE = [
   'Mixed',
   { value: 'other', label: 'Other' },
 ];
-
-const BOOKING_DURATION_UNITS = [
-  { value: 'DAYS', label: 'Days' },
-  { value: 'WEEKS', label: 'Weeks' },
-  { value: 'MONTHS', label: 'Months' },
-];
-
-function MinBookingInput() {
-  const { field, setField } = useRegister();
-  const value = field('f_minBookingValue') ?? '';
-  const unit = field('f_minBookingUnit') || 'MONTHS';
-  const { error, show, invalidClass, onBlur } = useFieldError('f_minBookingValue', [
-    v.required('Please enter a minimum booking duration.'),
-    v.range(1, 1000, 'Must be at least 1.'),
-  ]);
-
-  return (
-    <div className="form-group">
-      <FieldLabel label="Minimum Booking Duration" required />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          className={cn('form-control', invalidClass)}
-          style={{ flex: 1, minWidth: 0 }}
-          placeholder="1"
-          value={value}
-          onChange={(e) => setField('f_minBookingValue', e.target.value)}
-          onBlur={onBlur}
-        />
-        <select
-          className="form-control"
-          style={{ flex: 1.2, minWidth: 0 }}
-          value={unit}
-          onChange={(e) => setField('f_minBookingUnit', e.target.value)}
-        >
-          {BOOKING_DURATION_UNITS.map((u) => (
-            <option key={u.value} value={u.value}>
-              {u.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {show ? (
-        <FieldError show={show} error={error} />
-      ) : (
-        <div className="form-hint">E.g., 15 Days, 2 Weeks, or 1 Month</div>
-      )}
-    </div>
-  );
-}
 
 function FootfallField() {
   const { field, setField } = useRegister();
@@ -374,12 +330,14 @@ export function ListingStep1() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="number"
+            type="text"
+            inputMode="decimal"
+            validateAs="decimal"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min="0"
-            max="300"
+            min={0}
+            max={300}
             hint="0–300 ft from ground level"
           />
           <div className="form-group" />
@@ -543,7 +501,44 @@ const VideoIcon = (
 );
 
 export function ListingStep3() {
-  const { submit, submitting } = useRegister();
+  const { field, setField, submit, submitting } = useRegister();
+
+  const dayPhotos = field('f_dayPhotos') || [];
+  const nightPhotos = field('f_nightPhotos') || [];
+  const surroundingPhotos = field('f_surroundingPhotos') || [];
+  const video = field('f_video') || [];
+
+  const existingDayPhotos = field('f_existingDayPhotos') || [];
+  const existingNightPhotos = field('f_existingNightPhotos') || [];
+  const existingSurroundingPhotos = field('f_existingSurroundingPhotos') || [];
+  const existingVideo = field('f_existingVideo') || [];
+
+  const stagedDeleteIds = field('f_stagedDeleteIds') || [];
+
+  const hasPendingMediaChanges =
+    dayPhotos.length > 0 ||
+    nightPhotos.length > 0 ||
+    surroundingPhotos.length > 0 ||
+    video.length > 0 ||
+    stagedDeleteIds.length > 0;
+
+  const totalDayPhotos = existingDayPhotos.length + dayPhotos.length;
+  const isDraft = field('status') === 'DRAFT';
+  const submitForReview = Boolean(field('f_submitForReview'));
+  const hasMinDayPhotos = totalDayPhotos >= 2;
+  const isSubmitDisabled =
+    submitting ||
+    (!isDraft && !hasMinDayPhotos) ||
+    (isDraft && submitForReview && !hasMinDayPhotos);
+
+  const handleRemoveExisting = (id, categoryField) => {
+    setField('f_stagedDeleteIds', [...stagedDeleteIds, id]);
+    const currentExisting = field(categoryField) || [];
+    setField(
+      categoryField,
+      currentExisting.filter((m) => m.id !== id),
+    );
+  };
 
   return (
     <div className="step-panel active">
@@ -599,50 +594,76 @@ export function ListingStep3() {
           <div
             style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal-dark)', marginBottom: 5 }}
           >
-            📋 Please read the reference guide before uploading
+            📋 Guidelines for Faster Verification
           </div>
           <div
             style={{ fontSize: 13, color: 'var(--ink-muted)', fontWeight: 400, lineHeight: 1.6 }}
           >
-            This guide explains the exact photo angles, shot types, video requirements, and examples
-            we expect from you. Following it ensures your listing gets approved faster. (Note: Media
-            file storage will be linked in Phase 3; your listing specifications and rates are saved
-            directly to your live database inventory.)
+            Upload clear, high-resolution daylight photos (at least 2 required to submit for
+            approval). All images are processed securely, downscaled to high definition, and
+            GPS/EXIF-stripped.
           </div>
-
-          <a
-            href="#"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              marginTop: 10,
-              background: 'var(--teal)',
-              color: 'white',
-              textDecoration: 'none',
-              fontSize: 12.5,
-              fontWeight: 600,
-              padding: '8px 16px',
-              borderRadius: 8,
-            }}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            View Media Reference Guide (PDF)
-          </a>
         </div>
       </div>
+
+      {field('status') === 'ACTIVE' && hasPendingMediaChanges && (
+        <div style={{ marginBottom: 20 }}>
+          <WarningBanner>
+            <strong>Live Listing Notice:</strong> You have staged media changes (added or deleted
+            files). Saving will unpublish this active billboard from the marketplace and move it to{' '}
+            <em>Pending Review</em> until re-verified by an administrator. Reordering media or
+            changing the cover photo does not require re-review.
+          </WarningBanner>
+        </div>
+      )}
+
+      {isDraft && (
+        <div
+          style={{
+            background: 'var(--cream-warm)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 12,
+            padding: '14px 18px',
+            marginBottom: 20,
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={submitForReview}
+              onChange={(e) => setField('f_submitForReview', e.target.checked)}
+            />
+            <span>Submit for Review once saved</span>
+          </label>
+          <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 4, marginLeft: 24 }}>
+            Check this box to submit your billboard for moderation review (requires at least 2 day
+            photos). Leave unchecked to save as draft.
+          </div>
+          {submitForReview && !hasMinDayPhotos && (
+            <div
+              style={{
+                marginTop: 8,
+                marginLeft: 24,
+                fontSize: 12,
+                color: 'var(--red, #dc2626)',
+                fontWeight: 600,
+              }}
+            >
+              ⚠️ At least 2 daylight photos are required to submit for review (currently{' '}
+              {totalDayPhotos}). Upload more photos below or uncheck to save as draft.
+            </div>
+          )}
+        </div>
+      )}
 
       <FormSection title="Location Pin Verification">
         <div
@@ -696,20 +717,34 @@ export function ListingStep3() {
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
           title="Drag & drop day photos here"
-          sub="JPG, PNG, WEBP · Max 10MB each · Clear angle required"
-          accept="image/*"
+          sub="JPG, PNG · Max 10MB each · Clear angle required"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="DAY_PHOTO"
+          maxCount={10}
+          files={dayPhotos}
+          onChange={(files) => setField('f_dayPhotos', files)}
+          existingFiles={existingDayPhotos}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingDayPhotos')}
         />
       </FormSection>
+
       <FormSection title="Night Photos">
         <UploadZone
           sectionTitle="Night Photos"
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
           title="Drag & drop night photos here"
-          sub="JPG, PNG, WEBP · Must show actual illumination · Max 10MB"
-          accept="image/*"
+          sub="JPG, PNG · Must show actual illumination · Max 10MB"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="NIGHT_PHOTO"
+          maxCount={5}
+          files={nightPhotos}
+          onChange={(files) => setField('f_nightPhotos', files)}
+          existingFiles={existingNightPhotos}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingNightPhotos')}
         />
       </FormSection>
+
       <FormSection last title="Optional Media">
         <UploadZone
           sectionTitle="Surrounding Area Photo"
@@ -717,7 +752,13 @@ export function ListingStep3() {
           icon={GlobeIcon}
           title="Shows billboard in its surroundings"
           sub="Drag & drop or click to browse · JPG, PNG"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="SURROUNDING_PHOTO"
+          maxCount={5}
+          files={surroundingPhotos}
+          onChange={(files) => setField('f_surroundingPhotos', files)}
+          existingFiles={existingSurroundingPhotos}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingSurroundingPhotos')}
           style={{ padding: 0 }}
         />
         <UploadZone
@@ -725,10 +766,16 @@ export function ListingStep3() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub="MP4, MOV · Max 100MB"
-          accept="video/*"
+          sub={MAX_VIDEO_LABEL}
+          accept={VIDEO_ACCEPT_TYPES}
+          category="VIDEO"
           multiple={false}
           single
+          maxCount={1}
+          files={video}
+          onChange={(files) => setField('f_video', files)}
+          existingFiles={existingVideo}
+          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingVideo')}
           style={{ marginBottom: 0 }}
         />
       </FormSection>
@@ -738,9 +785,15 @@ export function ListingStep3() {
           type="button"
           className="btn-next btn-submit"
           onClick={submit}
-          disabled={submitting}
+          disabled={isSubmitDisabled}
         >
-          {submitting ? 'Submitting...' : 'Submit Billboard Listing →'}
+          {submitting
+            ? 'Submitting...'
+            : isDraft && !submitForReview
+              ? 'Save Draft Changes →'
+              : isDraft
+                ? 'Save & Submit for Review →'
+                : 'Submit Billboard Listing →'}
         </button>
       </RegNav>
     </div>

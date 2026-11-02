@@ -35,6 +35,8 @@ public class SecurityConfig {
         "/api/ping",
         // Config-driven billboard lookups feed the owner form before sign-in.
         "/api/lov/**",
+        // Public media delivery
+        "/api/media/**",
         "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
         "/h2-console/**"
     };
@@ -68,6 +70,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(PUBLIC_PATHS).permitAll()
                 // Role-scoped API namespaces (MEMBER accounts must onboard into a role first).
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/advertiser/**").hasRole("ADVERTISER")
                 .requestMatchers("/api/owner/**").hasRole("OWNER")
                 .requestMatchers("/api/agency/**").hasRole("AGENCY")

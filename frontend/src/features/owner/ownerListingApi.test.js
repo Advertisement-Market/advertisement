@@ -7,6 +7,7 @@ vi.mock('@/lib/apiClient', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    put: vi.fn(),
     delete: vi.fn(),
   },
 }));
@@ -94,5 +95,25 @@ describe('ownerListingApi client', () => {
 
     expect(api.get).toHaveBeenCalledWith('/api/lov/billboard-types');
     expect(result).toEqual(mockTypes);
+  });
+
+  it('setCover calls PUT /api/owner/listings/{id}/media/{mediaId}/cover and unwraps data', async () => {
+    api.put.mockResolvedValueOnce({ data: { id: 10, coverPhotoUrl: 'https://img.com/1.jpg' } });
+
+    const result = await ownerListingApi.setCover(10, 5);
+
+    expect(api.put).toHaveBeenCalledWith('/api/owner/listings/10/media/5/cover');
+    expect(result).toEqual({ id: 10, coverPhotoUrl: 'https://img.com/1.jpg' });
+  });
+
+  it('reorderMedia calls PUT /api/owner/listings/{id}/media/reorder with mediaIds and unwraps data', async () => {
+    api.put.mockResolvedValueOnce({ data: { success: true } });
+
+    const result = await ownerListingApi.reorderMedia(10, [1, 2, 3]);
+
+    expect(api.put).toHaveBeenCalledWith('/api/owner/listings/10/media/reorder', {
+      mediaIds: [1, 2, 3],
+    });
+    expect(result).toEqual({ success: true });
   });
 });

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
+import { MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/config';
 import {
   useRegister,
   usePincode,
@@ -25,6 +26,7 @@ import {
   OwnershipOptions,
   ApprovalOptions,
   UploadZone,
+  MinBookingInput,
 } from './widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from './calendar';
 
@@ -153,14 +155,6 @@ const AUDIENCE = [
   'Students',
   'Mixed',
   { value: 'other', label: 'Other' },
-];
-const MIN_BOOKING = [
-  { value: '1week', label: '1 Week' },
-  { value: '2weeks', label: '2 Weeks' },
-  { value: '3weeks', label: '3 Weeks' },
-  { value: '1month', label: '1 Month (4 Weeks)' },
-  { value: '2months', label: '2 Months (8 Weeks)' },
-  { value: '3months', label: '3 Months' },
 ];
 
 const OWNERSHIP = [
@@ -608,12 +602,14 @@ export function Step3() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="number"
+            type="text"
+            inputMode="decimal"
+            validateAs="decimal"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min="0"
-            max="300"
+            min={0}
+            max={300}
             hint="0–300 ft from ground level"
           />
           <div className="form-group" />
@@ -690,13 +686,7 @@ export function Step4() {
             max="10000000"
             hint={'₹100 – ₹1,00,00,000 per day. This is the "from" price shown on listings'}
           />
-          <Field
-            name="f_minBooking"
-            type="select"
-            label="Minimum Booking Duration"
-            required
-            options={MIN_BOOKING}
-          />
+          <MinBookingInput />
         </FormRow>
         <div className="form-group">
           <label>Pricing Packages</label>
@@ -976,8 +966,8 @@ export function Step5() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub="MP4, MOV · Max 100MB"
-          accept="video/*"
+          sub={MAX_VIDEO_LABEL}
+          accept={VIDEO_ACCEPT_TYPES}
           multiple={false}
           single
           style={{ marginBottom: 0 }}
@@ -1157,7 +1147,12 @@ export function Step7() {
         <ReviewSection
           title="Pricing & Availability"
           editStep={4}
-          body={join([v('f_startPrice') && `From ₹${v('f_startPrice')}/day`, v('f_discountNote')])}
+          body={join([
+            v('f_startPrice') && `From ₹${v('f_startPrice')}/day`,
+            v('f_minBookingValue') &&
+              `Min booking: ${v('f_minBookingValue')} ${(v('f_minBookingUnit') || 'MONTHS').toLowerCase()}`,
+            v('f_discountNote'),
+          ])}
         />
         <ReviewSection
           title="Legal Data"

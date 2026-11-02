@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,11 +14,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
@@ -47,6 +51,12 @@ class OwnerListingServiceTest {
     private BillboardListingRepository billboardListingRepository;
 
     @Mock
+    private BillboardMediaRepository billboardMediaRepository;
+
+    @Mock
+    private com.theadbasket.backend.common.storage.FileStorageService fileStorageService;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -66,8 +76,25 @@ class OwnerListingServiceTest {
         messages.setUseCodeAsDefaultMessage(true);
         lovService = new LovService(messages);
 
-        ownerListingService = new OwnerListingService(billboardListingRepository, userRepository, notificationService, lovService);
+        ownerListingService = new OwnerListingService(
+                billboardListingRepository,
+                billboardMediaRepository,
+                fileStorageService,
+                userRepository,
+                notificationService,
+                lovService,
+                true,
+                "/api/media"
+        );
         owner = new User("Vikram", "Kumar", "owner@example.com", "hash", "9876543210", Role.OWNER);
+        org.springframework.test.util.ReflectionTestUtils.setField(owner, "id", 1L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     private BillboardListing createSampleListing(String name, User user) {
@@ -247,20 +274,93 @@ class OwnerListingServiceTest {
     }
 
     @Test
-    @DisplayName("deleteListing deletes entity when owned by caller")
+    @DisplayName("deleteListing deletes entity and cleans directory when no transaction active")
     void deleteListing_whenOwned_deletesListing() {
         BillboardListing listing = createSampleListing("Delete Me", owner);
-        when(billboardListingRepository.findByIdAndUserId(15L, 1L)).thenReturn(Optional.of(listing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
 
         ownerListingService.deleteListing(15L, 1L);
 
         verify(billboardListingRepository).delete(listing);
+        verify(fileStorageService).deleteDirectory("billboards/15");
+    }
+
+    @Test
+    @DisplayName("deleteListing defers physical directory cleanup until after transaction commit")
+    void deleteListing_whenTransactionActive_defersDirectoryDeletionUntilAfterCommit() {
+        BillboardListing listing = createSampleListing("Delete Me", owner);
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            ownerListingService.deleteListing(15L, 1L);
+
+            verify(billboardListingRepository).delete(listing);
+            // Before commit: physical files should NOT be deleted yet
+            verify(fileStorageService, never()).deleteDirectory(any());
+
+            // Simulate transaction commit
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCommit();
+            }
+
+            // After commit: physical files deleted
+            verify(fileStorageService).deleteDirectory("billboards/15");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("deleteListing does not delete physical directory when transaction rolls back")
+    void deleteListing_whenTransactionRollsBack_doesNotDeletePhysicalDirectory() {
+        BillboardListing listing = createSampleListing("Rollback Me", owner);
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            ownerListingService.deleteListing(15L, 1L);
+
+            verify(billboardListingRepository).delete(listing);
+
+            // Simulate transaction rollback (afterCompletion with STATUS_ROLLED_BACK)
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+            }
+
+            // On rollback: deleteDirectory must NEVER be called
+            verify(fileStorageService, never()).deleteDirectory(any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("deleteListing swallows exception in afterCommit to avoid turning committed delete into 500")
+    void deleteListing_whenAfterCommitThrows_doesNotPropagateException() {
+        BillboardListing listing = createSampleListing("Delete Error", owner);
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(15L, 1L)).thenReturn(Optional.of(listing));
+        doThrow(new RuntimeException("Disk I/O error")).when(fileStorageService).deleteDirectory("billboards/15");
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            ownerListingService.deleteListing(15L, 1L);
+
+            // Trigger afterCommit: should catch and log exception without throwing
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCommit();
+            }
+
+            verify(fileStorageService).deleteDirectory("billboards/15");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
     @DisplayName("deleteListing throws ResourceNotFoundException and does not delete when not owned")
     void deleteListing_whenNotOwned_throwsException() {
-        when(billboardListingRepository.findByIdAndUserId(99L, 1L)).thenReturn(Optional.empty());
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(99L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> ownerListingService.deleteListing(99L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -358,5 +458,105 @@ class OwnerListingServiceTest {
         BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
         assertThat(updated.type()).isNull();
         assertThat(updated.typeOther()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateListing with clearGroundHeight=true clears stored ground height to null")
+    void updateListing_clearGroundHeight_setsNull() {
+        BillboardListing existing = createSampleListing("Ground Height Listing", owner);
+        existing.setGroundHeightFt(new BigDecimal("15.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, true,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.groundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateListing with clearGroundHeight=true is idempotent when ground height is already null")
+    void updateListing_clearGroundHeight_whenAlreadyNull_isIdempotent() {
+        BillboardListing existing = createSampleListing("Null Ground Height Listing", owner);
+        existing.setGroundHeightFt(null);
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, true,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.groundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateListing with clearGroundHeight=null or false preserves existing ground height (no-op)")
+    void updateListing_clearGroundHeightOmittedOrFalse_preservesExisting() {
+        BillboardListing existing = createSampleListing("Preserved Height Listing", owner);
+        existing.setGroundHeightFt(new BigDecimal("25.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // clearGroundHeight is false and groundHeightFt is null
+        BillboardListingUpdateRequest patchReqFalse = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, false,
+                null, null, null, null, null, null, null, null, null, null
+        );
+        BillboardListingDto updatedFalse = ownerListingService.updateListing(10L, 1L, patchReqFalse);
+        assertThat(updatedFalse.groundHeightFt()).isEqualByComparingTo("25.00");
+
+        // clearGroundHeight is null and groundHeightFt is null (omitted)
+        BillboardListingUpdateRequest patchReqNull = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null
+        );
+        BillboardListingDto updatedNull = ownerListingService.updateListing(10L, 1L, patchReqNull);
+        assertThat(updatedNull.groundHeightFt()).isEqualByComparingTo("25.00");
+    }
+
+    @Test
+    @DisplayName("updateListing updates ground height to 0.00 without treating zero as clear")
+    void updateListing_updateToZero_setsZero() {
+        BillboardListing existing = createSampleListing("Zero Height Listing", owner);
+        existing.setGroundHeightFt(new BigDecimal("15.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, BigDecimal.ZERO, false,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.groundHeightFt()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    @DisplayName("updateListing combined patch updates name and clears ground height simultaneously")
+    void updateListing_combinedPatch_updatesNameAndClearsGroundHeight() {
+        BillboardListing existing = createSampleListing("Old Name", owner);
+        existing.setGroundHeightFt(new BigDecimal("18.00"));
+        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
+                "Brand New Billboard Name", null, null, null, null, null, null,
+                null, null, null, null, null, true,
+                null, null, null, null, null, null, null, null, null, null
+        );
+
+        BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
+        assertThat(updated.name()).isEqualTo("Brand New Billboard Name");
+        assertThat(updated.groundHeightFt()).isNull();
     }
 }

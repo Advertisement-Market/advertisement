@@ -145,17 +145,19 @@ export function SuccessScreen({
           {titleEm && <em style={{ fontStyle: 'italic', color: accent }}> {titleEm}</em>}
         </h1>
         <p className="success-desc">{desc}</p>
-        <div className="success-timeline">
-          {timeline.map((item) => (
-            <div className="timeline-item" key={item.title}>
-              <div className="timeline-dot">{item.icon}</div>
-              <div className="timeline-text">
-                <strong>{item.title}</strong>
-                {item.text}
+        {Array.isArray(timeline) && timeline.length > 0 && (
+          <div className="success-timeline">
+            {timeline.map((item) => (
+              <div className="timeline-item" key={item.title}>
+                <div className="timeline-dot">{item.icon}</div>
+                <div className="timeline-text">
+                  <strong>{item.title}</strong>
+                  {item.text}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         <Link to={dashboardTo} className="btn-next btn-large" style={{ display: 'inline-flex' }}>
           {dashboardLabel}
           {ArrowRight}

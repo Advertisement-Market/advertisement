@@ -1,0 +1,724 @@
+package com.theadbasket.backend.owner;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import javax.imageio.ImageIO;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.theadbasket.backend.common.address.Address;
+import com.theadbasket.backend.common.address.AddressRepository;
+import com.theadbasket.backend.lov.AudienceType;
+import com.theadbasket.backend.lov.BillboardType;
+import com.theadbasket.backend.lov.BookingDurationUnit;
+import com.theadbasket.backend.lov.FacingDirection;
+import com.theadbasket.backend.lov.TrafficType;
+import com.theadbasket.backend.owner.dto.AdminReviewRequest;
+import com.theadbasket.backend.owner.dto.ReorderMediaRequest;
+import com.theadbasket.backend.owner.dto.SyncFileMapping;
+import com.theadbasket.backend.owner.dto.SyncManifest;
+import com.theadbasket.backend.security.JwtService;
+import com.theadbasket.backend.user.Role;
+import com.theadbasket.backend.user.User;
+import com.theadbasket.backend.user.UserRepository;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class OwnerMediaSyncIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private BillboardListingRepository billboardListingRepository;
+
+    @Autowired
+    private BillboardMediaRepository billboardMediaRepository;
+
+    @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Value("${app.storage.upload-dir:./uploads}")
+    private String uploadDir;
+
+    private User owner;
+    private User admin;
+    private String ownerToken;
+    private String adminToken;
+    private BillboardListing listing;
+
+    @BeforeEach
+    @SuppressWarnings("unused")
+    void setUp() throws IOException {
+        billboardMediaRepository.deleteAll();
+        billboardListingRepository.deleteAll();
+        addressRepository.deleteAll();
+        userRepository.deleteAll();
+
+        owner = userRepository.save(new User("Rohan", "Mehta", "rohan.media@example.com", "pass", "9876543220", Role.OWNER));
+        admin = userRepository.save(new User("Pooja", "Admin", "pooja.admin@example.com", "pass", "9876543221", Role.ADMIN));
+
+        ownerToken = jwtService.generateAccessToken(owner);
+        adminToken = jwtService.generateAccessToken(admin);
+
+        Address address = Address.of("200 SV Road", "Near Station", "Bandra", "Mumbai", "Maharashtra", "400050");
+        listing = new BillboardListing();
+        listing.setUser(owner);
+        listing.setName("SV Road Prime LED");
+        listing.setAddress(address);
+        listing.setType(BillboardType.DIGITAL_SCREEN);
+        listing.setWidthFt(new BigDecimal("40.00"));
+        listing.setHeightFt(new BigDecimal("20.00"));
+        listing.setFacing(FacingDirection.NORTH);
+        listing.setTrafficType(TrafficType.COMMERCIAL_ZONE);
+        listing.setAudienceType(AudienceType.COMMUTERS);
+        listing.setStartPrice(new BigDecimal("150000.00"));
+        listing.setMinBookingValue(1);
+        listing.setMinBookingUnit(BookingDurationUnit.MONTHS);
+        listing.setMinBookingDays(30);
+        listing.setStatus(BillboardStatus.DRAFT);
+        listing = billboardListingRepository.save(listing);
+        deleteListingFiles();
+    }
+
+    @AfterEach
+    @SuppressWarnings("unused")
+    void tearDown() throws IOException {
+        deleteListingFiles();
+        billboardMediaRepository.deleteAll();
+        billboardListingRepository.deleteAll();
+        addressRepository.deleteAll();
+        userRepository.deleteAll();
+    }
+
+    private void deleteListingFiles() throws IOException {
+        if (listing != null && listing.getId() != null) {
+            Path listingUploadPath = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
+            if (Files.exists(listingUploadPath)) {
+                try (var stream = Files.walk(listingUploadPath)) {
+                    stream.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    private byte[] createTestJpeg(int width, int height) throws IOException {
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        g.setColor(new Color(24, 120, 200));
+        g.fillRect(0, 0, width, height);
+        g.setColor(Color.WHITE);
+        g.drawString("Test " + width + "x" + height, 10, 25);
+        g.dispose();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(img, "jpg", baos);
+        return baos.toByteArray();
+    }
+
+    @Test
+    @DisplayName("Complete Media Lifecycle: Upload -> Idempotency -> Submit -> Reject -> Resubmit -> Approve -> Re-queue -> No-Op -> Static Headers")
+    void fullMediaSyncAndModerationLifecycle() throws Exception {
+        byte[] photo1Bytes = createTestJpeg(800, 600);
+        byte[] photo2Bytes = createTestJpeg(800, 600);
+
+        String uploadId1 = UUID.randomUUID().toString();
+        String uploadId2 = UUID.randomUUID().toString();
+
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, uploadId1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, uploadId2)
+                )
+        );
+
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)
+        );
+        MockMultipartFile file0 = new MockMultipartFile(
+                "files", "photo1.jpg", "image/jpeg", photo1Bytes
+        );
+        MockMultipartFile file1 = new MockMultipartFile(
+                "files", "photo2.jpg", "image/jpeg", photo2Bytes
+        );
+
+        // ── 1. Upload 2 Day Photos via POST /media/sync ──
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(file0)
+                        .file(file1)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].category").value("DAY_PHOTO"))
+                .andExpect(jsonPath("$[0].isCover").value(true))
+                .andExpect(jsonPath("$[1].category").value("DAY_PHOTO"))
+                .andExpect(jsonPath("$[1].isCover").value(false));
+
+        // Assert physical files created on disk
+        Path listingDir = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
+        assertThat(Files.exists(listingDir)).isTrue();
+        try (var files = Files.list(listingDir)) {
+            assertThat(files.count()).isEqualTo(2);
+        }
+
+        // ── 1b. Reorder Media Contract: PUT /api/owner/listings/{id}/media/reorder ──
+        List<BillboardMedia> uploadedMedia = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(uploadedMedia).hasSize(2);
+        Long id1 = uploadedMedia.get(0).getId();
+        Long id2 = uploadedMedia.get(1).getId();
+
+        ReorderMediaRequest reorderReq = new ReorderMediaRequest(List.of(id2, id1));
+        mockMvc.perform(put("/api/owner/listings/" + listing.getId() + "/media/reorder")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reorderReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(id2))
+                .andExpect(jsonPath("$[0].displayOrder").value(1))
+                .andExpect(jsonPath("$[1].id").value(id1))
+                .andExpect(jsonPath("$[1].displayOrder").value(2));
+
+        // ── 2. Idempotent Replay: zero extra files written to disk ──
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(file0)
+                        .file(file1)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        try (var files = Files.list(listingDir)) {
+            assertThat(files.count()).isEqualTo(2);
+        }
+
+        // ── 3. Submit Listing for Moderation: DRAFT -> PENDING_APPROVAL ──
+        mockMvc.perform(post("/api/owner/listings/" + listing.getId() + "/submit")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"))
+                .andExpect(jsonPath("$.coverPhotoUrl").isNotEmpty());
+
+        // ── 4. Admin Rejects with mandatory reason: PENDING_APPROVAL -> REJECTED ──
+        AdminReviewRequest rejectReq = new AdminReviewRequest("Please provide a clearer daylight photo of the frame structure.");
+        mockMvc.perform(post("/api/admin/listings/" + listing.getId() + "/reject")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rejectReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("Please provide a clearer daylight photo of the frame structure."));
+
+        // ── 5. Reject-Fix-Resubmit Loop: Owner resubmits from REJECTED -> PENDING_APPROVAL and clears rejectionReason ──
+        mockMvc.perform(post("/api/owner/listings/" + listing.getId() + "/submit")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"))
+                .andExpect(jsonPath("$.rejectionReason").value(nullValue()));
+
+        // ── 6. Admin Approves: PENDING_APPROVAL -> ACTIVE ──
+        mockMvc.perform(post("/api/admin/listings/" + listing.getId() + "/approve")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        // ── 7. Re-Queue Rule: Adding a Night Photo on ACTIVE listing re-queues to PENDING_APPROVAL ──
+        byte[] nightPhoto = createTestJpeg(800, 600);
+        String uploadIdNight = UUID.randomUUID().toString();
+        SyncManifest nightManifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, uploadIdNight))
+        );
+        MockMultipartFile nightManifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(nightManifest)
+        );
+        MockMultipartFile nightFile = new MockMultipartFile(
+                "files", "night.jpg", "image/jpeg", nightPhoto
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(nightManifestPart)
+                        .file(nightFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3));
+
+        BillboardListing reloaded = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(BillboardStatus.PENDING_APPROVAL);
+
+        // Re-approve to ACTIVE
+        mockMvc.perform(post("/api/admin/listings/" + listing.getId() + "/approve")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        // ── 8. No-Op Sync on ACTIVE listing does NOT re-queue ──
+        SyncManifest noOpManifest = new SyncManifest(List.of(), List.of());
+        MockMultipartFile noOpManifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(noOpManifest)
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(noOpManifestPart)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        reloaded = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(BillboardStatus.ACTIVE);
+
+        // ── 9. Admin Suspends: ACTIVE -> SUSPENDED with reason ──
+        AdminReviewRequest suspendReq = new AdminReviewRequest("Listing flagged for structural compliance review.");
+        mockMvc.perform(post("/api/admin/listings/" + listing.getId() + "/suspend")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(suspendReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUSPENDED"))
+                .andExpect(jsonPath("$.suspensionReason").value("Listing flagged for structural compliance review."));
+
+        // Owner GET continues to work for suspended listing
+        mockMvc.perform(get("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUSPENDED"))
+                .andExpect(jsonPath("$.suspensionReason").value("Listing flagged for structural compliance review."));
+
+        // ── 10. Admin Unsuspends: SUSPENDED -> DRAFT and clears suspensionReason ──
+        mockMvc.perform(post("/api/admin/listings/" + listing.getId() + "/unsuspend")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.suspensionReason").value(nullValue()));
+
+        // ── 11. Static Media Headers Assertion on /api/media/** ──
+        List<BillboardMedia> mediaList = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(mediaList).isNotEmpty();
+        String storageKey = mediaList.get(0).getStorageKey();
+
+        mockMvc.perform(get("/api/media/" + storageKey))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Content-Security-Policy", "default-src 'none'; sandbox"))
+                .andExpect(header().string("Content-Disposition", "inline; filename=\"asset.jpg\""))
+                .andExpect(header().string("Cache-Control", "max-age=86400, public"));
+
+        // ── 12. Security: Non-Admin gets 403 on Admin endpoints ──
+        mockMvc.perform(post("/api/admin/listings/" + listing.getId() + "/approve")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Downscale Quality & Subsampling: 6000x4000 JPEG is accepted, subsampled >= 2560px, and resized cleanly")
+    void largeHighResImageDownscaledSuccessfully() throws Exception {
+        byte[] largePhoto = createTestJpeg(6000, 4000);
+        String uploadId = UUID.randomUUID().toString();
+
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, uploadId))
+        );
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)
+        );
+        MockMultipartFile largeFile = new MockMultipartFile(
+                "files", "large_highres.jpg", "image/jpeg", largePhoto
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(largeFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        List<BillboardMedia> mediaList = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(mediaList).hasSize(1);
+
+        Path physicalFile = Paths.get(uploadDir, mediaList.get(0).getStorageKey());
+        assertThat(Files.exists(physicalFile)).isTrue();
+
+        BufferedImage savedImage = ImageIO.read(physicalFile.toFile());
+        assertThat(savedImage).isNotNull();
+        assertThat(Math.max(savedImage.getWidth(), savedImage.getHeight())).isEqualTo(2560);
+    }
+
+    @Test
+    @DisplayName("HTTP Multipart Stack: 50MB video upload accepted through MockMvc and multipart configuration")
+    void videoUploadUpTo50MbAcceptedThroughHttpMultipartStack() throws Exception {
+        byte[] mp4Header = new byte[64];
+        byte[] header = new byte[] {
+                0x00, 0x00, 0x00, 0x20,
+                'f', 't', 'y', 'p',
+                'i', 's', 'o', 'm',
+                0x00, 0x00, 0x02, 0x00,
+                'i', 's', 'o', 'm',
+                'm', 'p', '4', '1'
+        };
+        System.arraycopy(header, 0, mp4Header, 0, header.length);
+
+        String uploadId = UUID.randomUUID().toString();
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.VIDEO, uploadId))
+        );
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)
+        );
+        MockMultipartFile videoFile = new MockMultipartFile("files", "drone_tour.mp4", "video/mp4", mp4Header) {
+            @Override
+            public long getSize() {
+                return 50 * 1024 * 1024L; // 50MB boundary
+            }
+        };
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(videoFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].category").value("VIDEO"))
+                .andExpect(jsonPath("$[0].contentType").value("video/mp4"));
+    }
+
+    @Test
+    @DisplayName("End-to-End Delete Listing: commits DB deletion and removes physical media directory via afterCommit")
+    void deleteListing_removesDbRecordsAndCleansPhysicalFilesAfterCommit() throws Exception {
+        byte[] photoBytes = createTestJpeg(400, 300);
+        String uploadId = UUID.randomUUID().toString();
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, uploadId))
+        );
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)
+        );
+        MockMultipartFile photoFile = new MockMultipartFile("files", "delete_test.jpg", "image/jpeg", photoBytes);
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(photoFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        Path listingDir = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
+        assertThat(Files.exists(listingDir)).isTrue();
+        assertThat(billboardListingRepository.findById(listing.getId())).isPresent();
+        assertThat(billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId())).isNotEmpty();
+
+        // Perform DELETE /api/owner/listings/{id}
+        mockMvc.perform(delete("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNoContent());
+
+        // Assert DB records (listing and cascaded media) are deleted
+        assertThat(billboardListingRepository.findById(listing.getId())).isEmpty();
+        assertThat(billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId())).isEmpty();
+
+        // Assert physical directory on disk was removed by afterCommit hook
+        assertThat(Files.exists(listingDir)).isFalse();
+    }
+
+    private byte[] createMp4Header() {
+        byte[] mp4Header = new byte[64];
+        byte[] header = new byte[] {
+                0x00, 0x00, 0x00, 0x20,
+                'f', 't', 'y', 'p',
+                'i', 's', 'o', 'm',
+                0x00, 0x00, 0x02, 0x00,
+                'i', 's', 'o', 'm',
+                'm', 'p', '4', '1'
+        };
+        System.arraycopy(header, 0, mp4Header, 0, header.length);
+        return mp4Header;
+    }
+
+    @Test
+    @DisplayName("Display Order Monotonicity: new uploads across mixed categories increment globally without collision")
+    void mixedCategoriesIncrementDisplayOrderGloballyWithoutCollision() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        byte[] img3 = createTestJpeg(400, 300);
+        byte[] videoBytes = createMp4Header();
+
+        // ── Batch 1: Upload DAY_PHOTO (order 1) and NIGHT_PHOTO (order 2) ──
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest batch1 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.NIGHT_PHOTO, id2)
+                )
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                        .file(new MockMultipartFile("files", "day1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "night1.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].displayOrder").value(1))
+                .andExpect(jsonPath("$[1].displayOrder").value(2));
+
+        // ── Batch 2: Upload multi-file batch (NIGHT_PHOTO and VIDEO) dense incrementing from global max (order 3, 4) ──
+        String id3 = UUID.randomUUID().toString();
+        String id4 = UUID.randomUUID().toString();
+        SyncManifest batch2 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, id3),
+                        new SyncFileMapping(1, MediaCategory.VIDEO, id4)
+                )
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch2)))
+                        .file(new MockMultipartFile("files", "night2.jpg", "image/jpeg", img3))
+                        .file(new MockMultipartFile("files", "drone.mp4", "video/mp4", videoBytes))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[2].category").value("NIGHT_PHOTO"))
+                .andExpect(jsonPath("$[2].displayOrder").value(3))
+                .andExpect(jsonPath("$[3].category").value("VIDEO"))
+                .andExpect(jsonPath("$[3].displayOrder").value(4));
+
+        // ── Batch 3: Upload DAY_PHOTO when the highest order belongs to non-day category (VIDEO=4) ──
+        // The old buggy code would query MAX(displayOrder) WHERE category = 'DAY_PHOTO' (= 1), colliding at 2.
+        // The fix queries global MAX(displayOrder) (= 4), assigning 5.
+        String id5 = UUID.randomUUID().toString();
+        byte[] img4 = createTestJpeg(400, 300);
+        SyncManifest batch3 = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id5))
+        );
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch3)))
+                        .file(new MockMultipartFile("files", "day2.jpg", "image/jpeg", img4))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$[4].category").value("DAY_PHOTO"))
+                .andExpect(jsonPath("$[4].displayOrder").value(5));
+
+        // Verify ordering in database directly
+        List<BillboardMedia> allMedia = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(allMedia).extracting(BillboardMedia::getDisplayOrder)
+                .containsExactly(1, 2, 3, 4, 5);
+    }
+
+    @Test
+    @DisplayName("Concurrency: two concurrent sync requests serialize via pessimistic row lock without duplicate display orders")
+    void concurrentSyncRequestsSerializeWithoutDisplayOrderCollision() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest batch1 = new SyncManifest(List.of(), List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1)));
+        SyncManifest batch2 = new SyncManifest(List.of(), List.of(new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, id2)));
+
+        CountDownLatch startLatch = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Callable<Integer> task1 = () -> {
+            startLatch.await();
+            return mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                            .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                            .file(new MockMultipartFile("files", "day.jpg", "image/jpeg", img1))
+                            .header("Authorization", "Bearer " + ownerToken))
+                    .andReturn().getResponse().getStatus();
+        };
+
+        Callable<Integer> task2 = () -> {
+            startLatch.await();
+            return mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                            .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch2)))
+                            .file(new MockMultipartFile("files", "night.jpg", "image/jpeg", img2))
+                            .header("Authorization", "Bearer " + ownerToken))
+                    .andReturn().getResponse().getStatus();
+        };
+
+        Future<Integer> f1 = executor.submit(task1);
+        Future<Integer> f2 = executor.submit(task2);
+
+        startLatch.countDown();
+
+        int s1 = f1.get(10, TimeUnit.SECONDS);
+        int s2 = f2.get(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertThat(s1).isIn(200, 409);
+        assertThat(s2).isIn(200, 409);
+
+        List<BillboardMedia> media = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        List<Integer> orders = media.stream().map(BillboardMedia::getDisplayOrder).toList();
+        assertThat(orders).doesNotHaveDuplicates();
+    }
+
+    @Test
+    @DisplayName("Active listing: media insertion or deletion transitions status to PENDING_APPROVAL for re-review")
+    void mediaChangeOnActiveListingTransitionsStatusToPendingApproval() throws Exception {
+        // Arrange listing with initial 2 day photos
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest initBatch = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(initBatch)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Make listing ACTIVE
+        listing.setStatus(BillboardStatus.ACTIVE);
+        billboardListingRepository.save(listing);
+
+        // Upload a 3rd media photo
+        byte[] img3 = createTestJpeg(400, 300);
+        String id3 = UUID.randomUUID().toString();
+        SyncManifest manifest = new SyncManifest(List.of(), List.of(new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, id3)));
+
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)))
+                        .file(new MockMultipartFile("files", "new_night.jpg", "image/jpeg", img3))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(BillboardStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    @DisplayName("Active listing: metadata-only PATCH leaves status as ACTIVE without requiring re-review")
+    void metadataOnlyEditOnActiveListingKeepsStatusActive() throws Exception {
+        // Arrange listing in ACTIVE status
+        listing.setStatus(BillboardStatus.ACTIVE);
+        billboardListingRepository.save(listing);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/owner/listings/" + listing.getId())
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Updated Active Name\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.name").value("Updated Active Name"));
+
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(BillboardStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("Active listing: reordering media and setting cover leaves status as ACTIVE without requiring re-review")
+    void reorderAndCoverOnActiveListingKeepsStatusActive() throws Exception {
+        // Upload initial 2 day photos
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        SyncManifest initBatch = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(initBatch)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Make listing ACTIVE
+        listing.setStatus(BillboardStatus.ACTIVE);
+        billboardListingRepository.save(listing);
+
+        List<BillboardMedia> media = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        Long m1 = media.get(0).getId();
+        Long m2 = media.get(1).getId();
+
+        // 1. Set cover on m2
+        mockMvc.perform(put("/api/owner/listings/" + listing.getId() + "/media/" + m2 + "/cover")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isCover").value(true));
+
+        // 2. Reorder media: [m2, m1]
+        mockMvc.perform(put("/api/owner/listings/" + listing.getId() + "/media/reorder")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ReorderMediaRequest(List.of(m2, m1)))))
+                .andExpect(status().isOk());
+
+        // Verify listing is STILL ACTIVE
+        BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(BillboardStatus.ACTIVE);
+    }
+}

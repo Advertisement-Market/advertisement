@@ -21,6 +21,7 @@ class LovServiceTest {
     private LovService lovService;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
         messages.setBasename("messages");

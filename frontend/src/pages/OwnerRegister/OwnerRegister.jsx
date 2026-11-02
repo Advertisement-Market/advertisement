@@ -4,7 +4,7 @@ import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
 import { useAuth } from '@/context/AuthContext';
 import { mapOwner } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther, isBlank } from '@/lib/validators';
+import { isOther, isBlank, isValidPincode } from '@/lib/validators';
 import './OwnerRegister.css';
 
 const STEPS = [
@@ -60,7 +60,8 @@ const SUCCESS_TIMELINE = [
   },
 ];
 
-function validate(step, { data, showToast, user }) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function validate(step, { data, showToast, user }) {
   const d = (k) => String(data[k] ?? '').trim();
   const fail = (msg) => {
     showToast(msg, 'error');
@@ -87,6 +88,8 @@ function validate(step, { data, showToast, user }) {
     if (!d('f_bizCity')) return fail('Please enter your city.');
     if (!d('f_bizState')) return fail('Please enter your state.');
     if (!d('f_bizPin')) return fail('Please enter your office pincode.');
+    if (!isValidPincode(d('f_bizPin')))
+      return fail('Please enter a valid 6-digit office pincode (cannot start with 0).');
   }
   if (step === 3) {
     if (!d('f_bbName')) return fail('Please enter a billboard name.');
@@ -94,6 +97,8 @@ function validate(step, { data, showToast, user }) {
     if (!d('f_bbCity')) return fail('Please enter the billboard city.');
     if (!d('f_bbState')) return fail('Please enter the billboard state.');
     if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
+    if (!isValidPincode(d('f_bbPin')))
+      return fail('Please enter a valid 6-digit billboard pincode (cannot start with 0).');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
     if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
       return fail('Please describe the billboard type.');
@@ -107,8 +112,14 @@ function validate(step, { data, showToast, user }) {
       return fail('Please describe the audience type.');
   }
   if (step === 4) {
-    if (!d('f_startPrice')) return fail('Please enter a starting price.');
-    if (!d('f_minBooking')) return fail('Please select a minimum booking duration.');
+    if (!d('f_startPrice') || Number(d('f_startPrice')) <= 0)
+      return fail('Please enter a starting price.');
+    const minVal = d('f_minBookingValue') ?? (d('f_minBooking') ? 1 : null);
+    if (!minVal || Number(minVal) <= 0)
+      return fail('Please enter a valid minimum booking duration.');
+    const minUnit = d('f_minBookingUnit') || 'MONTHS';
+    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
+      return fail('Please select a valid booking duration unit.');
   }
   return true;
 }
@@ -143,14 +154,18 @@ function WizardBody() {
 
 export function OwnerRegister() {
   const { registerOwner, user } = useAuth();
-  const prefill = user
-    ? {
-        f_email: user.email,
-        f_firstName: user.firstName || '',
-        f_lastName: user.lastName || '',
-        f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
-      }
-    : {};
+  const prefill = {
+    f_minBookingValue: 1,
+    f_minBookingUnit: 'MONTHS',
+    ...(user
+      ? {
+          f_email: user.email,
+          f_firstName: user.firstName || '',
+          f_lastName: user.lastName || '',
+          f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
+        }
+      : {}),
+  };
   const onSubmit = async ({ data }) => {
     try {
       await registerOwner(mapOwner(data));
