@@ -37,6 +37,8 @@ public class SecurityConfig {
         "/api/lov/**",
         // Public media delivery
         "/api/media/**",
+        // Public billboard availability calendar
+        "/api/listings/*/availability",
         "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
         "/h2-console/**"
     };
@@ -88,6 +90,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(corsProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("ETag", "Retry-After"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
