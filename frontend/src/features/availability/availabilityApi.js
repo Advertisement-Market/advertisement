@@ -42,9 +42,6 @@ export const availabilityApi = {
     const params = {};
     if (from) params.from = from;
     if (to) params.to = to;
-    return api
-      .get(`/api/listings/${listingId}/availability`, { params })
-      .then((r) => r.data);
+    return api.get(`/api/listings/${listingId}/availability`, { params }).then((r) => r.data);
   },
 };
-
