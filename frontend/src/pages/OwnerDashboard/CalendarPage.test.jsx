@@ -316,4 +316,62 @@ describe('OwnerDashboard Availability CalendarPage', () => {
       ).toBeGreaterThanOrEqual(1);
     });
   });
+
+  it('updates minimum booking duration rule via ownerListingApi.updateListing', async () => {
+    const mockListings = [
+      {
+        id: 101,
+        name: 'Marine Drive Unipole',
+        status: 'ACTIVE',
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      },
+    ];
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+
+    vi.spyOn(availabilityApi, 'getListingAvailability').mockResolvedValue({
+      blocks: [],
+      etag: 'etag1',
+      today: '2026-11-06',
+    });
+
+    const updateSpy = vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValue({
+      id: 101,
+      name: 'Marine Drive Unipole',
+      minBookingValue: 3,
+      minBookingUnit: 'WEEKS',
+    });
+
+    renderDashboard();
+
+    // Wait until listing is loaded
+    await waitFor(() => {
+      expect(screen.getByText(/Marine Drive Unipole — Availability/i)).toBeDefined();
+    });
+
+    // Check initialized booking rule inputs
+    const valueInput = screen.getByLabelText(/minimum duration value/i);
+    const unitSelect = screen.getByLabelText(/minimum duration unit/i);
+
+    expect(valueInput.value).toBe('1');
+    expect(unitSelect.value).toBe('MONTHS');
+
+    // Change to custom number (3) and unit (WEEKS)
+    fireEvent.change(valueInput, { target: { value: '3' } });
+    fireEvent.change(unitSelect, { target: { value: 'WEEKS' } });
+
+    // Click Save button for booking rules
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(101, {
+        minBookingValue: 3,
+        minBookingUnit: 'WEEKS',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/minimum booking duration saved: 3 weeks/i)).toBeDefined();
+    });
+  });
 });

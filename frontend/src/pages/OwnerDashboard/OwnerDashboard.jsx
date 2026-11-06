@@ -1329,6 +1329,146 @@ function Listings({
   );
 }
 
+function BookingRulesCard({ activeListingId, selectedListing }) {
+  const { showToast } = useToast();
+  const [minBookingVal, setMinBookingVal] = useState(() => selectedListing?.minBookingValue ?? 1);
+  const [minBookingUnit, setMinBookingUnit] = useState(
+    () => selectedListing?.minBookingUnit || 'MONTHS',
+  );
+  const [savingRule, setSavingRule] = useState(false);
+
+  const handleSaveBookingRule = async () => {
+    if (!activeListingId) return;
+    const val = Math.max(1, Math.min(1000, Math.round(Number(minBookingVal)) || 1));
+    const unit = minBookingUnit || 'MONTHS';
+
+    setSavingRule(true);
+    try {
+      const updated = await ownerListingApi.updateListing(activeListingId, {
+        minBookingValue: val,
+        minBookingUnit: unit,
+      });
+
+      const updatedVal = updated?.minBookingValue ?? val;
+      const updatedUnit = updated?.minBookingUnit ?? unit;
+      setMinBookingVal(updatedVal);
+      setMinBookingUnit(updatedUnit);
+      showToast(
+        `Minimum booking duration saved: ${updatedVal} ${updatedUnit.toLowerCase()}.`,
+        'success',
+      );
+    } catch (err) {
+      showToast(
+        err?.response?.data?.message || 'Failed to update minimum booking duration.',
+        'error',
+      );
+    } finally {
+      setSavingRule(false);
+    }
+  };
+
+  return (
+    <div className="section-card" style={{ padding: '16px 20px', marginTop: 16 }}>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: 1.5,
+          color: 'var(--ink-faint)',
+          marginBottom: 14,
+        }}
+      >
+        Booking Rules
+      </div>
+      <div className="form-group" style={{ marginBottom: 14 }}>
+        <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+          Minimum Duration
+        </label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="number"
+            min="1"
+            max="1000"
+            step="1"
+            className="form-control"
+            style={{ flex: 1, minWidth: 60 }}
+            placeholder="1"
+            value={minBookingVal}
+            onChange={(e) => setMinBookingVal(e.target.value)}
+            disabled={savingRule || !activeListingId}
+            aria-label="Minimum Duration Value"
+          />
+          <select
+            className="form-control"
+            style={{ flex: 1.3, minWidth: 95 }}
+            value={minBookingUnit}
+            onChange={(e) => setMinBookingUnit(e.target.value)}
+            disabled={savingRule || !activeListingId}
+            aria-label="Minimum Duration Unit"
+          >
+            <option value="DAYS">Days</option>
+            <option value="WEEKS">Weeks</option>
+            <option value="MONTHS">Months</option>
+          </select>
+          <button
+            type="button"
+            className="btn-teal btn-sm"
+            disabled={savingRule || !activeListingId}
+            style={{ whiteSpace: 'nowrap', padding: '7px 14px' }}
+            onClick={handleSaveBookingRule}
+          >
+            {savingRule ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+        <small
+          style={{
+            color: 'var(--ink-muted)',
+            marginTop: 4,
+            display: 'block',
+            fontSize: 11,
+          }}
+        >
+          Advertisers must book at least this duration on this billboard.
+        </small>
+      </div>
+      <div className="form-group" style={{ marginBottom: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 6,
+          }}
+        >
+          <label style={{ margin: 0, fontWeight: 500 }}>Advance Notice</label>
+          <span className="chip chip-gray" style={{ fontSize: 10, padding: '2px 6px' }}>
+            Standard
+          </span>
+        </div>
+        <select
+          className="form-control"
+          defaultValue="7 days"
+          disabled
+          style={{ opacity: 0.8, cursor: 'not-allowed' }}
+        >
+          <option>7 days</option>
+        </select>
+        <small
+          style={{
+            color: 'var(--ink-muted)',
+            marginTop: 4,
+            display: 'block',
+            fontSize: 11,
+          }}
+        >
+          Standard advance notice required before campaign start date.
+        </small>
+      </div>
+    </div>
+  );
+}
+
 function CalendarPage({ listings = [], loadingListings = false, calData, setCalData }) {
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -1340,6 +1480,7 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
     0,
     listings.findIndex((l) => l.id === activeListingId),
   );
+  const selectedListing = listings.find((l) => l.id === activeListingId) || listings[0];
 
   // Mode and view state
   const [mode, setMode] = useState('block'); // 'block' | 'available'
@@ -1790,7 +1931,6 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
     );
   }
 
-  const selectedListing = listings.find((l) => l.id === activeListingId) || listings[0];
   const rangeText = (() => {
     if (range.start == null) return null;
     const action = mode === 'available' ? 'Marking available' : 'Blocking';
@@ -2133,46 +2273,11 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
             </button>
           </div>
 
-          <div className="section-card" style={{ padding: 22 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: 1.5,
-                color: 'var(--ink-faint)',
-                marginBottom: 14,
-              }}
-            >
-              Booking Rules
-            </div>
-            <div className="form-group">
-              <label>Minimum Duration</label>
-              <select
-                className="form-control"
-                defaultValue="1 Month"
-                onChange={() => showToast('Booking rule updated.', 'info')}
-              >
-                <option>1 Week</option>
-                <option>1 Month</option>
-                <option>3 Months</option>
-                <option>6 Months</option>
-              </select>
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Advance Notice</label>
-              <select
-                className="form-control"
-                defaultValue="7 days"
-                onChange={() => showToast('Notice period saved.', 'info')}
-              >
-                <option>1 day</option>
-                <option>3 days</option>
-                <option>7 days</option>
-                <option>14 days</option>
-              </select>
-            </div>
-          </div>
+          <BookingRulesCard
+            key={activeListingId}
+            activeListingId={activeListingId}
+            selectedListing={selectedListing}
+          />
         </div>
       </div>
 
