@@ -328,6 +328,13 @@ CREATE INDEX idx_avail_billboard_active
     - **Confirmed Bookings:** Rose badge (`var(--rose)`).
     - **Blocked Dates:** Amber badge (`#b45309`).
     - **Staged Edits:** Dashed interactive preview.
+  - **Two-Click & Drag Range Selection:**
+    - Supports selecting a start and end date with two sequential clicks (automatically selecting all dates in between) or by click-and-dragging across cells.
+- **Booking Rules Integration (`BookingRulesCard`):**
+  - Replaces static mockup in the Calendar tab with an active, keyed subcomponent (`key={activeListingId}`).
+  - Provides custom number input (`minBookingValue`) and unit dropdown (`minBookingUnit`: `DAYS`, `WEEKS`, `MONTHS`), exactly matching the layout and schema in `NewBillboardListing` and `OwnerRegister`.
+  - Persists changes directly to the database via `PATCH /api/owner/listings/{id}` (`ownerListingApi.updateListing`).
+  - Leaves Advance Notice as a standard, read-only 7-day default notice badge.
 - **Resilience Banners & Modals:**
   - **412 Conflict Modal:** Displays when another session modified the schedule; provides a 1-click refresh button.
   - **503 Lock Banner:** Renders a live countdown timer (`Retry in X seconds...`).
@@ -354,19 +361,21 @@ CREATE INDEX idx_avail_billboard_active
 - **Postgres Row Lock Timeout Test: `PostgresLockTimeoutIT.java`:**
   - Verified concurrent transaction contention triggers `503 Service Unavailable` with `Retry-After: 5`.
 
-### 7.2 Frontend Test Coverage (160 Tests Passed)
+### 7.2 Frontend Test Coverage (161 Tests Passed)
 - **Unit Tests: `availabilityUtils.test.js` (11 tests):**
   - Contiguous day range expansion and aggregation.
   - Non-confirmed `'booked'` date preservation.
   - Cross-month and leap-year date math.
   - `Retry-After` header extraction.
-- **Integration Tests: `CalendarPage.test.jsx` (7 tests):**
+- **Integration Tests: `CalendarPage.test.jsx` (8 tests):**
   - Initial calendar load and block hydration.
   - Two-click range selection (e.g. clicking 20 and 24 selects and stages 20–24 inclusive).
+  - Drag range selection across multiple cells.
   - Cell click and range staging.
   - Dirty state indicator and Save button enablement.
   - Successful save lifecycle.
   - 412 Precondition Failed modal display and refresh flow.
+  - Minimum booking duration rule update via `ownerListingApi.updateListing`.
 
 ---
 
