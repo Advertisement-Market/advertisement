@@ -137,6 +137,65 @@ describe('OwnerDashboard Availability CalendarPage', () => {
     });
   });
 
+  it('selects all dates in between on clicking two dates and stages them for save', async () => {
+    const mockListings = [{ id: 101, name: 'Marine Drive Unipole', status: 'ACTIVE' }];
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+
+    vi.spyOn(availabilityApi, 'getListingAvailability').mockResolvedValue({
+      blocks: [],
+      etag: 'initial-etag',
+      today: '2026-11-06',
+    });
+
+    const syncSpy = vi.spyOn(availabilityApi, 'syncListingAvailability').mockResolvedValue({
+      blocks: [
+        { id: 10, startDate: '2026-11-20', endDate: '2026-11-24', blockType: 'OWNER_BLOCKED' },
+      ],
+      warnings: [],
+      etag: 'new-etag',
+      today: '2026-11-06',
+    });
+
+    renderDashboard();
+
+    // Wait until listing is loaded and availability hydrated
+    await waitFor(() => {
+      expect(screen.getByText(/Marine Drive Unipole — Availability/i)).toBeDefined();
+    });
+
+    // Find day cell 20 and day cell 24
+    const day20 = screen.getByText('20');
+    const day24 = screen.getByText('24');
+
+    // Click first date: 20
+    fireEvent.click(day20);
+
+    // Click second date: 24 (automatically selects 20 to 24 inclusive)
+    fireEvent.click(day24);
+
+    // Verify unsaved changes appear
+    await waitFor(() => {
+      expect(screen.getByText(/unsaved changes/i)).toBeDefined();
+    });
+
+    // Click Save Changes
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    // Verify that syncListingAvailability was called with contiguous range 2026-11-20 to 2026-11-24
+    await waitFor(() => {
+      expect(syncSpy).toHaveBeenCalledWith(
+        101,
+        expect.arrayContaining([
+          expect.objectContaining({
+            startDate: '2026-11-20',
+            endDate: '2026-11-24',
+          }),
+        ]),
+        'initial-etag',
+      );
+    });
+  });
+
   it('displays 503 retry countdown banner on lock timeout', async () => {
     const mockListings = [{ id: 101, name: 'Marine Drive Unipole', status: 'ACTIVE' }];
     vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);

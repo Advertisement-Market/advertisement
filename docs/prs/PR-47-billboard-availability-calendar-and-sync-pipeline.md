@@ -17,7 +17,7 @@ This pull request implements **Phase 3: Availability Calendar & Sync Pipeline** 
 1. **Billboard Owner:**
    - Navigates to the **Calendar** tab within the Owner Dashboard.
    - Views all previously saved blocked dates (e.g., maintenance, personal holds) and confirmed advertiser bookings.
-   - Interactively selects individual dates, drags multi-day ranges, or uses **Quick Block** presets (Block Today, Next 7 Days, Next 14 Days, Clear Staged).
+   - Interactively selects dates using two-click range selection (e.g., clicking 20 and then 24 automatically selects all dates between them), click-drag selection, or **Quick Block** presets (Block Today, Next 7 Days, Next 14 Days, Clear Staged).
    - Staged changes are clearly previewed before committing.
    - Clicking **Save Changes** persists blocks to the database using optimistic concurrency (`If-Match: ETag`), without wiping or corrupting existing dates.
    - Concurrency conflicts (`412 Precondition Failed`), database lock contention (`503 Service Unavailable`), or hold overlaps (`409 Conflict`) are handled gracefully via informative dialogs and countdown retry banners.
@@ -354,14 +354,15 @@ CREATE INDEX idx_avail_billboard_active
 - **Postgres Row Lock Timeout Test: `PostgresLockTimeoutIT.java`:**
   - Verified concurrent transaction contention triggers `503 Service Unavailable` with `Retry-After: 5`.
 
-### 7.2 Frontend Test Coverage (159 Tests Passed)
+### 7.2 Frontend Test Coverage (160 Tests Passed)
 - **Unit Tests: `availabilityUtils.test.js` (11 tests):**
   - Contiguous day range expansion and aggregation.
   - Non-confirmed `'booked'` date preservation.
   - Cross-month and leap-year date math.
   - `Retry-After` header extraction.
-- **Integration Tests: `CalendarPage.test.jsx` (6 tests):**
+- **Integration Tests: `CalendarPage.test.jsx` (7 tests):**
   - Initial calendar load and block hydration.
+  - Two-click range selection (e.g. clicking 20 and 24 selects and stages 20–24 inclusive).
   - Cell click and range staging.
   - Dirty state indicator and Save button enablement.
   - Successful save lifecycle.

@@ -1346,7 +1346,11 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   const [month, setMonth] = useState(() => new Date().getMonth());
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [range, setRange] = useState({ start: null, end: null });
+  const [hoverDay, setHoverDay] = useState(null);
   const drag = useRef(false);
+  const dragStart = useRef(null);
+  const didDrag = useRef(false);
+  const justFinishedDrag = useRef(false);
 
   // Availability data from backend / local calData
   const [blocks, setBlocks] = useState([]);
@@ -1398,6 +1402,8 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   useEffect(() => {
     const up = () => {
       drag.current = false;
+      dragStart.current = null;
+      didDrag.current = false;
     };
     document.addEventListener('mouseup', up);
     return () => {
@@ -1472,53 +1478,21 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
     );
   };
 
-  const down = (d) => {
-    const dateStr = formatDateKey(year, month, d);
-    if (isPast(d) || confirmedDates.has(dateStr)) return;
-    drag.current = true;
-    setRange({ start: d, end: d });
+  const clearSel = () => {
+    setRange({ start: null, end: null });
+    setHoverDay(null);
   };
 
-  const enter = (d) => {
-    const dateStr = formatDateKey(year, month, d);
-    if (drag.current && !isPast(d) && !confirmedDates.has(dateStr)) {
-      setRange((r) => ({ ...r, end: d }));
-    }
-  };
-
-  const clearSel = () => setRange({ start: null, end: null });
-
-  const changeMonth = (delta) => {
-    clearSel();
-    let m = month + delta;
-    let y = year;
-    if (m < 0) {
-      m = 11;
-      y--;
-    }
-    if (m > 11) {
-      m = 0;
-      y++;
-    }
-    setMonth(m);
-    setYear(y);
-  };
-
-  const rs = range.start != null ? Math.min(range.start, range.end ?? range.start) : null;
-  const re = range.start != null ? Math.max(range.start, range.end ?? range.start) : null;
-
-  // Stage selected range into local map
-  const apply = () => {
-    if (range.start == null) {
-      showToast('Select dates on the calendar first.');
-      return;
-    }
+  const applyRange = (startDay, endDay, applyMode) => {
+    if (startDay == null) return;
+    const s = Math.min(startDay, endDay ?? startDay);
+    const e = Math.max(startDay, endDay ?? startDay);
     const next = { ...dayStatusMap };
     let count = 0;
-    for (let d = rs; d <= re; d++) {
+    for (let d = s; d <= e; d++) {
       const k = formatDateKey(year, month, d);
       if (isPast(d) || confirmedDates.has(k)) continue;
-      if (mode === 'available') {
+      if (applyMode === 'available') {
         delete next[k];
       } else {
         next[k] = 'blocked';
@@ -1537,8 +1511,79 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
       block: 'Dates marked as blocked',
       available: 'Dates marked as available',
     };
-    showToast(`${msgs[mode]}: ${count} day(s). Click "Save Changes" to save.`, 'info');
+    showToast(`${msgs[applyMode]}: ${count} day(s). Click "Save Changes" to save.`, 'info');
     clearSel();
+  };
+
+  const down = (d) => {
+    const dateStr = formatDateKey(year, month, d);
+    if (isPast(d) || confirmedDates.has(dateStr)) return;
+    drag.current = true;
+    dragStart.current = d;
+    didDrag.current = false;
+  };
+
+  const enter = (d) => {
+    const dateStr = formatDateKey(year, month, d);
+    if (isPast(d) || confirmedDates.has(dateStr)) return;
+    if (drag.current && dragStart.current != null) {
+      if (d !== dragStart.current) {
+        didDrag.current = true;
+      }
+      setRange({ start: dragStart.current, end: d });
+    } else if (range.start != null && range.end == null) {
+      setHoverDay(d);
+    }
+  };
+
+  const handleDayClick = (d) => {
+    if (justFinishedDrag.current) {
+      justFinishedDrag.current = false;
+      return;
+    }
+    const dateStr = formatDateKey(year, month, d);
+    if (isPast(d) || confirmedDates.has(dateStr)) return;
+
+    if (range.start == null || range.end != null) {
+      // First click: sets start date
+      setRange({ start: d, end: null });
+      setHoverDay(null);
+    } else {
+      // Second click: sets end date and automatically applies the range
+      const startDay = range.start;
+      const endDay = d;
+      applyRange(startDay, endDay, mode);
+    }
+  };
+
+  const changeMonth = (delta) => {
+    clearSel();
+    let m = month + delta;
+    let y = year;
+    if (m < 0) {
+      m = 11;
+      y--;
+    }
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
+    setMonth(m);
+    setYear(y);
+  };
+
+  const effectiveEnd = range.end ?? (range.start != null ? hoverDay : null) ?? range.start;
+  const rs = range.start != null ? Math.min(range.start, effectiveEnd) : null;
+  const re = range.start != null ? Math.max(range.start, effectiveEnd) : null;
+
+  // Stage selected range into local map
+  const apply = () => {
+    if (range.start == null) {
+      showToast('Select dates on the calendar first.');
+      return;
+    }
+    const end = range.end ?? hoverDay ?? range.start;
+    applyRange(range.start, end, mode);
   };
 
   // Quick range apply
@@ -1746,12 +1791,19 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   }
 
   const selectedListing = listings.find((l) => l.id === activeListingId) || listings[0];
-  const rangeText =
-    range.start == null
-      ? null
-      : `${mode === 'available' ? 'Marking available' : 'Blocking'}: ${MONTHS[month]} ${rs}${
-          rs !== re ? ` – ${re}` : ''
-        }, ${year} (${re - rs + 1} day${re - rs > 0 ? 's' : ''})`;
+  const rangeText = (() => {
+    if (range.start == null) return null;
+    const action = mode === 'available' ? 'Marking available' : 'Blocking';
+    if (range.end == null) {
+      if (hoverDay != null && hoverDay !== range.start) {
+        const count = re - rs + 1;
+        return `${action}: ${MONTHS[month]} ${rs} – ${re}, ${year} (${count} days — click date ${hoverDay} to confirm)`;
+      }
+      return `Selected start: ${MONTHS[month]} ${range.start}, ${year}. Click second date (e.g. ${Math.min(range.start + 4, 28)}) to select range, or click Apply for single day.`;
+    }
+    const count = re - rs + 1;
+    return `${action}: ${MONTHS[month]} ${rs}${rs !== re ? ` – ${re}` : ''}, ${year} (${count} day${count > 0 ? 's' : ''})`;
+  })();
 
   const upcomingBookings = blocks.filter((b) => b.blockType === 'CONFIRMED_BOOKING');
 
@@ -1927,7 +1979,11 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
             </div>
           </div>
 
-          <div className="avail-calendar" style={{ padding: '18px 22px' }}>
+          <div
+            className="avail-calendar"
+            style={{ padding: '18px 22px' }}
+            onMouseLeave={() => setHoverDay(null)}
+          >
             <CalGrid
               month={month}
               year={year}
@@ -1949,6 +2005,7 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
                 return c;
               }}
               dayProps={(d) => ({
+                onClick: () => handleDayClick(d),
                 onMouseDown: () => down(d),
                 onMouseEnter: () => enter(d),
               })}
