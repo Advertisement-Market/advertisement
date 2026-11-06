@@ -107,6 +107,8 @@ erDiagram
     users ||--o| owner_profiles : "promoted to (1:1)"
     users ||--o{ billboard_listings : "owns (1:N)"
     users ||--o| agency_profiles : "promoted to (1:1)"
+    billboard_listings ||--o{ billboard_availability_blocks : "schedules (1:N)"
+    users ||--o{ billboard_availability_blocks : "created by (1:N)"
 
     advertiser_profiles ||--o{ advertiser_industries : "has (ElementCollection)"
     campaign_briefs ||--o{ campaign_brief_agency_prefs : "has (ElementCollection)"
@@ -223,6 +225,18 @@ erDiagram
         timestamp created_at
     }
 
+    billboard_availability_blocks {
+        bigint id PK
+        bigint billboard_id FK
+        date start_date
+        date end_date
+        varchar block_type
+        varchar reason
+        bigint created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
     agency_profiles {
         bigint id PK
         bigint user_id FK,UK
@@ -332,13 +346,16 @@ This section accounts for **every single file** in the `backend/` project direct
 
 ---
 
-### Category C: Database Migrations (2 Files)
+### Category C: Database Migrations
 
 11. [`backend/src/main/resources/db/migration/V1__init.sql`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/resources/db/migration/V1__init.sql)
     - **Role:** Baseline SQL migration script. Creates `users` table and `refresh_tokens` table with foreign keys, index on `google_sub`, and unique constraints on `email` and `token`.
 
 12. [`backend/src/main/resources/db/migration/V2__registration_profiles.sql`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/resources/db/migration/V2__registration_profiles.sql)
     - **Role:** Role profile migration script. Creates tables for `advertiser_profiles`, `advertiser_industries`, `campaign_briefs`, `campaign_brief_agency_prefs`, `owner_profiles`, `billboard_listings`, `agency_profiles`, `agency_services`, `agency_industries`, `agency_expertise_tags`, `agency_languages`, and `agency_portfolio_items` along with foreign keys (`ON DELETE CASCADE`) and lookup indexes.
+
+13. [`backend/src/main/resources/db/migration/V10__create_billboard_availability_blocks.sql`](file:///e:/theadbasket/advertisement/backend/src/main/resources/db/migration/V10__create_billboard_availability_blocks.sql)
+    - **Role:** Availability calendar migration script. Creates `billboard_availability_blocks` table with scalar foreign keys (`billboard_id` CASCADE, `created_by` SET NULL), date ordering check, block type check, and composite indexes (`idx_avail_billboard_dates`, `idx_avail_billboard_active`).
 
 ---
 
@@ -348,7 +365,7 @@ This section accounts for **every single file** in the `backend/` project direct
     - **Role:** Spring Boot main class annotated with `@SpringBootApplication` and `@ConfigurationPropertiesScan`. Launches the backend.
 
 14. [`config/SecurityConfig.java`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/java/com/theadbasket/backend/config/SecurityConfig.java)
-    - **Role:** Core Spring Security 7.1.0 configuration bean (`@EnableWebSecurity`, `@EnableMethodSecurity`). Configures stateless session management, path permit-all rules (`PUBLIC_PATHS`), role-based matchers (`/api/advertiser/**` $\rightarrow$ `hasRole('ADVERTISER')`), CORS bean initialization, and registers [`JwtAuthenticationFilter`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/java/com/theadbasket/backend/security/JwtAuthenticationFilter.java).
+    - **Role:** Core Spring Security configuration bean (`@EnableWebSecurity`, `@EnableMethodSecurity`). Configures stateless session management, path permit-all rules (`PUBLIC_PATHS`, including `/api/public/**`), role-based matchers, CORS bean initialization, exposed response headers (`ETag`, `Retry-After`), and registers [`JwtAuthenticationFilter`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/java/com/theadbasket/backend/security/JwtAuthenticationFilter.java).
 
 15. [`config/JwtProperties.java`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/java/com/theadbasket/backend/config/JwtProperties.java)
     - **Role:** `@ConfigurationProperties(prefix = "app.jwt")` record holding `secret`, `accessTokenExpiration`, and `refreshTokenExpiration`.
@@ -364,6 +381,9 @@ This section accounts for **every single file** in the `backend/` project direct
 
 19. [`config/JpaConfig.java`](file:///Users/amjangde/Workspace/advertisement/backend/src/main/java/com/theadbasket/backend/config/JpaConfig.java)
     - **Role:** Activates Spring Data JPA Auditing via `@EnableJpaAuditing`.
+
+20. [`config/DateTimeConfig.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/config/DateTimeConfig.java)
+    - **Role:** Configures application-wide `Clock` bean pinned to `ZoneId.of("Asia/Kolkata")` to guarantee deterministic timezone management across availability and scheduling logic.
 
 ---
 
@@ -531,6 +551,23 @@ This section accounts for **every single file** in the `backend/` project direct
 
 ---
 
+### Category L: Availability Calendar Module (`com.theadbasket.backend.availability`)
+
+80. [`availability/AvailabilityBlockType.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/availability/AvailabilityBlockType.java) — Domain enum defining availability types: `MAINTENANCE`, `RESERVED`, `MANUAL_BLOCK`, `HOLIDAY`, and `OTHER`.
+81. [`availability/BillboardAvailabilityBlock.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/availability/BillboardAvailabilityBlock.java) — JPA entity mapping availability ranges with scalar foreign keys (`billboardId`, `createdBy`), `startDate`, `endDate`, and audit timestamps.
+82. [`availability/BillboardAvailabilityBlockRepository.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/availability/BillboardAvailabilityBlockRepository.java) — Spring Data repository providing pessimistic row lock queries (`PESSIMISTIC_WRITE`) with a 5000ms lock timeout hint and active date range queries.
+83. [`availability/AvailabilityService.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/availability/AvailabilityService.java) — Core availability engine featuring a two-list split (`historyList` vs `editableList`), pre-lock validations (500 ranges, 730 days max window), deterministic SHA-256 ETag optimistic concurrency, safe replay short-circuiting, and boundary coalescing.
+84. [`availability/AvailabilityController.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/availability/AvailabilityController.java) — Owner REST controller providing `GET` and `PUT` `/api/billboards/{id}/availability` with ownership verification and `If-Match` ETag optimistic locking.
+85. [`availability/PublicAvailabilityController.java`](file:///e:/theadbasket/advertisement/backend/src/main/java/com/theadbasket/backend/availability/PublicAvailabilityController.java) — Unauthenticated marketplace endpoint (`GET /api/public/billboards/{id}/availability`) returning active date ranges with `Cache-Control: public, max-age=300, s-maxage=60`.
+86. Availability DTOs: `AvailabilityBlockDto.java`, `AvailabilityResponseDto.java`, `AvailabilitySyncRequestDto.java`, `PublicAvailabilityResponseDto.java`.
+87. Domain Exceptions: `PreconditionFailedException.java` (412), `HoldConflictException.java` (409), `AvailabilityBusyException.java` (503 with Retry-After), `ListingNotActiveException.java` (404).
+88. Test Suites:
+    - [`AvailabilityServiceTest.java`](file:///e:/theadbasket/advertisement/backend/src/test/java/com/theadbasket/backend/availability/AvailabilityServiceTest.java) — 31 unit tests covering two-list history preservation, range coalescing, cap limits, and ETag mechanics.
+    - [`AvailabilityIntegrationTest.java`](file:///e:/theadbasket/advertisement/backend/src/test/java/com/theadbasket/backend/availability/AvailabilityIntegrationTest.java) — 29 integration tests validating authorization, multi-tenant boundaries, and caching headers.
+    - [`PostgresLockTimeoutIT.java`](file:///e:/theadbasket/advertisement/backend/src/test/java/com/theadbasket/backend/availability/PostgresLockTimeoutIT.java) — Testcontainers test validating row lock contention returns 503 + Retry-After.
+
+---
+
 ## 4. Summary
 
-Every single file (**79 files total**) in the backend module has been audited, mapped, and documented.
+Every single file in the backend module has been audited, mapped, and documented.
