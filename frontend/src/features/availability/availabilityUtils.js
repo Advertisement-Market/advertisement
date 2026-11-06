@@ -142,4 +142,3 @@ export const extractRetryAfterSeconds = (error, defaultSeconds = 5) => {
   }
   return defaultSeconds;
 };
-

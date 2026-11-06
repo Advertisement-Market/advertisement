@@ -195,14 +195,14 @@ function formatTimeAgo(dateInput) {
 const getMockNotifs = () =>
   import.meta.env.DEV
     ? NOTIFICATIONS.map((n, i) => ({
-      id: i + 1,
-      title: '',
-      message: n.text,
-      tone: n.dot || 'teal',
-      read: !n.unread,
-      createdAt: null,
-      timeText: n.time,
-    }))
+        id: i + 1,
+        title: '',
+        message: n.text,
+        tone: n.dot || 'teal',
+        read: !n.unread,
+        createdAt: null,
+        timeText: n.time,
+      }))
     : [];
 
 const getMockUnreadCount = () =>
@@ -285,7 +285,7 @@ function Topbar({ title, onAddListing, onNav }) {
     if (!n.read && user) {
       setNotifs((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
       setUnreadCount((c) => Math.max(0, c - 1));
-      notificationApi.markAsRead(n.id).catch(() => { });
+      notificationApi.markAsRead(n.id).catch(() => {});
     }
     if (n.targetUrl) {
       setOpen(false);
@@ -302,7 +302,7 @@ function Topbar({ title, onAddListing, onNav }) {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     if (user) {
-      notificationApi.markAllAsRead().catch(() => { });
+      notificationApi.markAllAsRead().catch(() => {});
     }
     showToast('All notifications marked as read.');
   };
@@ -716,12 +716,7 @@ function CalGrid({ month, year, statusFor, dayProps, extra, serverToday }) {
     const isBlocked = status === 'blocked' || status === 'block';
     const isHold = status === 'hold';
     const statusClass = isBooked ? 'booked' : isBlocked ? 'blocked' : isHold ? 'hold' : 'available';
-    const cls = cn(
-      'cal-day',
-      statusClass,
-      isToday && 'today',
-      extra ? extra(d) : '',
-    );
+    const cls = cn('cal-day', statusClass, isToday && 'today', extra ? extra(d) : '');
     cells.push(
       <div key={d} className={cls} {...(dayProps ? dayProps(d) : {})}>
         {d}
@@ -1341,7 +1336,10 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   // Selected listing (derived fallback to primary listing)
   const [selectedListingId, setSelectedListingId] = useState(null);
   const activeListingId = selectedListingId ?? listings[0]?.id ?? null;
-  const listingIndex = Math.max(0, listings.findIndex((l) => l.id === activeListingId));
+  const listingIndex = Math.max(
+    0,
+    listings.findIndex((l) => l.id === activeListingId),
+  );
 
   // Mode and view state
   const [mode, setMode] = useState('block'); // 'block' | 'available'
@@ -1372,9 +1370,19 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   const [dirty, setDirty] = useState(false);
 
   // Resilience & Concurrency state
-  const [retryState, setRetryState] = useState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
+  const [retryState, setRetryState] = useState({
+    active: false,
+    attempt: 0,
+    maxAttempts: 3,
+    countdown: 0,
+  });
   const retryTimerRef = useRef(null);
-  const [staleModal, setStaleModal] = useState({ open: false, serverBlocks: [], newEtag: null, newToday: null });
+  const [staleModal, setStaleModal] = useState({
+    open: false,
+    serverBlocks: [],
+    newEtag: null,
+    newToday: null,
+  });
   const [conflictHoldRanges, setConflictHoldRanges] = useState([]);
 
   // Quick block inputs
@@ -1402,7 +1410,10 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   useEffect(() => {
     if (!activeListingId) return;
 
-    const idx = Math.max(0, listings.findIndex((l) => l.id === activeListingId));
+    const idx = Math.max(
+      0,
+      listings.findIndex((l) => l.id === activeListingId),
+    );
     const fallback = calDataRef.current?.[idx] || calDataRef.current?.[0] || {};
     const normalizedFallback = {};
     for (const [k, v] of Object.entries(fallback)) {
@@ -1457,8 +1468,7 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
     }
     const today = new Date();
     return (
-      new Date(year, month, d) <
-      new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      new Date(year, month, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
     );
   };
 
@@ -1588,7 +1598,11 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
     setIsSaving(true);
 
     try {
-      const data = await availabilityApi.syncListingAvailability(activeListingId, rangesToSend, etag);
+      const data = await availabilityApi.syncListingAvailability(
+        activeListingId,
+        rangesToSend,
+        etag,
+      );
 
       // STRICT REHYDRATION from server blocks
       const savedBlocks = data.blocks || [];
@@ -1720,7 +1734,8 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
               margin: '0 auto 20px',
             }}
           >
-            Create your first billboard listing to begin managing its availability calendar and blocking dates.
+            Create your first billboard listing to begin managing its availability calendar and
+            blocking dates.
           </p>
           <button className="btn-teal" onClick={() => navigate(ROUTES.newBillboardListing)}>
             Create New Listing
@@ -1734,8 +1749,9 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   const rangeText =
     range.start == null
       ? null
-      : `${mode === 'available' ? 'Marking available' : 'Blocking'}: ${MONTHS[month]} ${rs}${rs !== re ? ` – ${re}` : ''
-      }, ${year} (${re - rs + 1} day${re - rs > 0 ? 's' : ''})`;
+      : `${mode === 'available' ? 'Marking available' : 'Blocking'}: ${MONTHS[month]} ${rs}${
+          rs !== re ? ` – ${re}` : ''
+        }, ${year} (${re - rs + 1} day${re - rs > 0 ? 's' : ''})`;
 
   const upcomingBookings = blocks.filter((b) => b.blockType === 'CONFIRMED_BOOKING');
 
@@ -1799,13 +1815,11 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
               ))}
             </div>
             <small style={{ color: 'var(--ink-muted)', marginTop: 4, display: 'block' }}>
-              An advertiser is currently completing checkout for these dates. This temporary hold will automatically resolve in a few minutes — no action needed from you.
+              An advertiser is currently completing checkout for these dates. This temporary hold
+              will automatically resolve in a few minutes — no action needed from you.
             </small>
           </div>
-          <button
-            className="btn-ghost btn-xs"
-            onClick={() => setConflictHoldRanges([])}
-          >
+          <button className="btn-ghost btn-xs" onClick={() => setConflictHoldRanges([])}>
             Dismiss
           </button>
         </div>
