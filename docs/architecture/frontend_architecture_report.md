@@ -102,8 +102,9 @@ Instead of a heavy state library like Redux, the app uses React Context.
 *   [`AuthModalProvider.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/context/AuthModalProvider.jsx): A simple state machine tracking if the login/register popup is visible.
 *   [`ToastProvider.jsx`](file:///Users/amjangde/Workspace/advertisement/frontend/src/context/ToastProvider.jsx): Exposes a `showToast("msg")` function. Uses a `useRef` timer to auto-dismiss notifications after 3.8 seconds.
 
-### 5.2. `src/lib/` - Utilities & Core Services
+### 5.2. `src/lib/` & `src/services/` - Utilities & Core Services
 *   [`apiClient.js`](file:///Users/amjangde/Workspace/advertisement/frontend/src/lib/apiClient.js): **Critical File**. Configures the Axios singleton. It uses interceptors (middleware) to attach the Bearer token and handle 401 retries.
+*   [`services/availabilityApi.js`](file:///e:/theadbasket/advertisement/frontend/src/services/availabilityApi.js): Handles HTTP requests for billboard availability schedules (`GET` and `PUT`), normalizing `ETag` headers and injecting `If-Match: "{etag}"` for concurrency control.
 *   [`cn.js`](file:///Users/amjangde/Workspace/advertisement/frontend/src/lib/cn.js): A minimalist utility for dynamically concatenating CSS classes.
     ```javascript
     // Example from cn.js: filters out falsey values (null, false, undefined)
@@ -129,6 +130,10 @@ Instead of a heavy state library like Redux, the app uses React Context.
 ### 5.5. `src/pages/` - Routable Views
 Each top-level route gets a folder.
 *   [`AdvertiserDashboard/`](file:///Users/amjangde/Workspace/advertisement/frontend/src/pages/AdvertiserDashboard): A massive, monolithic feature view (over 1,100 lines of code in `AdvertiserDashboard.jsx` and 40KB of CSS). Displays metrics, charts, and media plans.
+*   [`OwnerDashboard/`](file:///e:/theadbasket/advertisement/frontend/src/pages/OwnerDashboard): Multi-tab management interface for billboard inventory owners. Features:
+    *   **Overview Tab:** Embedded `MiniCalendar` summarizing bookings.
+    *   **Calendar Tab (`CalendarPage`):** Dynamic availability scheduling interface connected to the `availabilityApi` pipeline. Features interactive cell selection, Quick Block presets, and resilience banners for ETag conflicts (`412 Precondition Failed`), lock timeouts (`503 Service Unavailable` with countdown), and hold overlaps (`409 Conflict`).
+    *   [`availabilityUtils.js`](file:///e:/theadbasket/advertisement/frontend/src/pages/OwnerDashboard/availabilityUtils.js): Pure date arithmetic functions, block expansion, status mapping, and range aggregation preserving unedited blocks.
 *   [`Landing/`](file:///Users/amjangde/Workspace/advertisement/frontend/src/pages/Landing): The homepage. Uses `sections/` to break up the long scrolling page.
 
 ---
