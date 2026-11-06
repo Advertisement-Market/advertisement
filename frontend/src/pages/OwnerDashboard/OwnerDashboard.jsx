@@ -33,6 +33,16 @@ import {
   formatBillboardType,
   VALID_TABS,
 } from './data';
+import { availabilityApi } from '@/features/availability/availabilityApi';
+import {
+  formatDateKey,
+  parseDateParts,
+  addDays,
+  isBefore,
+  blocksToDayStatusMap,
+  dayStatusMapToRanges,
+  extractRetryAfterSeconds,
+} from '@/features/availability/availabilityUtils';
 import './OwnerDashboard.css';
 
 function BillboardIcon({ type = '', name = '', meta = '', size = 24 }) {
@@ -683,7 +693,7 @@ function Donut() {
 }
 
 /* ── Calendar grid (shared) ── */
-function CalGrid({ month, year, statusFor, dayProps, extra }) {
+function CalGrid({ month, year, statusFor, dayProps, extra, serverToday }) {
   const firstDay = new Date(year, month, 1).getDay();
   const daysIn = new Date(year, month + 1, 0).getDate();
   const today = new Date();
@@ -698,14 +708,15 @@ function CalGrid({ month, year, statusFor, dayProps, extra }) {
   for (let i = 0; i < firstDay; i++) cells.push(<div key={`e${i}`} className="cal-day empty" />);
   for (let d = 1; d <= daysIn; d++) {
     const status = statusFor(d);
-    const isToday =
-      d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-    const cls = cn(
-      'cal-day',
-      status === 'booked' ? 'booked' : 'available',
-      isToday && 'today',
-      extra ? extra(d) : '',
-    );
+    const dateKey = formatDateKey(year, month, d);
+    const isToday = serverToday
+      ? dateKey === serverToday
+      : d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    const isBooked = status === 'booked';
+    const isBlocked = status === 'blocked' || status === 'block';
+    const isHold = status === 'hold';
+    const statusClass = isBooked ? 'booked' : isBlocked ? 'blocked' : isHold ? 'hold' : 'available';
+    const cls = cn('cal-day', statusClass, isToday && 'today', extra ? extra(d) : '');
     cells.push(
       <div key={d} className={cls} {...(dayProps ? dayProps(d) : {})}>
         {d}
@@ -772,7 +783,7 @@ function MiniCalendar({ calData }) {
         <CalGrid
           month={month}
           year={year}
-          statusFor={(d) => calData[0][dayKey(year, month, d)] || 'available'}
+          statusFor={(d) => calData?.[0]?.[dayKey(year, month, d)] || 'available'}
         />
         <div className="cal-legend">
           <div className="cal-legend-item">
@@ -1318,33 +1329,374 @@ function Listings({
   );
 }
 
-function CalendarPage({ calData, setCalData }) {
+function BookingRulesCard({ activeListingId, selectedListing }) {
   const { showToast } = useToast();
-  const [listing, setListing] = useState(0);
-  const [mode, setMode] = useState('block');
-  const [month, setMonth] = useState(new Date().getMonth());
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [minBookingVal, setMinBookingVal] = useState(() => selectedListing?.minBookingValue ?? 1);
+  const [minBookingUnit, setMinBookingUnit] = useState(
+    () => selectedListing?.minBookingUnit || 'MONTHS',
+  );
+  const [savingRule, setSavingRule] = useState(false);
+
+  const handleSaveBookingRule = async () => {
+    if (!activeListingId) return;
+    const val = Math.max(1, Math.min(1000, Math.round(Number(minBookingVal)) || 1));
+    const unit = minBookingUnit || 'MONTHS';
+
+    setSavingRule(true);
+    try {
+      const updated = await ownerListingApi.updateListing(activeListingId, {
+        minBookingValue: val,
+        minBookingUnit: unit,
+      });
+
+      const updatedVal = updated?.minBookingValue ?? val;
+      const updatedUnit = updated?.minBookingUnit ?? unit;
+      setMinBookingVal(updatedVal);
+      setMinBookingUnit(updatedUnit);
+      showToast(
+        `Minimum booking duration saved: ${updatedVal} ${updatedUnit.toLowerCase()}.`,
+        'success',
+      );
+    } catch (err) {
+      showToast(
+        err?.response?.data?.message || 'Failed to update minimum booking duration.',
+        'error',
+      );
+    } finally {
+      setSavingRule(false);
+    }
+  };
+
+  return (
+    <div className="section-card" style={{ padding: '16px 20px', marginTop: 16 }}>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: 1.5,
+          color: 'var(--ink-faint)',
+          marginBottom: 14,
+        }}
+      >
+        Booking Rules
+      </div>
+      <div className="form-group" style={{ marginBottom: 14 }}>
+        <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+          Minimum Duration
+        </label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="number"
+            min="1"
+            max="1000"
+            step="1"
+            className="form-control"
+            style={{ flex: 1, minWidth: 60 }}
+            placeholder="1"
+            value={minBookingVal}
+            onChange={(e) => setMinBookingVal(e.target.value)}
+            disabled={savingRule || !activeListingId}
+            aria-label="Minimum Duration Value"
+          />
+          <select
+            className="form-control"
+            style={{ flex: 1.3, minWidth: 95 }}
+            value={minBookingUnit}
+            onChange={(e) => setMinBookingUnit(e.target.value)}
+            disabled={savingRule || !activeListingId}
+            aria-label="Minimum Duration Unit"
+          >
+            <option value="DAYS">Days</option>
+            <option value="WEEKS">Weeks</option>
+            <option value="MONTHS">Months</option>
+          </select>
+          <button
+            type="button"
+            className="btn-teal btn-sm"
+            disabled={savingRule || !activeListingId}
+            style={{ whiteSpace: 'nowrap', padding: '7px 14px' }}
+            onClick={handleSaveBookingRule}
+          >
+            {savingRule ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+        <small
+          style={{
+            color: 'var(--ink-muted)',
+            marginTop: 4,
+            display: 'block',
+            fontSize: 11,
+          }}
+        >
+          Advertisers must book at least this duration on this billboard.
+        </small>
+      </div>
+      <div className="form-group" style={{ marginBottom: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 6,
+          }}
+        >
+          <label style={{ margin: 0, fontWeight: 500 }}>Advance Notice</label>
+          <span className="chip chip-gray" style={{ fontSize: 10, padding: '2px 6px' }}>
+            Standard
+          </span>
+        </div>
+        <select
+          className="form-control"
+          defaultValue="7 days"
+          disabled
+          style={{ opacity: 0.8, cursor: 'not-allowed' }}
+        >
+          <option>7 days</option>
+        </select>
+        <small
+          style={{
+            color: 'var(--ink-muted)',
+            marginTop: 4,
+            display: 'block',
+            fontSize: 11,
+          }}
+        >
+          Standard advance notice required before campaign start date.
+        </small>
+      </div>
+    </div>
+  );
+}
+
+function CalendarPage({ listings = [], loadingListings = false, calData, setCalData }) {
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  // Selected listing (derived fallback to primary listing)
+  const [selectedListingId, setSelectedListingId] = useState(null);
+  const activeListingId = selectedListingId ?? listings[0]?.id ?? null;
+  const listingIndex = Math.max(
+    0,
+    listings.findIndex((l) => l.id === activeListingId),
+  );
+  const selectedListing = listings.find((l) => l.id === activeListingId) || listings[0];
+
+  // Mode and view state
+  const [mode, setMode] = useState('block'); // 'block' | 'available'
+  const [month, setMonth] = useState(() => new Date().getMonth());
+  const [year, setYear] = useState(() => new Date().getFullYear());
   const [range, setRange] = useState({ start: null, end: null });
+  const [hoverDay, setHoverDay] = useState(null);
   const drag = useRef(false);
+  const dragStart = useRef(null);
+  const didDrag = useRef(false);
+  const justFinishedDrag = useRef(false);
+
+  // Availability data from backend / local calData
+  const [blocks, setBlocks] = useState([]);
+  const [dayStatusMap, setDayStatusMap] = useState(() => {
+    const raw = calData?.[0] || {};
+    const res = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (v === 'booked' || v === 'blocked' || v === 'block') {
+        res[k] = 'blocked';
+      } else {
+        res[k] = v;
+      }
+    }
+    return res;
+  });
+  const [confirmedDates, setConfirmedDates] = useState(() => new Set());
+  const [etag, setEtag] = useState(null);
+  const [serverToday, setServerToday] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  // Resilience & Concurrency state
+  const [retryState, setRetryState] = useState({
+    active: false,
+    attempt: 0,
+    maxAttempts: 3,
+    countdown: 0,
+  });
+  const retryTimerRef = useRef(null);
+  const [staleModal, setStaleModal] = useState({
+    open: false,
+    serverBlocks: [],
+    newEtag: null,
+    newToday: null,
+  });
+  const [conflictHoldRanges, setConflictHoldRanges] = useState([]);
+
+  // Quick block inputs
+  const [qb, setQb] = useState({ from: '', to: '', type: 'block' });
+
+  // Keep calData accessible in effects without re-triggering network fetches
+  const calDataRef = useRef(calData);
+  useEffect(() => {
+    calDataRef.current = calData;
+  }, [calData]);
+
+  // Cleanup timers on unmount
   useEffect(() => {
     const up = () => {
       drag.current = false;
+      dragStart.current = null;
+      didDrag.current = false;
     };
     document.addEventListener('mouseup', up);
-    return () => document.removeEventListener('mouseup', up);
+    return () => {
+      document.removeEventListener('mouseup', up);
+      if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+    };
   }, []);
-  const isPast = (d) =>
-    new Date(year, month, d) <
-    new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+  // Hydrate calendar from backend on listing change
+  useEffect(() => {
+    if (!activeListingId) return;
+
+    const idx = Math.max(
+      0,
+      listings.findIndex((l) => l.id === activeListingId),
+    );
+    const fallback = calDataRef.current?.[idx] || calDataRef.current?.[0] || {};
+    const normalizedFallback = {};
+    for (const [k, v] of Object.entries(fallback)) {
+      if (v === 'booked' || v === 'blocked' || v === 'block') {
+        normalizedFallback[k] = 'blocked';
+      } else {
+        normalizedFallback[k] = v;
+      }
+    }
+
+    let isMounted = true;
+    availabilityApi
+      .getListingAvailability(activeListingId)
+      .then((data) => {
+        if (!isMounted) return;
+        const fetchedBlocks = data.blocks || [];
+        const { statusMap, confirmedDates: confDates } = blocksToDayStatusMap(fetchedBlocks);
+        setBlocks(fetchedBlocks);
+        setConfirmedDates(confDates);
+        setEtag(data.etag);
+        setServerToday(data.today);
+        setDirty(false);
+        setConflictHoldRanges([]);
+        if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+        setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
+
+        const effective = { ...normalizedFallback, ...statusMap };
+        setDayStatusMap(effective);
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setDayStatusMap(normalizedFallback);
+          showToast(apiErrorMessage(err, 'Failed to load availability calendar.'), 'error');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeListingId, listings, showToast]);
+
+  // Past date check anchored strictly to server today (Asia/Kolkata)
+  const isPast = (d) => {
+    const dateStr = formatDateKey(year, month, d);
+    if (serverToday) {
+      return isBefore(dateStr, serverToday);
+    }
+    const today = new Date();
+    return (
+      new Date(year, month, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    );
+  };
+
+  const clearSel = () => {
+    setRange({ start: null, end: null });
+    setHoverDay(null);
+  };
+
+  const applyRange = (startDay, endDay, applyMode) => {
+    if (startDay == null) return;
+    const s = Math.min(startDay, endDay ?? startDay);
+    const e = Math.max(startDay, endDay ?? startDay);
+    const next = { ...dayStatusMap };
+    let count = 0;
+    for (let d = s; d <= e; d++) {
+      const k = formatDateKey(year, month, d);
+      if (isPast(d) || confirmedDates.has(k)) continue;
+      if (applyMode === 'available') {
+        delete next[k];
+      } else {
+        next[k] = 'blocked';
+      }
+      count++;
+    }
+    setDayStatusMap(next);
+    if (setCalData) {
+      setCalData((prev) => ({
+        ...prev,
+        [listingIndex]: { ...next },
+      }));
+    }
+    setDirty(true);
+    const msgs = {
+      block: 'Dates marked as blocked',
+      available: 'Dates marked as available',
+    };
+    showToast(`${msgs[applyMode]}: ${count} day(s). Click "Save Changes" to save.`, 'info');
+    clearSel();
+  };
+
   const down = (d) => {
-    if (isPast(d)) return;
+    const dateStr = formatDateKey(year, month, d);
+    if (isPast(d) || confirmedDates.has(dateStr)) return;
     drag.current = true;
-    setRange({ start: d, end: d });
+    dragStart.current = d;
+    didDrag.current = false;
   };
+
   const enter = (d) => {
-    if (drag.current) setRange((r) => ({ ...r, end: d }));
+    const dateStr = formatDateKey(year, month, d);
+    if (isPast(d) || confirmedDates.has(dateStr)) return;
+    if (drag.current && dragStart.current != null) {
+      if (d !== dragStart.current) {
+        didDrag.current = true;
+      }
+      setRange({ start: dragStart.current, end: d });
+    } else if (range.start != null && range.end == null) {
+      setHoverDay(d);
+    }
   };
-  const clearSel = () => setRange({ start: null, end: null });
+
+  const handleDayClick = (d) => {
+    if (justFinishedDrag.current) {
+      justFinishedDrag.current = false;
+      return;
+    }
+    const dateStr = formatDateKey(year, month, d);
+    if (isPast(d) || confirmedDates.has(dateStr)) return;
+
+    if (range.start == null || range.end != null) {
+      // First click: sets start date
+      setRange({ start: d, end: null });
+      setHoverDay(null);
+    } else {
+      // Second click: sets end date and automatically applies the range
+      const startDay = range.start;
+      const endDay = d;
+      applyRange(startDay, endDay, mode);
+    }
+  };
+
   const changeMonth = (delta) => {
     clearSel();
     let m = month + delta;
@@ -1360,31 +1712,22 @@ function CalendarPage({ calData, setCalData }) {
     setMonth(m);
     setYear(y);
   };
-  const rs = range.start != null ? Math.min(range.start, range.end ?? range.start) : null;
-  const re = range.start != null ? Math.max(range.start, range.end ?? range.start) : null;
+
+  const effectiveEnd = range.end ?? (range.start != null ? hoverDay : null) ?? range.start;
+  const rs = range.start != null ? Math.min(range.start, effectiveEnd) : null;
+  const re = range.start != null ? Math.max(range.start, effectiveEnd) : null;
+
+  // Stage selected range into local map
   const apply = () => {
     if (range.start == null) {
       showToast('Select dates on the calendar first.');
       return;
     }
-    setCalData((prev) => {
-      const next = { ...prev, [listing]: { ...prev[listing] } };
-      for (let d = rs; d <= re; d++) {
-        const k = dayKey(year, month, d);
-        if (mode === 'available') delete next[listing][k];
-        else next[listing][k] = mode;
-      }
-      return next;
-    });
-    const msgs = {
-      block: 'Dates blocked',
-      available: 'Dates marked available',
-      booked: 'Dates marked as booked',
-    };
-    showToast(`${msgs[mode]}: ${re - rs + 1} day(s) on ${LISTING_NAMES[listing]}.`, 'success');
-    clearSel();
+    const end = range.end ?? hoverDay ?? range.start;
+    applyRange(range.start, end, mode);
   };
-  const [qb, setQb] = useState({ from: '', to: '', type: 'booked' });
+
+  // Quick range apply
   const applyQuick = () => {
     if (!qb.from || !qb.to) {
       showToast('Select both from and to dates.', 'error');
@@ -1394,65 +1737,329 @@ function CalendarPage({ calData, setCalData }) {
       showToast('From date must be before To date.', 'error');
       return;
     }
-    let d = new Date(qb.from);
-    const end = new Date(qb.to);
+    if (serverToday && isBefore(qb.to, serverToday)) {
+      showToast('Selected date range is entirely in the past.', 'error');
+      return;
+    }
+
+    const next = { ...dayStatusMap };
+    let curr = qb.from;
     let count = 0;
-    setCalData((prev) => {
-      const next = { ...prev, [listing]: { ...prev[listing] } };
-      while (d <= end) {
-        const pad = (n) => (n < 10 ? `0${n}` : `${n}`);
-        const k = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        if (qb.type === 'available') delete next[listing][k];
-        else next[listing][k] = qb.type;
-        d = new Date(d);
-        d.setDate(d.getDate() + 1);
+    while (curr <= qb.to) {
+      const isPastDate = serverToday
+        ? isBefore(curr, serverToday)
+        : curr < new Date().toISOString().slice(0, 10);
+      if (!isPastDate && !confirmedDates.has(curr)) {
+        if (qb.type === 'available') {
+          delete next[curr];
+        } else {
+          next[curr] = 'blocked';
+        }
         count++;
       }
-      return next;
-    });
-    const fd = new Date(qb.from);
-    setMonth(fd.getMonth());
-    setYear(fd.getFullYear());
-    showToast(`${count} day(s) updated on ${LISTING_NAMES[listing]}.`, 'success');
+      curr = addDays(curr, 1);
+    }
+
+    setDayStatusMap(next);
+    if (setCalData) {
+      setCalData((prev) => ({
+        ...prev,
+        [listingIndex]: { ...next },
+      }));
+    }
+    setDirty(true);
+    const parts = parseDateParts(qb.from);
+    if (parts) {
+      setMonth(parts.month);
+      setYear(parts.year);
+    }
+    showToast(`${count} day(s) staged. Click "Save Changes" to commit.`, 'info');
   };
-  const rangeText =
-    range.start == null
-      ? null
-      : `${{ block: 'Blocking', available: 'Marking available', booked: 'Marking as booked' }[mode]}: ${MONTHS[month]} ${rs}${rs !== re ? ` – ${re}` : ''}, ${year} (${re - rs + 1} day${re - rs > 0 ? 's' : ''})`;
+
+  // Commit changes to backend with If-Match ETag guard
+  const saveAvailability = async (retryAttempt = 0) => {
+    if (!activeListingId || isSaving) return;
+
+    const rangesToSend = dayStatusMapToRanges(dayStatusMap, confirmedDates);
+    setIsSaving(true);
+
+    try {
+      const data = await availabilityApi.syncListingAvailability(
+        activeListingId,
+        rangesToSend,
+        etag,
+      );
+
+      // STRICT REHYDRATION from server blocks
+      const savedBlocks = data.blocks || [];
+      const { statusMap, confirmedDates: confDates } = blocksToDayStatusMap(savedBlocks);
+      setBlocks(savedBlocks);
+      setDayStatusMap(statusMap);
+      if (setCalData) {
+        setCalData((prev) => ({
+          ...prev,
+          [listingIndex]: { ...statusMap },
+        }));
+      }
+      setConfirmedDates(confDates);
+      setEtag(data.etag);
+      setServerToday(data.today);
+      setDirty(false);
+      setConflictHoldRanges([]);
+
+      if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+      setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
+
+      if (data.warnings && data.warnings.length > 0) {
+        data.warnings.forEach((warn) => showToast(warn, 'warning'));
+      }
+      showToast('Availability calendar saved successfully.', 'success');
+    } catch (err) {
+      const status = err.response?.status;
+      const errData = err.response?.data;
+
+      if (status === 503) {
+        const retryAfterSec = extractRetryAfterSeconds(err, 5);
+        handleBusyRetry(retryAttempt, retryAfterSec);
+      } else if (status === 412) {
+        setStaleModal({
+          open: true,
+          serverBlocks: errData?.currentBlocks || [],
+          newEtag: errData?.etag || null,
+          newToday: errData?.today || null,
+        });
+      } else if (status === 409) {
+        const conflicts = errData?.conflictingRanges || [];
+        setConflictHoldRanges(conflicts);
+        showToast(
+          'Checkout in progress on selected dates. These dates are temporarily held and cannot be modified.',
+          'error',
+        );
+      } else {
+        showToast(apiErrorMessage(err, 'Failed to save availability.'), 'error');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBusyRetry = (attempt, waitSeconds) => {
+    if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+    const nextAttempt = attempt + 1;
+
+    if (nextAttempt <= 3) {
+      let countdown = waitSeconds;
+      setRetryState({ active: true, attempt: nextAttempt, maxAttempts: 3, countdown });
+
+      retryTimerRef.current = setInterval(() => {
+        countdown -= 1;
+        if (countdown <= 0) {
+          clearInterval(retryTimerRef.current);
+          retryTimerRef.current = null;
+          saveAvailability(nextAttempt);
+        } else {
+          setRetryState((prev) => ({ ...prev, countdown }));
+        }
+      }, 1000);
+    } else {
+      setRetryState({ active: true, attempt: nextAttempt, maxAttempts: 3, countdown: 0 });
+      showToast('Calendar is experiencing high demand. Please click Retry Now.', 'error');
+    }
+  };
+
+  const handleManualRetry = () => {
+    setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
+    saveAvailability(0);
+  };
+
+  const handleAcceptStaleReload = () => {
+    const serverBlocks = staleModal.serverBlocks;
+    const { statusMap, confirmedDates: confDates } = blocksToDayStatusMap(serverBlocks);
+    setBlocks(serverBlocks);
+    setDayStatusMap(statusMap);
+    if (setCalData) {
+      setCalData((prev) => ({
+        ...prev,
+        [listingIndex]: { ...statusMap },
+      }));
+    }
+    setConfirmedDates(confDates);
+    if (staleModal.newEtag) setEtag(staleModal.newEtag);
+    if (staleModal.newToday) setServerToday(staleModal.newToday);
+    setDirty(false);
+    setStaleModal({ open: false, serverBlocks: [], newEtag: null, newToday: null });
+    showToast('Calendar reloaded to latest server state.', 'info');
+  };
+
+  if (loadingListings) {
+    return (
+      <div className="page active">
+        <PageHeader title="Availability Calendar" sub="Loading billboard inventory..." />
+        <div className="section-card" style={{ padding: 40, textAlign: 'center' }}>
+          <p style={{ color: 'var(--ink-muted)' }}>Loading your billboard listings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="page active">
+        <PageHeader
+          title="Availability Calendar"
+          sub="Manage your billboard blocking and availability."
+        />
+        <div className="section-card" style={{ padding: 48, textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 16 }}>📅</div>
+          <h3 style={{ marginBottom: 8 }}>No Billboard Listings Found</h3>
+          <p
+            style={{
+              color: 'var(--ink-muted)',
+              marginBottom: 20,
+              maxWidth: 420,
+              margin: '0 auto 20px',
+            }}
+          >
+            Create your first billboard listing to begin managing its availability calendar and
+            blocking dates.
+          </p>
+          <button className="btn-teal" onClick={() => navigate(ROUTES.newBillboardListing)}>
+            Create New Listing
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const rangeText = (() => {
+    if (range.start == null) return null;
+    const action = mode === 'available' ? 'Marking available' : 'Blocking';
+    if (range.end == null) {
+      if (hoverDay != null && hoverDay !== range.start) {
+        const count = re - rs + 1;
+        return `${action}: ${MONTHS[month]} ${rs} – ${re}, ${year} (${count} days — click date ${hoverDay} to confirm)`;
+      }
+      return `Selected start: ${MONTHS[month]} ${range.start}, ${year}. Click second date (e.g. ${Math.min(range.start + 4, 28)}) to select range, or click Apply for single day.`;
+    }
+    const count = re - rs + 1;
+    return `${action}: ${MONTHS[month]} ${rs}${rs !== re ? ` – ${re}` : ''}, ${year} (${count} day${count > 0 ? 's' : ''})`;
+  })();
+
+  const upcomingBookings = blocks.filter((b) => b.blockType === 'CONFIRMED_BOOKING');
+
   return (
     <div className="page active">
       <PageHeader
         title="Availability Calendar"
-        sub="Click or drag to select a date range. Choose a mode then click Apply."
-      />
+        sub="Click or drag to select a date range. Choose a mode, stage your changes, then click Save Changes."
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {dirty && (
+            <span
+              className="chip chip-amber"
+              style={{ fontSize: 11, padding: '4px 8px', fontWeight: 600 }}
+            >
+              Unsaved Changes
+            </span>
+          )}
+          <button
+            className="btn-teal"
+            style={{ padding: '8px 18px', fontSize: 13, minWidth: 120 }}
+            onClick={() => saveAvailability(0)}
+            disabled={isSaving || isLoading}
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </PageHeader>
+
+      {/* 503 Auto-Retry Countdown Banner */}
+      {retryState.active && (
+        <div className="cal-alert cal-alert-busy">
+          <div style={{ fontSize: 18 }}>⏳</div>
+          <div className="cal-alert-content">
+            <strong>Calendar is currently busy.</strong>
+            <div>
+              {retryState.attempt <= retryState.maxAttempts && retryState.countdown > 0
+                ? `Retrying automatically in ${retryState.countdown}s (attempt ${retryState.attempt}/${retryState.maxAttempts})...`
+                : 'Calendar is experiencing high demand. Please try again.'}
+            </div>
+          </div>
+          {retryState.countdown === 0 && (
+            <button className="btn-teal btn-sm" onClick={handleManualRetry} disabled={isSaving}>
+              Retry Now
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 409 Hold Conflict Alert */}
+      {conflictHoldRanges.length > 0 && (
+        <div className="cal-alert cal-alert-conflict">
+          <div style={{ fontSize: 18 }}>⚠️</div>
+          <div className="cal-alert-content">
+            <strong>Checkout in progress on selected dates:</strong>
+            <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {conflictHoldRanges.map((r, i) => (
+                <span key={i} className="chip chip-amber" style={{ fontSize: 11 }}>
+                  {r.startDate} to {r.endDate}
+                </span>
+              ))}
+            </div>
+            <small style={{ color: 'var(--ink-muted)', marginTop: 4, display: 'block' }}>
+              An advertiser is currently completing checkout for these dates. This temporary hold
+              will automatically resolve in a few minutes — no action needed from you.
+            </small>
+          </div>
+          <button className="btn-ghost btn-xs" onClick={() => setConflictHoldRanges([])}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div
         style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}
         className="cal-layout"
       >
         <div className="section-card">
           <div className="sc-header" style={{ flexWrap: 'wrap', gap: 10 }}>
-            <h3>{LISTING_NAMES[listing]} — Availability</h3>
+            <div>
+              <h3>{selectedListing?.name || 'Billboard'} — Availability</h3>
+              {isLoading && (
+                <span style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>Refreshing...</span>
+              )}
+            </div>
             <select
               className="form-control"
               style={{ width: 'auto', fontSize: 12.5, padding: '7px 12px', borderRadius: 9 }}
-              value={listing}
+              value={activeListingId || ''}
               onChange={(e) => {
-                setListing(Number(e.target.value));
+                const newId = Number(e.target.value);
+                if (dirty) {
+                  if (
+                    !window.confirm(
+                      'You have unsaved availability changes. Switch billboard and discard them?',
+                    )
+                  ) {
+                    return;
+                  }
+                }
+                setSelectedListingId(newId);
                 clearSel();
               }}
             >
-              {LISTING_NAMES.map((nm, i) => (
-                <option key={nm} value={i}>
-                  {nm}
+              {listings.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} {l.status ? `(${l.status})` : ''}
                 </option>
               ))}
             </select>
           </div>
+
           <div className="cal-toolbar">
             {[
               ['block', 'Block Dates'],
               ['available', 'Mark Available'],
-              ['booked', 'Mark Booked'],
             ].map(([m, lbl]) => (
               <button
                 key={m}
@@ -1499,6 +2106,7 @@ function CalendarPage({ calData, setCalData }) {
               </button>
             </div>
           </div>
+
           <div className={cn('cal-range-info', range.start != null && 'visible')}>
             <span className="cal-range-text">{rangeText || 'No dates selected'}</span>
             <div className="cal-range-actions">
@@ -1510,13 +2118,24 @@ function CalendarPage({ calData, setCalData }) {
               </button>
             </div>
           </div>
-          <div className="avail-calendar" style={{ padding: '18px 22px' }}>
+
+          <div
+            className="avail-calendar"
+            style={{ padding: '18px 22px' }}
+            onMouseLeave={() => setHoverDay(null)}
+          >
             <CalGrid
               month={month}
               year={year}
-              statusFor={(d) => calData[listing][dayKey(year, month, d)] || 'available'}
+              serverToday={serverToday}
+              statusFor={(d) => {
+                const k = formatDateKey(year, month, d);
+                return dayStatusMap[k] || 'available';
+              }}
               extra={(d) => {
                 let c = isPast(d) ? 'past' : '';
+                const k = formatDateKey(year, month, d);
+                if (confirmedDates.has(k)) c += ' booked';
                 if (rs != null) {
                   if (d === rs && d === re) c += ' selected';
                   else if (d === rs) c += ' range-start';
@@ -1525,7 +2144,11 @@ function CalendarPage({ calData, setCalData }) {
                 }
                 return c;
               }}
-              dayProps={(d) => ({ onMouseDown: () => down(d), onMouseEnter: () => enter(d) })}
+              dayProps={(d) => ({
+                onClick: () => handleDayClick(d),
+                onMouseDown: () => down(d),
+                onMouseEnter: () => enter(d),
+              })}
             />
             <div className="cal-legend" style={{ marginTop: 16 }}>
               <div className="cal-legend-item">
@@ -1533,8 +2156,12 @@ function CalendarPage({ calData, setCalData }) {
                 Available
               </div>
               <div className="cal-legend-item">
+                <div className="cal-legend-dot" style={{ background: '#b45309' }} />
+                Blocked by Owner
+              </div>
+              <div className="cal-legend-item">
                 <div className="cal-legend-dot" style={{ background: 'var(--rose)' }} />
-                Booked
+                Confirmed Booking
               </div>
               <div className="cal-legend-item">
                 <div className="cal-legend-dot" style={{ background: 'var(--teal)' }} />
@@ -1542,11 +2169,12 @@ function CalendarPage({ calData, setCalData }) {
               </div>
               <div className="cal-legend-item">
                 <div className="cal-legend-dot" style={{ background: 'var(--indigo)' }} />
-                Today
+                Today (IST)
               </div>
             </div>
           </div>
         </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="section-card" style={{ padding: 22 }}>
             <div
@@ -1559,33 +2187,36 @@ function CalendarPage({ calData, setCalData }) {
                 marginBottom: 16,
               }}
             >
-              Upcoming Bookings
+              Confirmed Bookings
             </div>
-            {BOOKINGS.map((b) => (
-              <div className="booking-row" key={b.name}>
-                <div className="booking-name">{b.name}</div>
-                <div className="booking-dates">
-                  {b.listing} · {b.dates}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: 4,
-                  }}
-                >
-                  <div className="booking-price">{b.price}</div>
-                  <button
-                    className="btn-ghost btn-xs"
-                    onClick={() => showToast('Booking details opened.')}
+            {upcomingBookings.length === 0 ? (
+              <p style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>
+                No active confirmed bookings on this billboard.
+              </p>
+            ) : (
+              upcomingBookings.map((b) => (
+                <div className="booking-row" key={b.id || `${b.startDate}-${b.endDate}`}>
+                  <div className="booking-name">Confirmed Booking</div>
+                  <div className="booking-dates">
+                    {b.startDate} to {b.endDate}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 4,
+                    }}
                   >
-                    View
-                  </button>
+                    <span className="chip chip-booked" style={{ fontSize: 10.5 }}>
+                      Read-Only
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
+
           <div className="section-card" style={{ padding: 22 }}>
             <div
               style={{
@@ -1600,33 +2231,37 @@ function CalendarPage({ calData, setCalData }) {
               Quick Block by Date Range
             </div>
             <div className="form-group">
-              <label>From</label>
+              <label htmlFor="qb-from">From</label>
               <input
+                id="qb-from"
                 type="date"
                 className="form-control"
+                min={serverToday || undefined}
                 value={qb.from}
                 onChange={(e) => setQb({ ...qb, from: e.target.value })}
               />
             </div>
             <div className="form-group">
-              <label>To</label>
+              <label htmlFor="qb-to">To</label>
               <input
+                id="qb-to"
                 type="date"
                 className="form-control"
+                min={qb.from || serverToday || undefined}
                 value={qb.to}
                 onChange={(e) => setQb({ ...qb, to: e.target.value })}
               />
             </div>
             <div className="form-group" style={{ marginBottom: 12 }}>
-              <label>Mark as</label>
+              <label htmlFor="qb-action">Action</label>
               <select
+                id="qb-action"
                 className="form-control"
                 value={qb.type}
                 onChange={(e) => setQb({ ...qb, type: e.target.value })}
               >
-                <option value="booked">Booked</option>
-                <option value="block">Blocked</option>
-                <option value="available">Available</option>
+                <option value="block">Block Dates</option>
+                <option value="available">Mark Available</option>
               </select>
             </div>
             <button
@@ -1637,46 +2272,44 @@ function CalendarPage({ calData, setCalData }) {
               Apply Date Range
             </button>
           </div>
-          <div className="section-card" style={{ padding: 22 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: 1.5,
-                color: 'var(--ink-faint)',
-                marginBottom: 14,
-              }}
-            >
-              Booking Rules
-            </div>
-            <div className="form-group">
-              <label>Minimum Duration</label>
-              <select
-                className="form-control"
-                defaultValue="3 Months"
-                onChange={() => showToast('Booking rule updated.')}
-              >
-                <option>1 Month</option>
-                <option>3 Months</option>
-                <option>6 Months</option>
-              </select>
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Advance Notice</label>
-              <select
-                className="form-control"
-                defaultValue="14 days"
-                onChange={() => showToast('Notice period saved.')}
-              >
-                <option>7 days</option>
-                <option>14 days</option>
-                <option>30 days</option>
-              </select>
-            </div>
-          </div>
+
+          <BookingRulesCard
+            key={activeListingId}
+            activeListingId={activeListingId}
+            selectedListing={selectedListing}
+          />
         </div>
       </div>
+
+      {/* 412 Stale Write Modal */}
+      {staleModal.open && (
+        <Modal
+          title="Calendar Updated Elsewhere"
+          onClose={() =>
+            setStaleModal({ open: false, serverBlocks: [], newEtag: null, newToday: null })
+          }
+          footer={
+            <>
+              <button
+                className="btn-ghost"
+                onClick={() =>
+                  setStaleModal({ open: false, serverBlocks: [], newEtag: null, newToday: null })
+                }
+              >
+                Cancel
+              </button>
+              <button className="btn-teal" onClick={handleAcceptStaleReload}>
+                Load Latest Calendar
+              </button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 13.5, color: 'var(--ink-muted)', lineHeight: 1.6 }}>
+            The availability calendar for this billboard was modified in another session or device.
+            To avoid overwriting those changes, please reload the latest calendar state.
+          </p>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -2552,7 +3185,14 @@ export function OwnerDashboard() {
             submittingId={submittingReviewId}
           />
         )}
-        {page === 'calendar' && <CalendarPage calData={calData} setCalData={setCalData} />}
+        {page === 'calendar' && (
+          <CalendarPage
+            calData={calData}
+            setCalData={setCalData}
+            listings={listings}
+            loadingListings={loadingListings}
+          />
+        )}
         {page === 'quotes' && (
           <QuotesPage onRespond={(brand, listing) => setModal({ type: 'quote', brand, listing })} />
         )}

@@ -24,8 +24,12 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -171,5 +175,73 @@ class PostgresLockTimeoutIT {
                 .andExpect(status().isNoContent());
 
         assertThat(billboardListingRepository.findById(saved.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Availability PUT returns 503 Service Unavailable with Retry-After: 5 when row lock is held > 5s in PostgreSQL")
+    void lockTimeout_returns503WithRetryAfter() throws Exception {
+        User owner = userRepository.save(new User("Avail", "Owner", "avail_lock_owner@example.com", "hash", "+919999999998", Role.OWNER));
+        Address address = Address.of("Avail Lock St", "Landmark", "City", "Bangalore", "Karnataka", "560001");
+
+        BillboardListing listing = new BillboardListing();
+        listing.setUser(owner);
+        listing.setName("Avail Lock Listing");
+        listing.setAddress(address);
+        listing.setType(BillboardType.UNIPOLE);
+        listing.setWidthFt(new BigDecimal("20.0"));
+        listing.setHeightFt(new BigDecimal("10.0"));
+        listing.setFacing(FacingDirection.NORTH);
+        listing.setTrafficType(TrafficType.HIGHWAY);
+        listing.setAudienceType(AudienceType.COMMUTERS);
+        listing.setStartPrice(new BigDecimal("50000.00"));
+        listing.setMinBookingValue(1);
+        listing.setMinBookingUnit(BookingDurationUnit.MONTHS);
+        listing.setMinBookingDays(30);
+        listing.setStatus(BillboardStatus.ACTIVE);
+        final BillboardListing saved = billboardListingRepository.save(listing);
+
+        String token = jwtService.generateAccessToken(owner);
+
+        CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
+        CountDownLatch releaseLockLatch = new CountDownLatch(1);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> holderFuture = executor.submit(() -> {
+            TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+            txTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            txTemplate.execute(status -> {
+                billboardListingRepository.findByIdForUpdate(saved.getId());
+                lockAcquiredLatch.countDown();
+                try {
+                    releaseLockLatch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return null;
+            });
+        });
+
+        try {
+            assertThat(lockAcquiredLatch.await(3, TimeUnit.SECONDS)).isTrue();
+
+            long startTime = System.currentTimeMillis();
+
+            // Calling availability bulkSyncOwnerBlocks attempts to acquire findByIdAndUserIdForUpdate on the locked row
+            mockMvc.perform(put("/api/owner/listings/" + saved.getId() + "/availability")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .header(HttpHeaders.IF_MATCH, "\"any-etag\"")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"ranges\":[{\"startDate\":\"2026-12-01\",\"endDate\":\"2026-12-05\"}]}"))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(header().string(HttpHeaders.RETRY_AFTER, "5"))
+                    .andExpect(jsonPath("$.errorCode").value("AVAILABILITY_BUSY"));
+
+            long duration = System.currentTimeMillis() - startTime;
+            assertThat(duration).isGreaterThanOrEqualTo(4500L);
+        } finally {
+            releaseLockLatch.countDown();
+            holderFuture.get(3, TimeUnit.SECONDS);
+            executor.shutdownNow();
+        }
     }
 }

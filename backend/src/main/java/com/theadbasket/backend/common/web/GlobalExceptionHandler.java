@@ -1,6 +1,13 @@
 package com.theadbasket.backend.common.web;
 
 import com.theadbasket.backend.auth.AuthCookieService;
+import com.theadbasket.backend.availability.dto.HoldConflictError;
+import com.theadbasket.backend.availability.dto.StaleAvailabilityError;
+import com.theadbasket.backend.availability.exception.AvailabilityBusyException;
+import com.theadbasket.backend.availability.exception.HoldConflictException;
+import com.theadbasket.backend.availability.exception.ListingNotActiveException;
+import com.theadbasket.backend.availability.exception.PreconditionRequiredException;
+import com.theadbasket.backend.availability.exception.StaleAvailabilityException;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.AppException;
 import com.theadbasket.backend.common.exception.BadRequestException;
@@ -10,6 +17,7 @@ import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.common.exception.TokenRefreshException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -56,6 +64,63 @@ public class GlobalExceptionHandler {
                 .header(HttpHeaders.RETRY_AFTER, "5")
                 .body(ApiError.of(HttpStatus.SERVICE_UNAVAILABLE.value(), HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                         ex.getErrorCode().name(), resolve(ex.getErrorCode(), ex.getArgs()), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(StaleAvailabilityException.class)
+    public ResponseEntity<StaleAvailabilityError> handleStaleAvailability(
+            StaleAvailabilityException ex, HttpServletRequest request) {
+        log.warn("Stale availability on {}: etag={}", request.getRequestURI(), ex.getEtag());
+        String message = resolve(ex.getErrorCode(), ex.getArgs());
+        StaleAvailabilityError body = StaleAvailabilityError.of(
+                request.getRequestURI(),
+                message,
+                ex.getCurrentBlocks(),
+                ex.getEtag(),
+                ex.getToday()
+        );
+        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED)
+                .header(HttpHeaders.ETAG, "\"" + ex.getEtag() + "\"")
+                .body(body);
+    }
+
+    @ExceptionHandler(HoldConflictException.class)
+    public ResponseEntity<HoldConflictError> handleHoldConflict(
+            HoldConflictException ex, HttpServletRequest request) {
+        log.warn("Hold conflict on {}", request.getRequestURI());
+        String message = resolve(ex.getErrorCode(), ex.getArgs());
+        HoldConflictError body = HoldConflictError.of(
+                request.getRequestURI(),
+                message,
+                ex.getConflictingRanges()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(PreconditionRequiredException.class)
+    public ResponseEntity<ApiError> handlePreconditionRequired(
+            PreconditionRequiredException ex, HttpServletRequest request) {
+        log.warn("Precondition required on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        return build(HttpStatus.PRECONDITION_REQUIRED, ex, request);
+    }
+
+    @ExceptionHandler(AvailabilityBusyException.class)
+    public ResponseEntity<ApiError> handleAvailabilityBusy(
+            AvailabilityBusyException ex, HttpServletRequest request) {
+        log.warn("Availability busy on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, "5")
+                .body(ApiError.of(HttpStatus.SERVICE_UNAVAILABLE.value(),
+                        HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                        ex.getErrorCode().name(),
+                        resolve(ex.getErrorCode(), ex.getArgs()),
+                        request.getRequestURI()));
+    }
+
+    @ExceptionHandler(ListingNotActiveException.class)
+    public ResponseEntity<ApiError> handleListingNotActive(
+            ListingNotActiveException ex, HttpServletRequest request) {
+        log.warn("Listing not active on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        return build(HttpStatus.NOT_FOUND, ex, request);
     }
 
     @ExceptionHandler(TokenRefreshException.class)
