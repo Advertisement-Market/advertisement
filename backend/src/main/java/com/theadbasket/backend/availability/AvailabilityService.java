@@ -34,6 +34,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -249,11 +250,20 @@ public class AvailabilityService {
         Map<Long, BillboardAvailabilityBlock> conflictingHoldsById = new LinkedHashMap<>();
         List<DateRangeDto> trimmedEditable = new ArrayList<>();
 
-        for (DateRangeDto range : mergedEditable) {
-            List<BillboardAvailabilityBlock> blockers = blockRepository
-                    .findActiveOverlapping(billboardId, range.startDate(), range.endDate(), now)
+        List<BillboardAvailabilityBlock> allActiveBlockers = Collections.emptyList();
+        if (!mergedEditable.isEmpty()) {
+            LocalDate minStart = mergedEditable.get(0).startDate();
+            LocalDate maxEnd = mergedEditable.get(mergedEditable.size() - 1).endDate();
+            allActiveBlockers = blockRepository
+                    .findActiveOverlapping(billboardId, minStart, maxEnd, now)
                     .stream()
                     .filter(b -> b.getBlockType() != AvailabilityBlockType.OWNER_BLOCKED)
+                    .toList();
+        }
+
+        for (DateRangeDto range : mergedEditable) {
+            List<BillboardAvailabilityBlock> blockers = allActiveBlockers.stream()
+                    .filter(b -> !b.getStartDate().isAfter(range.endDate()) && !b.getEndDate().isBefore(range.startDate()))
                     .toList();
 
             for (BillboardAvailabilityBlock b : blockers) {

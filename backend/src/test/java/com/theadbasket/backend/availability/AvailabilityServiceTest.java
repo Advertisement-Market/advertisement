@@ -522,6 +522,34 @@ class AvailabilityServiceTest {
     }
 
     @Test
+    @DisplayName("Single bounding span query prevents N+1 queries across multiple editable ranges")
+    void singleBoundingSpanQuery_preventsNPlusOneQueries() {
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of());
+
+        // Three disjoint editable ranges: Nov 10–12, Nov 15–18, Nov 22–25
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 12)),
+                new AvailabilityRangeRequest(LocalDate.of(2026, 11, 15), LocalDate.of(2026, 11, 18)),
+                new AvailabilityRangeRequest(LocalDate.of(2026, 11, 22), LocalDate.of(2026, 11, 25))
+        );
+
+        when(blockRepository.findActiveOverlapping(
+                eq(billboardId),
+                eq(LocalDate.of(2026, 11, 10)),
+                eq(LocalDate.of(2026, 11, 25)),
+                any()
+        )).thenReturn(List.of());
+
+        String currentETag = calculateETag(List.of());
+        BulkSyncResponse resp = availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\"");
+
+        assertThat(resp.blocks()).hasSize(3);
+        // Verify findActiveOverlapping was called exactly once with the overall bounding span [Nov 10, Nov 25]
+        verify(blockRepository, times(1)).findActiveOverlapping(eq(billboardId), eq(LocalDate.of(2026, 11, 10)), eq(LocalDate.of(2026, 11, 25)), any());
+    }
+
+    @Test
     @DisplayName("Deterministic clock: hold expiry and midnight rollover without sleeps")
     void deterministicClock_holdExpiryAndMidnightRollover() {
         Instant holdExpiry = FIXED_INSTANT.plus(Duration.ofMinutes(15));
