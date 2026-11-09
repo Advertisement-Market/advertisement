@@ -178,6 +178,12 @@ CREATE INDEX idx_avail_billboard_active
 3. **Composite Indexing:**
    - `idx_avail_billboard_dates` provides high-speed range lookups for owner synchronization.
    - `idx_avail_billboard_active` accelerates public marketplace queries filtering `end_date >= CURRENT_DATE`.
+4. **Concurrency & Storage Integrity (Row Lock vs. GiST Exclusion):**
+   - Concurrency is enforced at the parent listing row level (`findByIdAndUserIdForUpdate` with `PESSIMISTIC_WRITE`).
+   - A PostgreSQL GiST exclusion constraint (`EXCLUDE USING gist (billboard_id WITH =, daterange(start_date, end_date, '[]') WITH &&)`) was considered, but intentionally deferred in favor of row locking because:
+     - GiST exclusion on `daterange` requires PostgreSQL's `btree_gist` extension, which is unsupported by the H2 test dialect used for local unit and integration tests.
+     - Temporary checkout holds (`BOOKING_HOLD`) expire based on timestamp (`expiry_ts`). A database-level exclusion constraint on raw dates would reject valid owner writes before background cleaner tasks purge expired holds.
+     - Row-level locking on the billboard listing guarantees strict serializability per billboard while keeping lock retention under milliseconds.
 
 ---
 
@@ -235,6 +241,10 @@ CREATE INDEX idx_avail_billboard_active
 ### Trap 8: Forward Scheduling Horizon vs. Single Block Duration Cap
 - **Problem:** Availability sync previously checked `ChronoUnit.DAYS.between(range.startDate(), range.endDate()) + 1 > 730`, which only measured the duration of an individual contiguous block. An owner could schedule blocks years into the future (e.g. 5–10 years ahead), passing validation but rendering them unreachable via public query windows (which clamp to 730 days).
 - **Solution:** Added a horizon check `ChronoUnit.DAYS.between(today, range.endDate()) > 730` alongside the duration check, strictly constraining all forward blocks to within 730 days from today.
+
+### Trap 9: Fail-Fast If-Match ETag Concurrency Validation Before Hold Queries
+- **Problem:** If-Match ETag validation previously ran after checking active booking holds and confirmed bookings. When an owner had a stale browser tab and an advertiser placed a concurrent temporary checkout hold, the server threw `409 HoldConflictException` instead of `412 StaleAvailabilityException`. The owner was misled into waiting for the hold to expire, only to immediately fail with a 412 error on retry.
+- **Solution:** Reordered pipeline steps so that proposed changes are checked against existing DB blocks for replay short-circuiting, followed immediately by fail-fast `If-Match` validation before executing blocker queries or hold conflict checks. Stale sessions fail fast with 412 without evaluating blocker holds.
 
 ---
 
@@ -356,14 +366,15 @@ CREATE INDEX idx_avail_billboard_active
 
 ## 7. Automated Test Suite & Verification
 
-### 7.1 Backend Test Coverage (64 Tests Passed)
-- **Unit Tests: `AvailabilityServiceTest.java` (35 tests):**
+### 7.1 Backend Test Coverage (65 Tests Passed)
+- **Unit Tests: `AvailabilityServiceTest.java` (36 tests):**
   - Past history preservation across midnight boundaries.
   - Adjacent and overlapping range coalescing.
   - Single bounding span query preventing N+1 queries across multiple editable ranges.
   - Maximum payload size enforcement (500 ranges).
   - Maximum scheduling window and forward horizon enforcement (730 days).
   - Rejection of ranges exceeding 730 days duration or forward horizon beyond 730 days from today.
+  - Fail-fast `If-Match` validation before blocker/hold queries preventing spurious 409s on stale sessions.
   - SHA-256 ETag deterministic calculation and replay short-circuiting.
   - Optimistic locking (`PreconditionFailedException` on mismatch).
   - Public block clamping to `today`.
@@ -375,18 +386,22 @@ CREATE INDEX idx_avail_billboard_active
 - **Postgres Row Lock Timeout Test: `PostgresLockTimeoutIT.java`:**
   - Verified concurrent transaction contention triggers `503 Service Unavailable` with `Retry-After: 5`.
 
-### 7.2 Frontend Test Coverage (163 Tests Passed)
+### 7.2 Frontend Test Coverage (169 Tests Passed)
 - **Unit Tests: `availabilityUtils.test.js` (11 tests):**
   - Contiguous day range expansion and aggregation.
   - Non-confirmed `'booked'` date preservation.
   - Cross-month and leap-year date math.
   - `Retry-After` header extraction.
-- **Integration Tests: `CalendarPage.test.jsx` (10 tests):**
+- **Unit Tests: `availabilityApi.test.js` (5 tests):**
+  - ETag quotation and weak ETag (`W/`) prefix sanitization.
+  - Owner and public availability API contract verification.
+- **Integration Tests: `CalendarPage.test.jsx` (11 tests):**
   - Initial calendar load and block hydration.
   - Loading state (`isLoading`) and "Refreshing..." indicator validation with disabled Save button during fetch.
   - Two-click range selection (e.g. clicking 20 and 24 selects and stages 20–24 inclusive).
   - Multi-cell drag selection preservation across `mouseup` and trailing browser `click` event.
   - Cell click and range staging.
+  - Quick range 730-day span guard preventing UI thread lockup.
   - Dirty state indicator and Save button enablement.
   - Successful save lifecycle.
   - 412 Precondition Failed modal display and refresh flow.
