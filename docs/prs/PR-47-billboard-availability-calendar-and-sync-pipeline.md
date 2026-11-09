@@ -232,6 +232,10 @@ CREATE INDEX idx_avail_billboard_active
 - **Problem:** When validating editable ranges against active booking holds and confirmed bookings, querying `findActiveOverlapping` per range inside a loop while holding the billboard row lock produced N+1 database queries under load.
 - **Solution:** Replaced per-range queries with a single query across the overall bounding span `[mergedEditable.get(0).startDate(), mergedEditable.get(mergedEditable.size() - 1).endDate()]` and evaluated interval overlaps in-memory, minimizing lock retention time.
 
+### Trap 8: Forward Scheduling Horizon vs. Single Block Duration Cap
+- **Problem:** Availability sync previously checked `ChronoUnit.DAYS.between(range.startDate(), range.endDate()) + 1 > 730`, which only measured the duration of an individual contiguous block. An owner could schedule blocks years into the future (e.g. 5–10 years ahead), passing validation but rendering them unreachable via public query windows (which clamp to 730 days).
+- **Solution:** Added a horizon check `ChronoUnit.DAYS.between(today, range.endDate()) > 730` alongside the duration check, strictly constraining all forward blocks to within 730 days from today.
+
 ---
 
 ## 5. API Specifications & Contracts
@@ -352,13 +356,14 @@ CREATE INDEX idx_avail_billboard_active
 
 ## 7. Automated Test Suite & Verification
 
-### 7.1 Backend Test Coverage (61 Tests Passed)
-- **Unit Tests: `AvailabilityServiceTest.java` (32 tests):**
+### 7.1 Backend Test Coverage (64 Tests Passed)
+- **Unit Tests: `AvailabilityServiceTest.java` (35 tests):**
   - Past history preservation across midnight boundaries.
   - Adjacent and overlapping range coalescing.
   - Single bounding span query preventing N+1 queries across multiple editable ranges.
   - Maximum payload size enforcement (500 ranges).
-  - Maximum scheduling window enforcement (730 days).
+  - Maximum scheduling window and forward horizon enforcement (730 days).
+  - Rejection of ranges exceeding 730 days duration or forward horizon beyond 730 days from today.
   - SHA-256 ETag deterministic calculation and replay short-circuiting.
   - Optimistic locking (`PreconditionFailedException` on mismatch).
   - Public block clamping to `today`.
