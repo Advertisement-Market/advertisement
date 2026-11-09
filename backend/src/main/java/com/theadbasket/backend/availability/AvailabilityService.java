@@ -240,7 +240,7 @@ public class AvailabilityService {
         // 4a. 730-day cap check strictly on editableList (cannot trip on history)
         for (DateRangeDto range : mergedEditable) {
             long days = ChronoUnit.DAYS.between(range.startDate(), range.endDate()) + 1;
-            if (days > 730) {
+            if (days > 730 || ChronoUnit.DAYS.between(today, range.endDate()) > 730) {
                 throw new BadRequestException(ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
             }
         }

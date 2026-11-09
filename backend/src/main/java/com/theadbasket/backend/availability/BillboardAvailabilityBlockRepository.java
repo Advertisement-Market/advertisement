@@ -20,7 +20,10 @@ public interface BillboardAvailabilityBlockRepository extends JpaRepository<Bill
         SELECT b FROM BillboardAvailabilityBlock b
         WHERE b.billboardId = :billboardId
           AND b.endDate >= :from AND b.startDate <= :to
-          AND (b.expiryTs IS NULL OR b.expiryTs > :now)
+          AND (
+            b.blockType != com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
+            OR (b.expiryTs IS NOT NULL AND b.expiryTs > :now)
+          )
         ORDER BY b.startDate ASC
         """)
     List<BillboardAvailabilityBlock> findPublicActiveBlocks(
@@ -33,7 +36,10 @@ public interface BillboardAvailabilityBlockRepository extends JpaRepository<Bill
         SELECT b FROM BillboardAvailabilityBlock b
         WHERE b.billboardId = :billboardId
           AND b.startDate <= :endDate AND b.endDate >= :startDate
-          AND (b.expiryTs IS NULL OR b.expiryTs > :now)
+          AND (
+            b.blockType != com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
+            OR (b.expiryTs IS NOT NULL AND b.expiryTs > :now)
+          )
         ORDER BY b.startDate ASC
         """)
     List<BillboardAvailabilityBlock> findActiveOverlapping(

@@ -525,7 +525,12 @@ class AvailabilityServiceTest {
     @DisplayName("Single bounding span query prevents N+1 queries across multiple editable ranges")
     void singleBoundingSpanQuery_preventsNPlusOneQueries() {
         when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
-                .thenReturn(List.of());
+                .thenReturn(List.of())
+                .thenReturn(List.of(
+                        createBlock(1L, LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 12), AvailabilityBlockType.OWNER_BLOCKED),
+                        createBlock(2L, LocalDate.of(2026, 11, 15), LocalDate.of(2026, 11, 18), AvailabilityBlockType.OWNER_BLOCKED),
+                        createBlock(3L, LocalDate.of(2026, 11, 22), LocalDate.of(2026, 11, 25), AvailabilityBlockType.OWNER_BLOCKED)
+                ));
 
         // Three disjoint editable ranges: Nov 10–12, Nov 15–18, Nov 22–25
         List<AvailabilityRangeRequest> ranges = List.of(
@@ -732,6 +737,61 @@ class AvailabilityServiceTest {
         assertThat(resp.warnings()).hasSize(1);
         assertThat(resp.warnings().get(0)).contains("was partially trimmed");
         assertThat(resp.blocks()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Range duration exceeding 730 days throws AVAILABILITY_RANGE_TOO_LONG")
+    void rangeDurationExceeding730Days_throwsAvailabilityRangeTooLong() {
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of());
+
+        // 731 days duration starting from today
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(TODAY, TODAY.plusDays(730))
+        );
+
+        String currentETag = calculateETag(List.of());
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\""))
+                .isInstanceOf(BadRequestException.class)
+                .matches(e -> ((BadRequestException) e).getErrorCode() == ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("Forward scheduling horizon exceeding 730 days from today throws AVAILABILITY_RANGE_TOO_LONG")
+    void forwardSchedulingHorizonExceeding730Days_throwsAvailabilityRangeTooLong() {
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of());
+
+        // Short 3-day block but 5 years in the future (exceeds 730 days from today)
+        LocalDate farFuture = TODAY.plusYears(5);
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(farFuture, farFuture.plusDays(2))
+        );
+
+        String currentETag = calculateETag(List.of());
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\""))
+                .isInstanceOf(BadRequestException.class)
+                .matches(e -> ((BadRequestException) e).getErrorCode() == ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("Forward scheduling horizon within 730 days from today succeeds")
+    void forwardSchedulingHorizonWithin730Days_succeeds() {
+        LocalDate blockEnd = TODAY.plusDays(730);
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(blockEnd.minusDays(5), blockEnd)
+        );
+
+        when(blockRepository.findActiveOverlapping(eq(billboardId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of())
+                .thenReturn(List.of(createBlock(1L, blockEnd.minusDays(5), blockEnd, AvailabilityBlockType.OWNER_BLOCKED)));
+
+        String currentETag = calculateETag(List.of());
+        BulkSyncResponse resp = availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\"");
+
+        assertThat(resp.blocks()).hasSize(1);
     }
 
     @Test
