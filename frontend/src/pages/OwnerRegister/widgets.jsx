@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
@@ -346,6 +347,310 @@ export function ApprovalOptions({ name, options }) {
   );
 }
 
+export function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function normalizeUploadItem(item) {
+  if (!item) return null;
+  if (item instanceof File) {
+    return { id: generateUUID(), file: item };
+  }
+  if (item.file instanceof File) {
+    return { id: item.id || generateUUID(), file: item.file };
+  }
+  return item;
+}
+
+export function ThumbnailCard({
+  item,
+  isExisting = false,
+  isCover = false,
+  isProjectedCover = false,
+  isStagedDelete = false,
+  category,
+  onSelectCover,
+  onRemove,
+  onUndoDelete,
+  onPreview,
+}) {
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const isVideo =
+    category === 'VIDEO' ||
+    item?.category === 'VIDEO' ||
+    item?.file?.type?.startsWith('video/') ||
+    /\.(mp4|mov)$/i.test(item?.originalName || item?.file?.name || '');
+
+  const isDayPhoto = category === 'DAY_PHOTO' || item?.category === 'DAY_PHOTO';
+  const name = item?.originalName || item?.file?.name || 'Media Asset';
+
+  useEffect(() => {
+    if (isExisting) return;
+    const file = item?.file || (item instanceof File ? item : null);
+    if (!file || isVideo) return;
+    const url = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [isExisting, item, isVideo]);
+
+  const displayUrl = isExisting
+    ? item?.url || item?.fileUrl || (item?.storageKey ? `/api/media/${item.storageKey}` : null)
+    : previewUrl;
+
+  return (
+    <div
+      className={cn('thumbnail-card-wrapper', isStagedDelete && 'staged-delete')}
+      style={{
+        position: 'relative',
+        width: 88,
+        height: 88,
+        borderRadius: 10,
+        overflow: 'hidden',
+        border: isCover
+          ? '2px solid var(--teal, #0d9488)'
+          : isProjectedCover
+            ? '2px dashed var(--teal, #0d9488)'
+            : isStagedDelete
+              ? '1px dashed #ef4444'
+              : '1px solid var(--border-medium, #cbd5e1)',
+        background: isStagedDelete ? 'rgba(254, 242, 242, 0.7)' : 'var(--cream-warm, #f8fafc)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 10,
+        color: 'var(--ink-faint, #64748b)',
+        boxShadow: isCover ? '0 0 0 2px rgba(13, 148, 136, 0.2)' : '0 1px 3px rgba(0,0,0,0.06)',
+        cursor: 'pointer',
+      }}
+      onClick={() => onPreview && onPreview(item)}
+      title="Click to preview full-size"
+    >
+      {/* Visual content: image or video placeholder */}
+      {isVideo ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 6,
+            textAlign: 'center',
+            gap: 4,
+          }}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--teal, #0d9488)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+            <line x1="7" y1="2" x2="7" y2="22" />
+            <line x1="17" y1="2" x2="17" y2="22" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <line x1="2" y1="7" x2="7" y2="7" />
+            <line x1="2" y1="17" x2="7" y2="17" />
+            <line x1="17" y1="17" x2="22" y2="17" />
+            <line x1="17" y1="7" x2="22" y2="7" />
+          </svg>
+          <span
+            style={{
+              fontSize: 8.5,
+              fontWeight: 600,
+              maxWidth: 76,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {name}
+          </span>
+        </div>
+      ) : displayUrl ? (
+        <img
+          src={displayUrl}
+          alt={name}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: isStagedDelete ? 0.35 : 1,
+            filter: isStagedDelete ? 'grayscale(80%)' : 'none',
+          }}
+        />
+      ) : (
+        <span style={{ padding: 4, textAlign: 'center', wordBreak: 'break-all' }}>{name}</span>
+      )}
+
+      {/* Cover Badges for Day Photos */}
+      {isDayPhoto && isCover && !isStagedDelete && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 3,
+            left: 3,
+            background: 'var(--teal, #0d9488)',
+            color: '#fff',
+            fontSize: 8,
+            fontWeight: 700,
+            padding: '1.5px 5px',
+            borderRadius: 4,
+            letterSpacing: 0.3,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          }}
+        >
+          ⭐ COVER
+        </div>
+      )}
+
+      {isDayPhoto && isProjectedCover && !isCover && !isStagedDelete && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 3,
+            left: 3,
+            background: 'rgba(71, 85, 105, 0.85)',
+            color: '#fff',
+            fontSize: 7.5,
+            fontWeight: 600,
+            padding: '1.5px 4px',
+            borderRadius: 3,
+          }}
+          title="Will automatically become cover if no cover is selected"
+        >
+          AUTO COVER
+        </div>
+      )}
+
+      {/* Set as Cover action for Day Photos */}
+      {isDayPhoto && !isCover && !isStagedDelete && onSelectCover && (
+        <button
+          type="button"
+          className="btn-set-cover-card"
+          title="Set as Primary Cover"
+          aria-label="Set as cover photo"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectCover(item);
+          }}
+          style={{
+            position: 'absolute',
+            bottom: 3,
+            right: 3,
+            background: 'rgba(15, 23, 42, 0.75)',
+            color: '#fff',
+            fontSize: 8,
+            padding: '2px 5px',
+            borderRadius: 4,
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Make Cover
+        </button>
+      )}
+
+      {/* Staged Delete Overlay */}
+      {isStagedDelete && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(239, 68, 68, 0.15)',
+            padding: 4,
+            textAlign: 'center',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 8,
+              fontWeight: 700,
+              color: '#b91c1c',
+              marginBottom: 4,
+            }}
+          >
+            Removing
+          </span>
+          {onUndoDelete && (
+            <button
+              type="button"
+              aria-label="Undo removal"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUndoDelete(item.id);
+              }}
+              style={{
+                fontSize: 8.5,
+                fontWeight: 700,
+                padding: '2px 6px',
+                borderRadius: 4,
+                background: '#fff',
+                color: 'var(--teal, #0d9488)',
+                border: '1px solid var(--teal, #0d9488)',
+                cursor: 'pointer',
+              }}
+            >
+              ↩ Undo
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Remove button */}
+      {!isStagedDelete && onRemove && (
+        <button
+          type="button"
+          title="Remove this photo"
+          aria-label="Remove photo"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(item);
+          }}
+          style={{
+            position: 'absolute',
+            top: 3,
+            right: 3,
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            background: 'rgba(239, 68, 68, 0.9)',
+            color: '#fff',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── Photo / file upload zone with thumbnail previews & delete handling ── */
 export function UploadZone({
   icon,
@@ -363,6 +668,12 @@ export function UploadZone({
   onRemoveExisting,
   category,
   maxCount = 10,
+  selectedCover,
+  onSelectCover,
+  projectedCoverId,
+  stagedDeleteIds = [],
+  onUndoDelete,
+  onPreviewItem,
 }) {
   const { showToast } = useRegister();
   const inputRef = useRef(null);
@@ -370,7 +681,12 @@ export function UploadZone({
   const [dragging, setDragging] = useState(false);
 
   const isControlled = Array.isArray(controlledFiles) && typeof onChange === 'function';
-  const currentFiles = isControlled ? controlledFiles : internalFiles;
+
+  // Normalize files so each entry is guaranteed { id, file }
+  const currentFiles = useMemo(() => {
+    const raw = isControlled ? controlledFiles : internalFiles;
+    return (raw || []).map(normalizeUploadItem).filter(Boolean);
+  }, [isControlled, controlledFiles, internalFiles]);
 
   const setFiles = (updater) => {
     if (isControlled) {
@@ -435,7 +751,10 @@ export function UploadZone({
     }
 
     const availableSlots = maxCount - currentTotal;
-    const toAdd = single ? valid.slice(0, 1) : valid.slice(0, availableSlots);
+    const toAdd = (single ? valid.slice(0, 1) : valid.slice(0, availableSlots)).map((f) => ({
+      id: generateUUID(),
+      file: f,
+    }));
 
     if (toAdd.length < valid.length) {
       showToast(
@@ -449,31 +768,9 @@ export function UploadZone({
     setFiles((prev) => (single ? toAdd : [...prev, ...toAdd]));
   };
 
-  const removeFile = (idx) => {
-    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  const removeFile = (itemToRemove) => {
+    setFiles((prev) => prev.filter((it) => it.id !== itemToRemove.id));
   };
-
-  const previews = useMemo(
-    () =>
-      currentFiles.map((f) => ({
-        name: f.name,
-        size: f.size,
-        file: f,
-        url:
-          f.type?.startsWith('image/') || /\.(jpe?g|png)$/i.test(f.name)
-            ? URL.createObjectURL(f)
-            : null,
-      })),
-    [currentFiles],
-  );
-
-  useEffect(() => {
-    return () => {
-      previews.forEach((p) => {
-        if (p.url) URL.revokeObjectURL(p.url);
-      });
-    };
-  }, [previews]);
 
   return (
     <div className="upload-section" style={style}>
@@ -515,179 +812,68 @@ export function UploadZone({
       />
 
       {/* Previews: Existing files + Newly added files */}
-      {(existingFiles.length > 0 || previews.length > 0) && (
+      {(existingFiles.length > 0 || currentFiles.length > 0) && (
         <div
           className="upload-preview"
           style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 14 }}
         >
           {/* 1. Existing Media from DB */}
-          {existingFiles.map((item) => (
-            <div
-              key={`existing-${item.id}`}
-              style={{
-                position: 'relative',
-                width: 84,
-                height: 84,
-                borderRadius: 10,
-                overflow: 'hidden',
-                border: item.isCover
-                  ? '2px solid var(--teal, #0d9488)'
-                  : '1px solid var(--border-medium, #cbd5e1)',
-                background: 'var(--cream-warm, #f8fafc)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                color: 'var(--ink-faint, #64748b)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              }}
-            >
-              {item.url ? (
-                <img
-                  src={item.url}
-                  alt={item.originalName || 'Listing photo'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span style={{ padding: 4, textAlign: 'center' }}>
-                  {item.originalName || 'Media'}
-                </span>
-              )}
-              {item.isCover && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 3,
-                    left: 3,
-                    background: 'var(--teal, #0d9488)',
-                    color: '#fff',
-                    fontSize: 8.5,
-                    fontWeight: 700,
-                    padding: '1.5px 5px',
-                    borderRadius: 4,
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  COVER
-                </div>
-              )}
-              {onRemoveExisting && (
-                <button
-                  type="button"
-                  title="Remove this photo"
-                  aria-label="Remove photo"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveExisting(item.id);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: 3,
-                    right: 3,
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: 'rgba(239, 68, 68, 0.9)',
-                    color: '#fff',
-                    border: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
+          {existingFiles.map((item) => {
+            const isStagedDelete = stagedDeleteIds.some((id) => String(id) === String(item.id));
+            const isCover =
+              (selectedCover?.type === 'EXISTING' &&
+                String(selectedCover.id) === String(item.id)) ||
+              (!selectedCover && item.isCover && !isStagedDelete);
+            const isProjectedCover =
+              !selectedCover && String(projectedCoverId) === String(item.id) && !isStagedDelete;
+
+            return (
+              <ThumbnailCard
+                key={`existing-${item.id}`}
+                item={item}
+                isExisting={true}
+                isCover={isCover}
+                isProjectedCover={isProjectedCover}
+                isStagedDelete={isStagedDelete}
+                category={category}
+                onSelectCover={() =>
+                  onSelectCover && onSelectCover({ type: 'EXISTING', id: item.id })
+                }
+                onRemove={() => onRemoveExisting && onRemoveExisting(item.id)}
+                onUndoDelete={onUndoDelete}
+                onPreview={() => onPreviewItem && onPreviewItem(item)}
+              />
+            );
+          })}
 
           {/* 2. Newly Added Files */}
-          {previews.map((p, i) => (
-            <div
-              key={`new-${i}`}
-              style={{
-                position: 'relative',
-                width: 84,
-                height: 84,
-                borderRadius: 10,
-                overflow: 'hidden',
-                border: '1px solid var(--border-medium, #cbd5e1)',
-                background: 'var(--cream-warm, #f8fafc)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                color: 'var(--ink-faint, #64748b)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              }}
-            >
-              {p.url ? (
-                <img
-                  src={p.url}
-                  alt={p.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span style={{ padding: 4, textAlign: 'center', wordBreak: 'break-all' }}>
-                  {p.name}
-                </span>
-              )}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 3,
-                  left: 3,
-                  background: 'rgba(15, 23, 42, 0.75)',
-                  color: '#fff',
-                  fontSize: 8.5,
-                  padding: '1.5px 4px',
-                  borderRadius: 3,
-                }}
-              >
-                NEW
-              </div>
-              <button
-                type="button"
-                title="Remove this file"
-                aria-label="Remove file"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFile(i);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: 3,
-                  right: 3,
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  background: 'rgba(239, 68, 68, 0.9)',
-                  color: '#fff',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+          {currentFiles.map((item) => {
+            const isCover = selectedCover?.type === 'NEW' && selectedCover.uploadId === item.id;
+            const isProjectedCover = !selectedCover && projectedCoverId === item.id;
+
+            return (
+              <ThumbnailCard
+                key={`new-${item.id}`}
+                item={item}
+                isExisting={false}
+                isCover={isCover}
+                isProjectedCover={isProjectedCover}
+                isStagedDelete={false}
+                category={category}
+                onSelectCover={() =>
+                  onSelectCover && onSelectCover({ type: 'NEW', uploadId: item.id })
+                }
+                onRemove={() => removeFile(item)}
+                onPreview={() => onPreviewItem && onPreviewItem(item)}
+              />
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const BOOKING_DURATION_UNITS = [
   { value: 'DAYS', label: 'Days' },
   { value: 'WEEKS', label: 'Weeks' },

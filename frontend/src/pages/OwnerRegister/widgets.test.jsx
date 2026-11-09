@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RegisterProvider, useRegister } from '@/features/register';
-import { TypeGrid, SelectWithOther, UploadZone } from './widgets';
+import { TypeGrid, SelectWithOther, UploadZone, ThumbnailCard } from './widgets';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
 import { validate as validateOwner } from './OwnerRegister';
@@ -255,7 +255,7 @@ describe('OwnerRegister and Wizard Widgets', () => {
       });
       Object.defineProperty(boundaryMp4, 'size', { value: 50 * 1024 * 1024 });
       fireEvent.change(fileInput, { target: { files: [boundaryMp4] } });
-      expect(onChange).toHaveBeenCalledWith([boundaryMp4]);
+      expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ file: boundaryMp4 })]);
 
       // 4. Browser quirk: .mov with empty MIME type ('') is accepted based on extension
       const movEmptyMime = new File([new ArrayBuffer(1024)], 'iphone_clip.mov', {
@@ -263,7 +263,151 @@ describe('OwnerRegister and Wizard Widgets', () => {
       });
       Object.defineProperty(movEmptyMime, 'size', { value: 35 * 1024 * 1024 });
       fireEvent.change(fileInput, { target: { files: [movEmptyMime] } });
-      expect(onChange).toHaveBeenCalledWith([movEmptyMime]);
+      expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ file: movEmptyMime })]);
+    });
+  });
+
+  describe('ThumbnailCard & UploadZone media features', () => {
+    it('renders COVER badge and calls onPreview when clicked', () => {
+      const onPreview = vi.fn();
+      const item = {
+        id: 'm1',
+        originalName: 'sunny.jpg',
+        category: 'DAY_PHOTO',
+        url: 'https://img.com/1',
+      };
+
+      render(
+        <ThumbnailCard
+          item={item}
+          isExisting={true}
+          isCover={true}
+          category="DAY_PHOTO"
+          onPreview={onPreview}
+        />,
+      );
+
+      expect(screen.getByText('⭐ COVER')).toBeDefined();
+      fireEvent.click(screen.getByTitle('Click to preview full-size'));
+      expect(onPreview).toHaveBeenCalledWith(item);
+    });
+
+    it('renders Make Cover button on non-cover daylight photo and handles selection', () => {
+      const onSelectCover = vi.fn();
+      const item = {
+        id: 'm2',
+        originalName: 'angle2.jpg',
+        category: 'DAY_PHOTO',
+        url: 'https://img.com/2',
+      };
+
+      render(
+        <ThumbnailCard
+          item={item}
+          isExisting={true}
+          isCover={false}
+          category="DAY_PHOTO"
+          onSelectCover={onSelectCover}
+        />,
+      );
+
+      const makeCoverBtn = screen.getByLabelText('Set as cover photo');
+      expect(makeCoverBtn).toBeDefined();
+      fireEvent.click(makeCoverBtn);
+      expect(onSelectCover).toHaveBeenCalledWith(item);
+    });
+
+    it('displays staged delete overlay with Undo button and handles restoration', () => {
+      const onUndoDelete = vi.fn();
+      const item = {
+        id: 'm3',
+        originalName: 'old.jpg',
+        category: 'DAY_PHOTO',
+        url: 'https://img.com/3',
+      };
+
+      render(
+        <ThumbnailCard
+          item={item}
+          isExisting={true}
+          isStagedDelete={true}
+          category="DAY_PHOTO"
+          onUndoDelete={onUndoDelete}
+        />,
+      );
+
+      expect(screen.getByText('Removing')).toBeDefined();
+      expect(screen.queryByLabelText('Set as cover photo')).toBeNull();
+      expect(screen.queryByLabelText('Remove photo')).toBeNull();
+
+      const undoBtn = screen.getByLabelText('Undo removal');
+      fireEvent.click(undoBtn);
+      expect(onUndoDelete).toHaveBeenCalledWith('m3');
+    });
+
+    it('renders both existing and new files in UploadZone with undo and cover support', () => {
+      const onSelectCover = vi.fn();
+      const onUndoDelete = vi.fn();
+      const existingFiles = [
+        {
+          id: 'ex-1',
+          originalName: 'existing1.jpg',
+          isCover: true,
+          category: 'DAY_PHOTO',
+          url: 'https://img.com/ex1',
+        },
+        {
+          id: 'ex-2',
+          originalName: 'existing2.jpg',
+          isCover: false,
+          category: 'DAY_PHOTO',
+          url: 'https://img.com/ex2',
+        },
+      ];
+      const newFiles = [
+        {
+          id: 'new-1',
+          file: new File(['x'], 'new1.jpg', { type: 'image/jpeg' }),
+          category: 'DAY_PHOTO',
+        },
+      ];
+
+      render(
+        <RegisterProvider>
+          <UploadZone
+            sectionTitle="Day Photos"
+            category="DAY_PHOTO"
+            existingFiles={existingFiles}
+            files={newFiles}
+            stagedDeleteIds={['ex-2']}
+            onSelectCover={onSelectCover}
+            onUndoDelete={onUndoDelete}
+          />
+        </RegisterProvider>,
+      );
+
+      // Verify existing file 1 has cover badge
+      expect(screen.getByText('⭐ COVER')).toBeDefined();
+      // Verify existing file 2 has removing overlay and undo button
+      expect(screen.getByText('Removing')).toBeDefined();
+      const undoBtn = screen.getByLabelText('Undo removal');
+      fireEvent.click(undoBtn);
+      expect(onUndoDelete).toHaveBeenCalledWith('ex-2');
+    });
+
+    it('renders image src from fileUrl when url is omitted on existing media', () => {
+      const item = {
+        id: 'ex-backend',
+        originalName: 'backend_photo.jpg',
+        category: 'DAY_PHOTO',
+        fileUrl: '/api/media/backend_photo_key.jpg',
+      };
+
+      render(<ThumbnailCard item={item} isExisting={true} category="DAY_PHOTO" />);
+
+      const img = screen.getByAltText('backend_photo.jpg');
+      expect(img).toBeDefined();
+      expect(img.getAttribute('src')).toBe('/api/media/backend_photo_key.jpg');
     });
   });
 });
