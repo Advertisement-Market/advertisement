@@ -24,6 +24,7 @@ import com.theadbasket.backend.notification.Notification;
 import com.theadbasket.backend.notification.NotificationCategory;
 import com.theadbasket.backend.notification.NotificationRepository;
 import com.theadbasket.backend.notification.NotificationTone;
+import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfileRepository;
 import com.theadbasket.backend.user.AuthProvider;
@@ -128,9 +129,12 @@ class RegistrationFlowIntegrationTest {
                 .andExpect(header().exists("Set-Cookie"))
                 .andExpect(cookie().exists("refreshToken"))
                 .andExpect(jsonPath("$.user.role").value("OWNER"))
-                .andExpect(jsonPath("$.user.email").value("owner@example.com"));
+                .andExpect(jsonPath("$.user.email").value("owner@example.com"))
+                .andExpect(jsonPath("$.initialListingId").isNumber());
         assertThat(ownerProfiles.count()).isEqualTo(1);
         assertThat(billboardListings.count()).isEqualTo(1);
+        BillboardListing createdListing = billboardListings.findAll().get(0);
+        assertThat(createdListing.getId()).isNotNull();
         assertThat(notificationRepository.count()).isEqualTo(1);
         Notification notif = notificationRepository.findAll().get(0);
         assertThat(notif.getCategory()).isEqualTo(NotificationCategory.ONBOARDING);

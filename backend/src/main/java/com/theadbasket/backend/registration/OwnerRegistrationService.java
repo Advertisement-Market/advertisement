@@ -94,19 +94,19 @@ public class OwnerRegistrationService {
         ownerProfileRepository.save(profile);
 
         BillboardListing listing = toListing(request.billboard(), user);
-        billboardListingRepository.save(listing);
+        BillboardListing savedListing = billboardListingRepository.save(listing);
 
         notificationService.createNotification(
                 user,
                 "Welcome to The AdBasket!",
-                "Your account is registered. Your listing \"" + listing.getName() + "\" is under review and will be active shortly.",
+                "Your account is registered. Your listing \"" + savedListing.getName() + "\" is under review and will be active shortly.",
                 NotificationCategory.ONBOARDING,
                 NotificationTone.TEAL,
                 "/owners/dashboard"
         );
 
         log.info("Owner registration complete for user id={}", user.getId());
-        return authService.issueTokensFor(user);
+        return authService.issueTokensFor(user, savedListing.getId());
     }
 
     private BillboardListing toListing(BillboardListingRequest req, User user) {

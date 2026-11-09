@@ -21,6 +21,11 @@ public record SyncFileMapping(
         @NotBlank(message = "uploadId is required")
         @Size(max = 64, message = "uploadId cannot exceed 64 characters")
         @Pattern(regexp = "^[a-fA-F0-9\\-]+$", message = "uploadId must be a valid UUID string")
-        String uploadId
+        String uploadId,
+
+        Boolean isCover
 ) {
+    public SyncFileMapping(Integer clientIndex, MediaCategory category, String uploadId) {
+        this(clientIndex, category, uploadId, null);
+    }
 }
