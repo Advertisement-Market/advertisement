@@ -76,6 +76,40 @@ describe('OwnerDashboard Availability CalendarPage', () => {
     });
   });
 
+  it('sets isLoading to true while fetching availability and shows Refreshing indicator', async () => {
+    const mockListings = [{ id: 101, name: 'Marine Drive Unipole', status: 'ACTIVE' }];
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+
+    let resolveAvailability;
+    const pendingPromise = new Promise((resolve) => {
+      resolveAvailability = resolve;
+    });
+
+    vi.spyOn(availabilityApi, 'getListingAvailability').mockReturnValue(pendingPromise);
+
+    renderDashboard();
+
+    // While request is in-flight, Refreshing indicator is displayed and Save button is disabled
+    await waitFor(() => {
+      expect(screen.getByText(/refreshing\.\.\./i)).toBeDefined();
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /save changes/i });
+    expect(saveBtn.disabled).toBe(true);
+
+    // Resolve request
+    resolveAvailability({
+      blocks: [],
+      etag: 'etag123',
+      today: '2026-11-06',
+    });
+
+    // Refreshing indicator disappears after resolution
+    await waitFor(() => {
+      expect(screen.queryByText(/refreshing\.\.\./i)).toBeNull();
+    });
+  });
+
   it('triggers syncListingAvailability on Save Changes with ETag', async () => {
     const mockListings = [{ id: 101, name: 'Marine Drive Unipole', status: 'ACTIVE' }];
     vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
@@ -123,9 +157,6 @@ describe('OwnerDashboard Availability CalendarPage', () => {
       expect(syncSpy).toHaveBeenCalledWith(
         101,
         [
-          { startDate: '2026-11-03', endDate: '2026-11-08' },
-          { startDate: '2026-11-14', endDate: '2026-11-18' },
-          { startDate: '2026-11-21', endDate: '2026-11-22' },
           { startDate: '2026-11-25', endDate: '2026-11-26' },
         ],
         'initial-etag',
@@ -191,6 +222,66 @@ describe('OwnerDashboard Availability CalendarPage', () => {
             endDate: '2026-11-24',
           }),
         ]),
+        'initial-etag',
+      );
+    });
+  });
+
+  it('preserves multi-cell drag selection across mouseup and trailing click', async () => {
+    const mockListings = [{ id: 101, name: 'Marine Drive Unipole', status: 'ACTIVE' }];
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+
+    vi.spyOn(availabilityApi, 'getListingAvailability').mockResolvedValue({
+      blocks: [],
+      etag: 'initial-etag',
+      today: '2026-11-06',
+    });
+
+    const syncSpy = vi.spyOn(availabilityApi, 'syncListingAvailability').mockResolvedValue({
+      blocks: [
+        { id: 10, startDate: '2026-11-10', endDate: '2026-11-14', blockType: 'OWNER_BLOCKED' },
+      ],
+      warnings: [],
+      etag: 'new-etag',
+      today: '2026-11-06',
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Marine Drive Unipole — Availability/i)).toBeDefined();
+    });
+
+    const day10 = screen.getByText('10');
+    const day14 = screen.getByText('14');
+
+    // Drag from 10 to 14
+    fireEvent.mouseDown(day10);
+    fireEvent.mouseEnter(day14);
+
+    // Release mouse
+    fireEvent.mouseUp(document);
+
+    // Trailing browser click on the release cell
+    fireEvent.click(day14);
+
+    // Click Apply button to stage the range
+    fireEvent.click(screen.getByRole('button', { name: /^apply$/i }));
+
+    // Unsaved changes badge should appear
+    await waitFor(() => {
+      expect(screen.getByText(/unsaved changes/i)).toBeDefined();
+    });
+
+    // Save changes
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(syncSpy).toHaveBeenCalledWith(
+        101,
+        [
+          { startDate: '2026-11-10', endDate: '2026-11-14' },
+        ],
         'initial-etag',
       );
     });
@@ -317,7 +408,7 @@ describe('OwnerDashboard Availability CalendarPage', () => {
     });
   });
 
-  it('updates minimum booking duration rule via ownerListingApi.updateListing', async () => {
+  it('updates minimum booking duration rule via ownerListingApi.updateListing and persists across billboard switching', async () => {
     const mockListings = [
       {
         id: 101,
@@ -325,6 +416,13 @@ describe('OwnerDashboard Availability CalendarPage', () => {
         status: 'ACTIVE',
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
+      },
+      {
+        id: 102,
+        name: 'Bandra Digital LED',
+        status: 'ACTIVE',
+        minBookingValue: 5,
+        minBookingUnit: 'DAYS',
       },
     ];
     vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
@@ -373,5 +471,26 @@ describe('OwnerDashboard Availability CalendarPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/minimum booking duration saved: 3 weeks/i)).toBeDefined();
     });
+
+    // Switch to listing 102 in billboard selector
+    const billboardSelect = screen.getByRole('combobox', { name: /select billboard listing/i });
+    fireEvent.change(billboardSelect, { target: { value: '102' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bandra Digital LED — Availability/i)).toBeDefined();
+    });
+    expect(screen.getByLabelText(/minimum duration value/i).value).toBe('5');
+    expect(screen.getByLabelText(/minimum duration unit/i).value).toBe('DAYS');
+
+    // Switch back to listing 101
+    fireEvent.change(billboardSelect, { target: { value: '101' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Marine Drive Unipole — Availability/i)).toBeDefined();
+    });
+
+    // Verify inputs retain updated values (3 WEEKS) without reverting to pre-save values
+    expect(screen.getByLabelText(/minimum duration value/i).value).toBe('3');
+    expect(screen.getByLabelText(/minimum duration unit/i).value).toBe('WEEKS');
   });
 });

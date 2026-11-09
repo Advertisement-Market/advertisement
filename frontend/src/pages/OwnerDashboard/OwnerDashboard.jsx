@@ -1329,7 +1329,7 @@ function Listings({
   );
 }
 
-function BookingRulesCard({ activeListingId, selectedListing }) {
+function BookingRulesCard({ activeListingId, selectedListing, onListingUpdated }) {
   const { showToast } = useToast();
   const [minBookingVal, setMinBookingVal] = useState(() => selectedListing?.minBookingValue ?? 1);
   const [minBookingUnit, setMinBookingUnit] = useState(
@@ -1353,6 +1353,12 @@ function BookingRulesCard({ activeListingId, selectedListing }) {
       const updatedUnit = updated?.minBookingUnit ?? unit;
       setMinBookingVal(updatedVal);
       setMinBookingUnit(updatedUnit);
+      if (onListingUpdated) {
+        onListingUpdated(activeListingId, {
+          minBookingValue: updatedVal,
+          minBookingUnit: updatedUnit,
+        });
+      }
       showToast(
         `Minimum booking duration saved: ${updatedVal} ${updatedUnit.toLowerCase()}.`,
         'success',
@@ -1469,7 +1475,13 @@ function BookingRulesCard({ activeListingId, selectedListing }) {
   );
 }
 
-function CalendarPage({ listings = [], loadingListings = false, calData, setCalData }) {
+function CalendarPage({
+  listings = [],
+  loadingListings = false,
+  calData,
+  setCalData,
+  onListingUpdated,
+}) {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -1542,6 +1554,9 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
   // Cleanup timers on unmount
   useEffect(() => {
     const up = () => {
+      if (didDrag.current) {
+        justFinishedDrag.current = true;
+      }
       drag.current = false;
       dragStart.current = null;
       didDrag.current = false;
@@ -1572,6 +1587,9 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
     }
 
     let isMounted = true;
+    queueMicrotask(() => {
+      if (isMounted) setIsLoading(true);
+    });
     availabilityApi
       .getListingAvailability(activeListingId)
       .then((data) => {
@@ -1587,8 +1605,7 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
         if (retryTimerRef.current) clearInterval(retryTimerRef.current);
         setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
 
-        const effective = { ...normalizedFallback, ...statusMap };
-        setDayStatusMap(effective);
+        setDayStatusMap(statusMap);
       })
       .catch((err) => {
         if (isMounted) {
@@ -2030,6 +2047,7 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
               )}
             </div>
             <select
+              aria-label="Select Billboard Listing"
               className="form-control"
               style={{ width: 'auto', fontSize: 12.5, padding: '7px 12px', borderRadius: 9 }}
               value={activeListingId || ''}
@@ -2277,6 +2295,7 @@ function CalendarPage({ listings = [], loadingListings = false, calData, setCalD
             key={activeListingId}
             activeListingId={activeListingId}
             selectedListing={selectedListing}
+            onListingUpdated={onListingUpdated}
           />
         </div>
       </div>
@@ -3158,6 +3177,12 @@ export function OwnerDashboard() {
     }
   };
 
+  const handleListingUpdated = (id, fields) => {
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...fields } : l)),
+    );
+  };
+
   return (
     <div className="owner-dashboard-page">
       <Sidebar active={page} onNav={nav} userName={userName} listingsCount={listings.length} />
@@ -3191,6 +3216,7 @@ export function OwnerDashboard() {
             setCalData={setCalData}
             listings={listings}
             loadingListings={loadingListings}
+            onListingUpdated={handleListingUpdated}
           />
         )}
         {page === 'quotes' && (
