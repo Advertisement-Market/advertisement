@@ -22,7 +22,7 @@ export const availabilityApi = {
   syncListingAvailability: (listingId, ranges, etag) => {
     const headers = {};
     if (etag) {
-      const cleanEtag = etag.replace(/^"|"$/g, '');
+      const cleanEtag = etag.replace(/^(W\/)?"|"$|\s/g, '');
       headers['If-Match'] = `"${cleanEtag}"`;
     }
     return api
