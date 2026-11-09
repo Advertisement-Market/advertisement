@@ -23,6 +23,8 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.theadbasket.backend.availability.AvailabilityService;
+import com.theadbasket.backend.availability.dto.AvailabilityRangeRequest;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
@@ -558,5 +560,43 @@ class OwnerListingServiceTest {
         BillboardListingDto updated = ownerListingService.updateListing(10L, 1L, patchReq);
         assertThat(updated.name()).isEqualTo("Brand New Billboard Name");
         assertThat(updated.groundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("createListing delegates initial blockedRanges to AvailabilityService when wired")
+    void createListing_withBlockedRanges_delegatesToAvailabilityService() {
+        AvailabilityService mockAvailability = org.mockito.Mockito.mock(AvailabilityService.class);
+        OwnerListingService serviceWithAvail = new OwnerListingService(
+                billboardListingRepository,
+                billboardMediaRepository,
+                fileStorageService,
+                userRepository,
+                notificationService,
+                lovService,
+                mockAvailability,
+                true,
+                "/api/media"
+        );
+
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(java.time.LocalDate.of(2027, 2, 10), java.time.LocalDate.of(2027, 2, 12))
+        );
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Cal Test Board", "100 Main St", null, null, "Mumbai", "Maharashtra", "400050",
+                "LED Digital", null, new BigDecimal("40.00"), new BigDecimal("20.00"), BigDecimal.ZERO,
+                "North", "City / Urban", null, "Commuters", null, "50k",
+                new BigDecimal("300000.00"), 1, "MONTHS", null, ranges
+        );
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> {
+            BillboardListing b = inv.getArgument(0);
+            org.springframework.test.util.ReflectionTestUtils.setField(b, "id", 77L);
+            return b;
+        });
+
+        serviceWithAvail.createListing(1L, req);
+
+        verify(mockAvailability).createInitialOwnerBlocks(77L, 1L, ranges);
     }
 }

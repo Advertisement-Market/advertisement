@@ -6,12 +6,14 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.theadbasket.backend.availability.AvailabilityService;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
@@ -49,6 +51,7 @@ public class OwnerListingService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final LovService lovService;
+    private final AvailabilityService availabilityService;
     private final boolean moderationRequired;
     private final String mediaBaseUrl;
 
@@ -61,12 +64,28 @@ public class OwnerListingService {
             LovService lovService,
             @Value("${app.listings.moderation-required:true}") boolean moderationRequired,
             @Value("${app.media.base-url:/api/media}") String mediaBaseUrl) {
+        this(billboardListingRepository, billboardMediaRepository, fileStorageService,
+                userRepository, notificationService, lovService, null, moderationRequired, mediaBaseUrl);
+    }
+
+    @Autowired
+    public OwnerListingService(
+            BillboardListingRepository billboardListingRepository,
+            BillboardMediaRepository billboardMediaRepository,
+            FileStorageService fileStorageService,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            LovService lovService,
+            AvailabilityService availabilityService,
+            @Value("${app.listings.moderation-required:true}") boolean moderationRequired,
+            @Value("${app.media.base-url:/api/media}") String mediaBaseUrl) {
         this.billboardListingRepository = billboardListingRepository;
         this.billboardMediaRepository = billboardMediaRepository;
         this.fileStorageService = fileStorageService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.lovService = lovService;
+        this.availabilityService = availabilityService;
         this.moderationRequired = moderationRequired;
         this.mediaBaseUrl = mediaBaseUrl;
     }
@@ -156,6 +175,9 @@ public class OwnerListingService {
         listing.setStatus(BillboardStatus.DRAFT);
 
         BillboardListing saved = billboardListingRepository.save(listing);
+        if (availabilityService != null) {
+            availabilityService.createInitialOwnerBlocks(saved.getId(), userId, req.blockedRanges());
+        }
         log.info("Created billboard listing id={} in DRAFT status for user id={}", saved.getId(), userId);
 
         notificationService.createNotification(

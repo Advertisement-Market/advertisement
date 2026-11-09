@@ -1,6 +1,8 @@
 package com.theadbasket.backend.owner;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -21,9 +23,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.nullValue;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.theadbasket.backend.availability.dto.AvailabilityRangeRequest;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.address.AddressRepository;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
@@ -1152,5 +1157,105 @@ class OwnerListingControllerTest {
 
         BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
         assertThat(updated.getGroundHeightFt()).isNull();
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with blockedRanges persists OWNER_BLOCKED blocks returned by GET availability")
+    void createListing_withBlockedRanges_persistsOwnerBlocks() throws Exception {
+        LocalDate istToday = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Calendar Initialized Board",
+                "Marine Drive",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "400020",
+                "LED Digital",
+                null,
+                new BigDecimal("40.00"),
+                new BigDecimal("20.00"),
+                null,
+                "North",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                null,
+                new BigDecimal("250000.00"),
+                1,
+                "Months",
+                null,
+                List.of(
+                        new AvailabilityRangeRequest(istToday.plusDays(2), istToday.plusDays(4)),
+                        new AvailabilityRangeRequest(istToday.plusDays(10), istToday.plusDays(10))
+                )
+        );
+
+        String responseBody = mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode created = objectMapper.readTree(responseBody);
+        long createdId = created.get("id").asLong();
+
+        mockMvc.perform(get("/api/owner/listings/" + createdId + "/availability")
+                        .header("Authorization", "Bearer " + owner1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.blocks.length()").value(2))
+                .andExpect(jsonPath("$.blocks[0].startDate").value(istToday.plusDays(2).toString()))
+                .andExpect(jsonPath("$.blocks[0].endDate").value(istToday.plusDays(4).toString()))
+                .andExpect(jsonPath("$.blocks[0].blockType").value("OWNER_BLOCKED"))
+                .andExpect(jsonPath("$.blocks[1].startDate").value(istToday.plusDays(10).toString()))
+                .andExpect(jsonPath("$.blocks[1].endDate").value(istToday.plusDays(10).toString()))
+                .andExpect(jsonPath("$.blocks[1].blockType").value("OWNER_BLOCKED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/owner/listings with invalid blockedRanges (>730 days ahead) returns 400 and rolls back listing creation")
+    void createListing_withTooFarBlockedRanges_returns400AndRollsBack() throws Exception {
+        long beforeCount = billboardListingRepository.count();
+        LocalDate istToday = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+        BillboardListingCreateRequest req = new BillboardListingCreateRequest(
+                "Invalid Calendar Board",
+                "Marine Drive",
+                null,
+                null,
+                "Mumbai",
+                "Maharashtra",
+                "400020",
+                "LED Digital",
+                null,
+                new BigDecimal("40.00"),
+                new BigDecimal("20.00"),
+                null,
+                "North",
+                "City / Urban",
+                null,
+                "Commuters",
+                null,
+                null,
+                new BigDecimal("250000.00"),
+                1,
+                "Months",
+                null,
+                List.of(new AvailabilityRangeRequest(istToday.plusDays(731), istToday.plusDays(732)))
+        );
+
+        mockMvc.perform(post("/api/owner/listings")
+                        .header("Authorization", "Bearer " + owner1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("AVAILABILITY_RANGE_TOO_LONG"));
+
+        assertThat(TestTransaction.isFlaggedForRollback()).isTrue();
+        TestTransaction.end();
+        assertThat(billboardListingRepository.count()).isEqualTo(beforeCount);
     }
 }
