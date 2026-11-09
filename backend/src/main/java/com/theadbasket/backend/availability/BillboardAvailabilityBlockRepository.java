@@ -19,6 +19,25 @@ public interface BillboardAvailabilityBlockRepository extends JpaRepository<Bill
     @Query("""
         SELECT b FROM BillboardAvailabilityBlock b
         WHERE b.billboardId = :billboardId
+          AND b.endDate >= :today
+          AND (
+            b.blockType = com.theadbasket.backend.availability.AvailabilityBlockType.CONFIRMED_BOOKING
+            OR (
+              b.blockType = com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
+              AND b.expiryTs IS NOT NULL
+              AND b.expiryTs > :now
+            )
+          )
+        ORDER BY b.startDate ASC, b.endDate ASC
+        """)
+    List<BillboardAvailabilityBlock> findOwnerActiveNonOwnerBlocks(
+            @Param("billboardId") Long billboardId,
+            @Param("today") LocalDate today,
+            @Param("now") Instant now);
+
+    @Query("""
+        SELECT b FROM BillboardAvailabilityBlock b
+        WHERE b.billboardId = :billboardId
           AND b.endDate >= :from AND b.startDate <= :to
           AND (
             b.blockType != com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
@@ -49,6 +68,6 @@ public interface BillboardAvailabilityBlockRepository extends JpaRepository<Bill
             @Param("now") Instant now);
 
     @Modifying
-    @Query("DELETE FROM BillboardAvailabilityBlock b WHERE b.blockType = :holdType AND b.expiryTs < :now")
+    @Query("DELETE FROM BillboardAvailabilityBlock b WHERE b.blockType = :holdType AND b.expiryTs <= :now")
     int deleteExpiredHolds(@Param("holdType") AvailabilityBlockType holdType, @Param("now") Instant now);
 }

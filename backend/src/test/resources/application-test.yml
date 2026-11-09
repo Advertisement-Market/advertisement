@@ -7,3 +7,6 @@ spring:
     password: ""
   flyway:
     enabled: true
+app:
+  scheduling:
+    enabled: false

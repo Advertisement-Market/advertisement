@@ -116,3 +116,7 @@ app:
     base-url: ${MEDIA_BASE_URL:/api/media}
   listings:
     moderation-required: ${LISTINGS_MODERATION_REQUIRED:true}
+  scheduling:
+    enabled: ${SCHEDULING_ENABLED:true}
+  availability:
+    hold-cleanup-interval-ms: ${AVAILABILITY_HOLD_CLEANUP_INTERVAL_MS:300000}
