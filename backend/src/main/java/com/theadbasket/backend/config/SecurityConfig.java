@@ -5,6 +5,7 @@ import com.theadbasket.backend.security.RestAuthenticationEntryPoint;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -33,14 +34,17 @@ public class SecurityConfig {
         "/api/auth/register", "/api/auth/register/**",
         "/api/auth/login", "/api/auth/google", "/api/auth/refresh", "/api/auth/logout",
         "/api/ping",
+        "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
+        "/h2-console/**"
+    };
+
+    private static final String[] PUBLIC_GET_PATHS = {
         // Config-driven billboard lookups feed the owner form before sign-in.
         "/api/lov/**",
         // Public media delivery
         "/api/media/**",
         // Public billboard availability calendar
-        "/api/listings/*/availability",
-        "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
-        "/h2-console/**"
+        "/api/listings/*/availability"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -70,6 +74,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATHS).permitAll()
                 .requestMatchers(PUBLIC_PATHS).permitAll()
                 // Role-scoped API namespaces (MEMBER accounts must onboard into a role first).
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
