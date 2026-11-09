@@ -2,18 +2,14 @@ package com.theadbasket.backend.availability;
 
 import com.theadbasket.backend.availability.dto.*;
 import com.theadbasket.backend.availability.exception.HoldConflictException;
-import com.theadbasket.backend.availability.exception.PreconditionRequiredException;
-import com.theadbasket.backend.availability.exception.StaleAvailabilityException;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
-import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.io.InputStream;
 import java.lang.reflect.Method;
