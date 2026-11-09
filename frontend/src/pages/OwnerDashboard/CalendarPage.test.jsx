@@ -493,4 +493,43 @@ describe('OwnerDashboard Availability CalendarPage', () => {
     expect(screen.getByLabelText(/minimum duration value/i).value).toBe('3');
     expect(screen.getByLabelText(/minimum duration unit/i).value).toBe('WEEKS');
   });
+
+  it('rejects quick range apply exceeding 730 days with error toast', async () => {
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue([
+      {
+        id: 101,
+        billboardName: 'Marine Drive Unipole',
+        billboardType: 'STATIC_BILLBOARD',
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      },
+    ]);
+    vi.spyOn(availabilityApi, 'getListingAvailability').mockResolvedValue({
+      billboardId: 101,
+      today: '2026-11-06',
+      etag: '"initial-etag"',
+      blocks: [],
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText(/quick block by date range/i)).toBeDefined();
+    });
+
+    const fromInput = screen.getByLabelText(/^from$/i);
+    const toInput = screen.getByLabelText(/^to$/i);
+
+    // Range spanning > 730 days (e.g. 2026-11-06 to 2029-01-01)
+    fireEvent.change(fromInput, { target: { value: '2026-11-06' } });
+    fireEvent.change(toInput, { target: { value: '2029-01-01' } });
+
+    // Click Apply Date Range button
+    const applyBtn = screen.getByRole('button', { name: /apply date range/i });
+    fireEvent.click(applyBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/selected date range cannot exceed 730 days/i)).toBeDefined();
+    });
+  });
 });

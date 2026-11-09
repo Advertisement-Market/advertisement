@@ -39,6 +39,7 @@ import {
   parseDateParts,
   addDays,
   isBefore,
+  daysBetweenInclusive,
   blocksToDayStatusMap,
   dayStatusMapToRanges,
   extractRetryAfterSeconds,
@@ -1752,6 +1753,10 @@ function CalendarPage({
     }
     if (qb.from > qb.to) {
       showToast('From date must be before To date.', 'error');
+      return;
+    }
+    if (daysBetweenInclusive(qb.from, qb.to) > 730) {
+      showToast('Selected date range cannot exceed 730 days.', 'error');
       return;
     }
     if (serverToday && isBefore(qb.to, serverToday)) {
