@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ROUTES } from '@/lib/routes';
@@ -35,6 +35,7 @@ import {
 } from './data';
 import { availabilityApi } from '@/features/availability/availabilityApi';
 import {
+  isValidDateKey,
   formatDateKey,
   parseDateParts,
   addDays,
@@ -719,7 +720,7 @@ function CalGrid({ month, year, statusFor, dayProps, extra, serverToday }) {
     const statusClass = isBooked ? 'booked' : isBlocked ? 'blocked' : isHold ? 'hold' : 'available';
     const cls = cn('cal-day', statusClass, isToday && 'today', extra ? extra(d) : '');
     cells.push(
-      <div key={d} className={cls} {...(dayProps ? dayProps(d) : {})}>
+      <div key={d} className={cls} data-date={dateKey} {...(dayProps ? dayProps(d) : {})}>
         {d}
       </div>,
     );
@@ -790,6 +791,10 @@ function MiniCalendar({ calData }) {
           <div className="cal-legend-item">
             <div className="cal-legend-dot" style={{ background: 'var(--green)' }} />
             Available
+          </div>
+          <div className="cal-legend-item">
+            <div className="cal-legend-dot" style={{ background: '#b45309' }} />
+            Blocked
           </div>
           <div className="cal-legend-item">
             <div className="cal-legend-dot" style={{ background: 'var(--rose)' }} />
@@ -1509,7 +1514,7 @@ function CalendarPage({
   // Availability data from backend / local calData
   const [blocks, setBlocks] = useState([]);
   const [dayStatusMap, setDayStatusMap] = useState(() => {
-    const raw = calData?.[0] || {};
+    const raw = calData?.[listingIndex] || calData?.[0] || {};
     const res = {};
     for (const [k, v] of Object.entries(raw)) {
       if (v === 'booked' || v === 'blocked' || v === 'block') {
@@ -1521,9 +1526,11 @@ function CalendarPage({
     return res;
   });
   const [confirmedDates, setConfirmedDates] = useState(() => new Set());
+  const [holdDates, setHoldDates] = useState(() => new Set());
   const [etag, setEtag] = useState(null);
   const [serverToday, setServerToday] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadedListingId, setLoadedListingId] = useState(null);
+  const isLoading = Boolean(activeListingId) && loadedListingId !== activeListingId;
   const [isSaving, setIsSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -1546,11 +1553,15 @@ function CalendarPage({
   // Quick block inputs
   const [qb, setQb] = useState({ from: '', to: '', type: 'block' });
 
-  // Keep calData accessible in effects without re-triggering network fetches
+  // Keep calData & listingIndex accessible in effects without re-triggering network fetches
   const calDataRef = useRef(calData);
+  const setCalDataRef = useRef(setCalData);
+  const listingIndexRef = useRef(listingIndex);
   useEffect(() => {
     calDataRef.current = calData;
-  }, [calData]);
+    setCalDataRef.current = setCalData;
+    listingIndexRef.current = listingIndex;
+  }, [calData, setCalData, listingIndex]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -1565,7 +1576,10 @@ function CalendarPage({
     document.addEventListener('mouseup', up);
     return () => {
       document.removeEventListener('mouseup', up);
-      if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+      if (retryTimerRef.current) {
+        clearInterval(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -1573,10 +1587,7 @@ function CalendarPage({
   useEffect(() => {
     if (!activeListingId) return;
 
-    const idx = Math.max(
-      0,
-      listings.findIndex((l) => l.id === activeListingId),
-    );
+    const idx = listingIndexRef.current;
     const fallback = calDataRef.current?.[idx] || calDataRef.current?.[0] || {};
     const normalizedFallback = {};
     for (const [k, v] of Object.entries(fallback)) {
@@ -1588,42 +1599,59 @@ function CalendarPage({
     }
 
     let isMounted = true;
-    queueMicrotask(() => {
-      if (isMounted) setIsLoading(true);
-    });
     availabilityApi
       .getListingAvailability(activeListingId)
       .then((data) => {
         if (!isMounted) return;
         const fetchedBlocks = data.blocks || [];
-        const { statusMap, confirmedDates: confDates } = blocksToDayStatusMap(fetchedBlocks);
+        const {
+          statusMap,
+          confirmedDates: confDates,
+          holdDates: hDates,
+        } = blocksToDayStatusMap(fetchedBlocks);
         setBlocks(fetchedBlocks);
         setConfirmedDates(confDates);
+        setHoldDates(hDates);
         setEtag(data.etag);
         setServerToday(data.today);
         setDirty(false);
         setConflictHoldRanges([]);
-        if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+        if (retryTimerRef.current) {
+          clearInterval(retryTimerRef.current);
+          retryTimerRef.current = null;
+        }
         setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
 
         setDayStatusMap(statusMap);
+        if (setCalDataRef.current) {
+          setCalDataRef.current((prev) => ({
+            ...prev,
+            [listingIndexRef.current]: { ...statusMap },
+          }));
+        }
       })
       .catch((err) => {
         if (isMounted) {
+          setConfirmedDates(new Set());
+          setHoldDates(new Set());
           setDayStatusMap(normalizedFallback);
           showToast(apiErrorMessage(err, 'Failed to load availability calendar.'), 'error');
         }
       })
       .finally(() => {
         if (isMounted) {
-          setIsLoading(false);
+          setLoadedListingId(activeListingId);
         }
       });
 
     return () => {
       isMounted = false;
+      if (retryTimerRef.current) {
+        clearInterval(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
-  }, [activeListingId, listings, showToast]);
+  }, [activeListingId, showToast]);
 
   // Past date check anchored strictly to server today (Asia/Kolkata)
   const isPast = (d) => {
@@ -1650,13 +1678,21 @@ function CalendarPage({
     let count = 0;
     for (let d = s; d <= e; d++) {
       const k = formatDateKey(year, month, d);
-      if (isPast(d) || confirmedDates.has(k)) continue;
+      if (isPast(d) || confirmedDates.has(k) || holdDates.has(k)) continue;
       if (applyMode === 'available') {
         delete next[k];
       } else {
         next[k] = 'blocked';
       }
       count++;
+    }
+    if (count === 0) {
+      showToast(
+        'Selected dates are in the past or locked by a booking or hold and cannot be modified.',
+        'info',
+      );
+      clearSel();
+      return;
     }
     setDayStatusMap(next);
     if (setCalData) {
@@ -1675,16 +1711,18 @@ function CalendarPage({
   };
 
   const down = (d) => {
+    if (isLoading || isSaving) return;
     const dateStr = formatDateKey(year, month, d);
-    if (isPast(d) || confirmedDates.has(dateStr)) return;
+    if (isPast(d) || confirmedDates.has(dateStr) || holdDates.has(dateStr)) return;
     drag.current = true;
     dragStart.current = d;
     didDrag.current = false;
   };
 
   const enter = (d) => {
+    if (isLoading || isSaving) return;
     const dateStr = formatDateKey(year, month, d);
-    if (isPast(d) || confirmedDates.has(dateStr)) return;
+    if (isPast(d) || confirmedDates.has(dateStr) || holdDates.has(dateStr)) return;
     if (drag.current && dragStart.current != null) {
       if (d !== dragStart.current) {
         didDrag.current = true;
@@ -1696,12 +1734,13 @@ function CalendarPage({
   };
 
   const handleDayClick = (d) => {
+    if (isLoading || isSaving) return;
     if (justFinishedDrag.current) {
       justFinishedDrag.current = false;
       return;
     }
     const dateStr = formatDateKey(year, month, d);
-    if (isPast(d) || confirmedDates.has(dateStr)) return;
+    if (isPast(d) || confirmedDates.has(dateStr) || holdDates.has(dateStr)) return;
 
     if (range.start == null || range.end != null) {
       // First click: sets start date
@@ -1737,6 +1776,7 @@ function CalendarPage({
 
   // Stage selected range into local map
   const apply = () => {
+    if (isLoading || isSaving) return;
     if (range.start == null) {
       showToast('Select dates on the calendar first.');
       return;
@@ -1747,8 +1787,13 @@ function CalendarPage({
 
   // Quick range apply
   const applyQuick = () => {
+    if (isLoading || isSaving) return;
     if (!qb.from || !qb.to) {
       showToast('Select both from and to dates.', 'error');
+      return;
+    }
+    if (!isValidDateKey(qb.from) || !isValidDateKey(qb.to)) {
+      showToast('Enter valid dates in YYYY-MM-DD format.', 'error');
       return;
     }
     if (qb.from > qb.to) {
@@ -1767,11 +1812,11 @@ function CalendarPage({
     const next = { ...dayStatusMap };
     let curr = qb.from;
     let count = 0;
-    while (curr <= qb.to) {
+    while (curr && curr <= qb.to) {
       const isPastDate = serverToday
         ? isBefore(curr, serverToday)
         : curr < new Date().toISOString().slice(0, 10);
-      if (!isPastDate && !confirmedDates.has(curr)) {
+      if (!isPastDate && !confirmedDates.has(curr) && !holdDates.has(curr)) {
         if (qb.type === 'available') {
           delete next[curr];
         } else {
@@ -1780,6 +1825,14 @@ function CalendarPage({
         count++;
       }
       curr = addDays(curr, 1);
+    }
+
+    if (count === 0) {
+      showToast(
+        'No editable dates in selected range (dates are in the past or locked by a booking or hold).',
+        'info',
+      );
+      return;
     }
 
     setDayStatusMap(next);
@@ -1802,7 +1855,7 @@ function CalendarPage({
   const saveAvailability = async (retryAttempt = 0) => {
     if (!activeListingId || isSaving) return;
 
-    const rangesToSend = dayStatusMapToRanges(dayStatusMap, confirmedDates);
+    const rangesToSend = dayStatusMapToRanges(dayStatusMap, confirmedDates, holdDates);
     setIsSaving(true);
 
     try {
@@ -1814,7 +1867,11 @@ function CalendarPage({
 
       // STRICT REHYDRATION from server blocks
       const savedBlocks = data.blocks || [];
-      const { statusMap, confirmedDates: confDates } = blocksToDayStatusMap(savedBlocks);
+      const {
+        statusMap,
+        confirmedDates: confDates,
+        holdDates: hDates,
+      } = blocksToDayStatusMap(savedBlocks);
       setBlocks(savedBlocks);
       setDayStatusMap(statusMap);
       if (setCalData) {
@@ -1824,12 +1881,16 @@ function CalendarPage({
         }));
       }
       setConfirmedDates(confDates);
+      setHoldDates(hDates);
       setEtag(data.etag);
       setServerToday(data.today);
       setDirty(false);
       setConflictHoldRanges([]);
 
-      if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+      if (retryTimerRef.current) {
+        clearInterval(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
 
       if (data.warnings && data.warnings.length > 0) {
@@ -1866,7 +1927,10 @@ function CalendarPage({
   };
 
   const handleBusyRetry = (attempt, waitSeconds) => {
-    if (retryTimerRef.current) clearInterval(retryTimerRef.current);
+    if (retryTimerRef.current) {
+      clearInterval(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     const nextAttempt = attempt + 1;
 
     if (nextAttempt <= 3) {
@@ -1890,13 +1954,21 @@ function CalendarPage({
   };
 
   const handleManualRetry = () => {
+    if (retryTimerRef.current) {
+      clearInterval(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
     saveAvailability(0);
   };
 
   const handleAcceptStaleReload = () => {
     const serverBlocks = staleModal.serverBlocks;
-    const { statusMap, confirmedDates: confDates } = blocksToDayStatusMap(serverBlocks);
+    const {
+      statusMap,
+      confirmedDates: confDates,
+      holdDates: hDates,
+    } = blocksToDayStatusMap(serverBlocks);
     setBlocks(serverBlocks);
     setDayStatusMap(statusMap);
     if (setCalData) {
@@ -1906,12 +1978,18 @@ function CalendarPage({
       }));
     }
     setConfirmedDates(confDates);
+    setHoldDates(hDates);
     if (staleModal.newEtag) setEtag(staleModal.newEtag);
     if (staleModal.newToday) setServerToday(staleModal.newToday);
     setDirty(false);
     setStaleModal({ open: false, serverBlocks: [], newEtag: null, newToday: null });
     showToast('Calendar reloaded to latest server state.', 'info');
   };
+
+  const ownerBlockedRanges = useMemo(
+    () => dayStatusMapToRanges(dayStatusMap, confirmedDates, holdDates),
+    [dayStatusMap, confirmedDates, holdDates],
+  );
 
   if (loadingListings) {
     return (
@@ -1968,6 +2046,7 @@ function CalendarPage({
   })();
 
   const upcomingBookings = blocks.filter((b) => b.blockType === 'CONFIRMED_BOOKING');
+  const upcomingHolds = blocks.filter((b) => b.blockType === 'BOOKING_HOLD');
 
   return (
     <div className="page active">
@@ -2058,6 +2137,7 @@ function CalendarPage({
               value={activeListingId || ''}
               onChange={(e) => {
                 const newId = Number(e.target.value);
+                if (newId === activeListingId) return;
                 if (dirty) {
                   if (
                     !window.confirm(
@@ -2067,7 +2147,20 @@ function CalendarPage({
                     return;
                   }
                 }
+                if (retryTimerRef.current) {
+                  clearInterval(retryTimerRef.current);
+                  retryTimerRef.current = null;
+                }
+                setRetryState({ active: false, attempt: 0, maxAttempts: 3, countdown: 0 });
                 setSelectedListingId(newId);
+                setBlocks([]);
+                setDayStatusMap({});
+                setConfirmedDates(new Set());
+                setHoldDates(new Set());
+                setEtag(null);
+                setDirty(false);
+                setConflictHoldRanges([]);
+                setLoadedListingId(null);
                 clearSel();
               }}
             >
@@ -2133,7 +2226,7 @@ function CalendarPage({
           <div className={cn('cal-range-info', range.start != null && 'visible')}>
             <span className="cal-range-text">{rangeText || 'No dates selected'}</span>
             <div className="cal-range-actions">
-              <button className="btn-teal btn-sm" onClick={apply}>
+              <button className="btn-teal btn-sm" onClick={apply} disabled={isLoading || isSaving}>
                 Apply
               </button>
               <button className="btn-ghost btn-sm" onClick={clearSel}>
@@ -2159,6 +2252,7 @@ function CalendarPage({
                 let c = isPast(d) ? 'past' : '';
                 const k = formatDateKey(year, month, d);
                 if (confirmedDates.has(k)) c += ' booked';
+                else if (holdDates.has(k)) c += ' hold';
                 if (rs != null) {
                   if (d === rs && d === re) c += ' selected';
                   else if (d === rs) c += ' range-start';
@@ -2185,6 +2279,13 @@ function CalendarPage({
               <div className="cal-legend-item">
                 <div className="cal-legend-dot" style={{ background: 'var(--rose)' }} />
                 Confirmed Booking
+              </div>
+              <div className="cal-legend-item">
+                <div
+                  className="cal-legend-dot"
+                  style={{ background: '#f97316', border: '1px solid #ea580c' }}
+                />
+                Checkout Hold
               </div>
               <div className="cal-legend-item">
                 <div className="cal-legend-dot" style={{ background: 'var(--teal)' }} />
@@ -2238,6 +2339,81 @@ function CalendarPage({
                 </div>
               ))
             )}
+            {upcomingHolds.length > 0 && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
+                    color: '#c2410c',
+                    marginBottom: 10,
+                  }}
+                >
+                  Active Checkout Holds
+                </div>
+                {upcomingHolds.map((h) => (
+                  <div className="booking-row" key={h.id || `hold-${h.startDate}-${h.endDate}`}>
+                    <div className="booking-name">Temporary Hold</div>
+                    <div className="booking-dates">
+                      {h.startDate} to {h.endDate}
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      <span className="chip chip-amber" style={{ fontSize: 10.5 }}>
+                        Checkout in Progress
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1.5,
+                  color: '#b45309',
+                  marginBottom: 10,
+                }}
+              >
+                Owner-Blocked Dates
+              </div>
+              {ownerBlockedRanges.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: 'var(--ink-muted)', margin: 0 }}>
+                  No owner-blocked dates scheduled.
+                </p>
+              ) : (
+                <div className="cal-blocked-list">
+                  {ownerBlockedRanges.map((r) => {
+                    const label =
+                      r.startDate === r.endDate ? r.startDate : `${r.startDate} → ${r.endDate}`;
+                    const span = daysBetweenInclusive(r.startDate, r.endDate);
+                    return (
+                      <button
+                        key={`${r.startDate}-${r.endDate}`}
+                        type="button"
+                        className="cal-blocked-chip"
+                        onClick={() => {
+                          const parts = parseDateParts(r.startDate);
+                          if (parts) {
+                            clearSel();
+                            setMonth(parts.month);
+                            setYear(parts.year);
+                          }
+                        }}
+                        title="Jump calendar to this month"
+                      >
+                        <span>{label}</span>
+                        <span className="cal-blocked-days">{span}d</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="section-card" style={{ padding: 22 }}>
@@ -2291,6 +2467,7 @@ function CalendarPage({
               className="btn-teal"
               style={{ width: '100%', justifyContent: 'center' }}
               onClick={applyQuick}
+              disabled={isLoading || isSaving}
             >
               Apply Date Range
             </button>
@@ -3090,13 +3267,46 @@ export function OwnerDashboard() {
   const { user } = useAuth();
   const tabParam = searchParams.get('tab');
   const page = VALID_TABS.includes(tabParam) ? tabParam : 'overview';
-  const [calData, setCalData] = useState(initCalData);
+  const [calData, setCalData] = useState(() =>
+    user ? {} : import.meta.env.DEV ? initCalData() : {},
+  );
   const [userName, setUserName] = useState(() => displayName(user));
   const [listings, setListings] = useState(() => (user ? [] : import.meta.env.DEV ? LISTINGS : []));
   const [loadingListings, setLoadingListings] = useState(() => Boolean(user));
   const [modal, setModal] = useState(null); // {type, brand, listing, tender, name}
   const [refreshKey, setRefreshKey] = useState(0);
+  const hydratedOverviewListingRef = useRef(null);
   const today = new Date().toISOString().slice(0, 10);
+
+  const primaryListingId = listings[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!user || page !== 'overview' || !primaryListingId) {
+      return;
+    }
+    if (hydratedOverviewListingRef.current === primaryListingId) {
+      return;
+    }
+
+    let isMounted = true;
+    Promise.resolve(availabilityApi.getListingAvailability(primaryListingId))
+      .then((data) => {
+        if (!isMounted || !data) return;
+        hydratedOverviewListingRef.current = primaryListingId;
+        const { statusMap } = blocksToDayStatusMap(data.blocks || []);
+        setCalData((prev) => ({
+          ...prev,
+          0: { ...statusMap },
+        }));
+      })
+      .catch(() => {
+        // Overview MiniCalendar stays blank-available if availability API is unreachable.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, page, primaryListingId]);
 
   const refreshListings = () => {
     setRefreshKey((k) => k + 1);
@@ -3183,9 +3393,7 @@ export function OwnerDashboard() {
   };
 
   const handleListingUpdated = (id, fields) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...fields } : l)),
-    );
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...fields } : l)));
   };
 
   return (

@@ -9,6 +9,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1379,6 +1380,8 @@
     text-align: center;
     padding: 5px 2px;
     border-radius: 7px;
+    border: 1px solid transparent;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
     color: var(--ink-muted);
@@ -1390,19 +1393,31 @@
     user-select: none;
   }
 
-  .cal-day:hover:not(.empty):not(.past) {
+  .cal-day.available {
+    background: rgba(5, 150, 105, 0.08);
+    border-color: rgba(5, 150, 105, 0.22);
+    color: #065f46;
+  }
+
+  .cal-day:hover:not(.empty):not(.past):not(.booked):not(.hold):not(.selected):not(
+      .range-start
+    ):not(.range-end) {
     background: var(--teal-light);
+    border-color: rgba(8, 145, 178, 0.35);
     color: var(--teal-dark);
   }
 
   .cal-day.booked {
     background: rgba(229, 57, 53, 0.15);
+    border-color: rgba(229, 57, 53, 0.35);
     color: var(--rose);
     font-weight: 600;
+    cursor: not-allowed;
   }
 
   .cal-day.blocked {
-    background: rgba(245, 158, 11, 0.18);
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(217, 119, 6, 0.45);
     color: #b45309;
     font-weight: 600;
   }
@@ -1412,33 +1427,34 @@
     color: #c2410c;
     border: 1px dashed #ea580c;
     font-weight: 500;
-  }
-
-  .cal-day.available {
-    color: var(--ink-rich);
+    cursor: not-allowed;
   }
 
   .cal-day.selected {
     background: var(--teal);
+    border-color: var(--teal);
     color: #fff;
     font-weight: 600;
   }
 
   .cal-day.range-start {
     background: var(--teal);
+    border-color: var(--teal);
     color: #fff;
     font-weight: 600;
     border-radius: 7px 0 0 7px;
   }
 
   .cal-day.in-range {
-    background: rgba(8, 145, 178, 0.14);
+    background: rgba(8, 145, 178, 0.16);
+    border-color: rgba(8, 145, 178, 0.3);
     color: var(--teal-dark);
     border-radius: 0;
   }
 
   .cal-day.range-end {
     background: var(--teal);
+    border-color: var(--teal);
     color: #fff;
     font-weight: 600;
     border-radius: 0 7px 7px 0;
@@ -1446,6 +1462,11 @@
 
   .cal-day.today {
     font-weight: 700;
+  }
+
+  .cal-day.today:not(.booked):not(.blocked):not(.hold):not(.selected):not(.range-start):not(
+      .range-end
+    ) {
     color: var(--indigo);
   }
 
@@ -1458,14 +1479,60 @@
     cursor: default;
   }
 
-  .cal-day.past:not(.booked):not(.blocked) {
-    opacity: 0.35;
+  .cal-day.past:not(.booked):not(.blocked):not(.hold) {
+    background: var(--canvas);
+    border-color: transparent;
+    color: var(--ink-faint);
+    opacity: 0.6;
     cursor: not-allowed;
   }
 
   .cal-day.past.booked,
-  .cal-day.past.blocked {
+  .cal-day.past.blocked,
+  .cal-day.past.hold {
     opacity: 0.8;
+  }
+
+  .cal-blocked-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cal-blocked-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+    background: rgba(245, 158, 11, 0.1);
+    color: #92400e;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+  }
+
+  .cal-blocked-chip:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(217, 119, 6, 0.6);
+  }
+
+  .cal-blocked-days {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.18);
+    padding: 2px 6px;
+    border-radius: 999px;
   }
 
   .cal-legend {
@@ -2193,6 +2260,7 @@
     .stats-row {
       grid-template-columns: repeat(2, 1fr);
     }
+
     .content-grid {
       grid-template-columns: 1fr;
     }
@@ -2212,24 +2280,31 @@
     .sb {
       display: none;
     }
+
     .main {
       margin-left: 0;
     }
+
     .topbar {
       padding: 0 16px;
     }
+
     .page {
       padding: 20px 16px;
     }
+
     .stats-row {
       grid-template-columns: 1fr 1fr;
     }
+
     .lcf-stats {
       grid-template-columns: repeat(2, 1fr);
     }
+
     .form-row {
       grid-template-columns: 1fr;
     }
+
     .settings-grid {
       grid-template-columns: 1fr !important;
     }
