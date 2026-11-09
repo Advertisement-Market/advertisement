@@ -9,16 +9,23 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.theadbasket.backend.advertiser.AdvertiserProfileRepository;
 import com.theadbasket.backend.advertiser.CampaignBriefRepository;
 import com.theadbasket.backend.agency.AgencyProfileRepository;
+import com.theadbasket.backend.availability.AvailabilityBlockType;
+import com.theadbasket.backend.availability.BillboardAvailabilityBlock;
+import com.theadbasket.backend.availability.BillboardAvailabilityBlockRepository;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.notification.Notification;
 import com.theadbasket.backend.notification.NotificationCategory;
@@ -28,6 +35,8 @@ import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.OwnerProfileRepository;
 import com.theadbasket.backend.user.AuthProvider;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -54,6 +63,8 @@ class RegistrationFlowIntegrationTest {
     private AgencyProfileRepository agencyProfiles;
     @Autowired
     private NotificationRepository notificationRepository;
+    @Autowired
+    private BillboardAvailabilityBlockRepository availabilityBlocks;
     @Autowired
     private AuthProviderPolicyProperties authProviderPolicy;
 
@@ -165,6 +176,65 @@ class RegistrationFlowIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.fieldErrors").isNotEmpty());
+    }
+
+    @Test
+    void ownerRegistration_withBlockedRanges_persistsInitialAvailabilityBlocks() throws Exception {
+        LocalDate istToday = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+        String start = istToday.plusDays(3).toString();
+        String end = istToday.plusDays(6).toString();
+        String payload = """
+                {
+                  "firstName":"Vikram","lastName":"Kumar","accountEmail":"owner.cal@example.com","phone":"+91 97654 32109",
+                  "password":"Passw0rd!","companyName":"Kumar Billboards","companyPhone":"","companyRegNumber":"",
+                  "gstNumber":"","addressLine1":"5 CG Road","addressLine2":"","landmark":"","city":"Ahmedabad",
+                  "state":"Gujarat","pincode":"380001",
+                  "tradeLicenseNo":"","ownershipType":"Owned","regulatoryApprovals":"",
+                  "billboard":{"name":"BKC LED Screen Cal","addressLine1":"BKC","addressLine2":"","landmark":"",
+                    "city":"Mumbai","state":"Maharashtra","pincode":"400051",
+                    "type":"LED Digital","widthFt":40,"heightFt":25,"groundHeightFt":15,"facing":"North",
+                    "trafficType":"City / Urban","audienceType":"Commuters","footfall":"150000","startPrice":580000,
+                    "minBookingValue":3,"minBookingUnit":"MONTHS","discountNote":"",
+                    "blockedRanges":[{"startDate":"%s","endDate":"%s"}]},
+                  "acceptedTerms":true
+                }""".formatted(start, end);
+
+        MvcResult regResult = mockMvc.perform(post("/api/auth/register/owner")
+                .contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.user.role").value("OWNER"))
+                .andReturn();
+
+        JsonNode regJson = new ObjectMapper().readTree(regResult.getResponse().getContentAsString());
+        String accessToken = regJson.get("accessToken").asText();
+
+        List<BillboardListing> listings = billboardListings.findAll();
+        assertThat(listings).hasSize(1);
+        Long listingId = listings.get(0).getId();
+
+        List<BillboardAvailabilityBlock> blocks = availabilityBlocks
+                .findByBillboardIdAndBlockTypeOrderByStartDateAsc(
+                        listingId, AvailabilityBlockType.OWNER_BLOCKED);
+        assertThat(blocks).hasSize(1);
+        assertThat(blocks.get(0).getStartDate()).isEqualTo(istToday.plusDays(3));
+        assertThat(blocks.get(0).getEndDate()).isEqualTo(istToday.plusDays(6));
+
+        // Verify the exact owner dashboard API flow (GET listings -> GET availability) returns initial blocks
+        mockMvc.perform(get("/api/owner/listings")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(listingId))
+                .andExpect(jsonPath("$[0].status").value("DRAFT"));
+
+        mockMvc.perform(get("/api/owner/listings/{id}/availability", listingId)
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.today").value(istToday.toString()))
+                .andExpect(jsonPath("$.etag").isNotEmpty())
+                .andExpect(jsonPath("$.blocks.length()").value(1))
+                .andExpect(jsonPath("$.blocks[0].startDate").value(start))
+                .andExpect(jsonPath("$.blocks[0].endDate").value(end))
+                .andExpect(jsonPath("$.blocks[0].blockType").value("OWNER_BLOCKED"));
     }
 
     @Test

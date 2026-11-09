@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.theadbasket.backend.auth.AuthService;
 import com.theadbasket.backend.auth.dto.AuthResponse;
+import com.theadbasket.backend.availability.AvailabilityService;
 import com.theadbasket.backend.common.address.Address;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
@@ -46,6 +47,7 @@ public class OwnerRegistrationService {
     private final RolePolicyProperties rolePolicyProperties;
     private final NotificationService notificationService;
     private final LovService lovService;
+    private final AvailabilityService availabilityService;
 
     public OwnerRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
@@ -53,7 +55,8 @@ public class OwnerRegistrationService {
             BillboardListingRepository billboardListingRepository,
             RolePolicyProperties rolePolicyProperties,
             NotificationService notificationService,
-            LovService lovService) {
+            LovService lovService,
+            AvailabilityService availabilityService) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.ownerProfileRepository = ownerProfileRepository;
@@ -61,6 +64,7 @@ public class OwnerRegistrationService {
         this.rolePolicyProperties = rolePolicyProperties;
         this.notificationService = notificationService;
         this.lovService = lovService;
+        this.availabilityService = availabilityService;
     }
 
     @Transactional
@@ -95,6 +99,9 @@ public class OwnerRegistrationService {
 
         BillboardListing listing = toListing(request.billboard(), user);
         BillboardListing savedListing = billboardListingRepository.save(listing);
+
+        availabilityService.createInitialOwnerBlocks(
+                savedListing.getId(), user.getId(), request.billboard().blockedRanges());
 
         notificationService.createNotification(
                 user,
