@@ -71,27 +71,54 @@ class V10MigrationTest {
                 .load();
         flywayV10.migrate();
 
-        // 4. Verify table and columns exist
+        // 4. Verify table, indexes, and constraints
         try (Connection conn = ds.getConnection()) {
             DatabaseMetaData meta = conn.getMetaData();
             try (ResultSet tables = meta.getTables(null, null, "billboard_availability_blocks", null)) {
                 assertThat(tables.next()).isTrue();
             }
 
+            boolean hasEndDateIndex = false;
+            try (ResultSet idx = meta.getIndexInfo(null, null, "billboard_availability_blocks", false, false)) {
+                while (idx.next()) {
+                    if ("idx_avail_billboard_end_date".equalsIgnoreCase(idx.getString("INDEX_NAME"))) {
+                        hasEndDateIndex = true;
+                        break;
+                    }
+                }
+            }
+            assertThat(hasEndDateIndex).isTrue();
+
             try (Statement stmt = conn.createStatement()) {
                 // Insert valid availability block
                 stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, created_by) " +
                         "VALUES (" + billboardId + ", '2026-12-01', '2026-12-10', 'OWNER_BLOCKED', " + userId + ")");
 
+                // Insert valid BOOKING_HOLD with non-null expiry_ts
+                stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, expiry_ts, created_by) " +
+                        "VALUES (" + billboardId + ", '2026-12-22', '2026-12-24', 'BOOKING_HOLD', TIMESTAMP WITH TIME ZONE '2026-12-01 10:00:00+00:00', " + userId + ")");
+
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM billboard_availability_blocks WHERE billboard_id = " + billboardId)) {
                     assertThat(rs.next()).isTrue();
-                    assertThat(rs.getInt(1)).isEqualTo(1);
+                    assertThat(rs.getInt(1)).isEqualTo(2);
                 }
 
                 // Check constraint: end_date < start_date should fail
                 assertThatThrownBy(() -> {
                     stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, created_by) " +
                             "VALUES (" + billboardId + ", '2026-12-10', '2026-12-01', 'OWNER_BLOCKED', " + userId + ")");
+                }).isInstanceOf(SQLException.class);
+
+                // Check constraint: invalid block_type should fail chk_avail_block_type
+                assertThatThrownBy(() -> {
+                    stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, created_by) " +
+                            "VALUES (" + billboardId + ", '2026-12-11', '2026-12-12', 'UNKNOWN_TYPE', " + userId + ")");
+                }).isInstanceOf(SQLException.class);
+
+                // Check constraint: BOOKING_HOLD without expiry_ts should fail chk_avail_hold_expiry
+                assertThatThrownBy(() -> {
+                    stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, expiry_ts, created_by) " +
+                            "VALUES (" + billboardId + ", '2026-12-25', '2026-12-26', 'BOOKING_HOLD', NULL, " + userId + ")");
                 }).isInstanceOf(SQLException.class);
 
                 // FK behavior: Deleting user should SET NULL on created_by without deleting the block

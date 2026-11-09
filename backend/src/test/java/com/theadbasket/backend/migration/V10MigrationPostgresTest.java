@@ -83,23 +83,45 @@ class V10MigrationPostgresTest {
                 .load();
         flywayV10.migrate();
 
-        // 4. Verify table and constraints in PostgreSQL
+        // 4. Verify table, indexes, and constraints in PostgreSQL
         try (Connection conn = ds.getConnection();
              Statement stmt = conn.createStatement()) {
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM pg_indexes WHERE tablename = 'billboard_availability_blocks' AND indexname = 'idx_avail_billboard_end_date'")) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getInt(1)).isEqualTo(1);
+            }
 
             // Insert valid block
             stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, created_by) " +
                     "VALUES (" + billboardId + ", '2026-12-01', '2026-12-10', 'OWNER_BLOCKED', " + userId + ")");
 
+            // Insert valid BOOKING_HOLD with non-null expiry_ts
+            stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, expiry_ts, created_by) " +
+                    "VALUES (" + billboardId + ", '2026-12-22', '2026-12-24', 'BOOKING_HOLD', TIMESTAMPTZ '2026-12-01 10:00:00+00', " + userId + ")");
+
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM billboard_availability_blocks WHERE billboard_id = " + billboardId)) {
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getInt(1)).isEqualTo(1);
+                assertThat(rs.getInt(1)).isEqualTo(2);
             }
 
             // Check constraint: end_date < start_date violates chk_avail_date_order
             assertThatThrownBy(() -> {
                 stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, created_by) " +
                         "VALUES (" + billboardId + ", '2026-12-10', '2026-12-01', 'OWNER_BLOCKED', " + userId + ")");
+            }).isInstanceOf(SQLException.class);
+
+            // Check constraint: invalid block_type violates chk_avail_block_type
+            assertThatThrownBy(() -> {
+                stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, created_by) " +
+                        "VALUES (" + billboardId + ", '2026-12-11', '2026-12-12', 'UNKNOWN_TYPE', " + userId + ")");
+            }).isInstanceOf(SQLException.class);
+
+            // Check constraint: BOOKING_HOLD without expiry_ts violates chk_avail_hold_expiry
+            assertThatThrownBy(() -> {
+                stmt.execute("INSERT INTO billboard_availability_blocks (billboard_id, start_date, end_date, block_type, expiry_ts, created_by) " +
+                        "VALUES (" + billboardId + ", '2026-12-25', '2026-12-26', 'BOOKING_HOLD', NULL, " + userId + ")");
             }).isInstanceOf(SQLException.class);
 
             // Buyer deletion sets created_by to NULL

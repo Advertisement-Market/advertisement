@@ -12,13 +12,25 @@ CREATE TABLE billboard_availability_blocks (
     created_by      BIGINT,
     created_ts      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_ts      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_avail_date_order CHECK (end_date >= start_date),
-    CONSTRAINT fk_avail_billboard   FOREIGN KEY (billboard_id) REFERENCES billboard_listings(id) ON DELETE CASCADE,
-    CONSTRAINT fk_avail_created_by  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-    -- Consider: CONSTRAINT ex_avail_no_overlap EXCLUDE USING gist (billboard_id WITH =, daterange(start_date, end_date, '[]') WITH &&)
+    CONSTRAINT chk_avail_date_order  CHECK (end_date >= start_date),
+    CONSTRAINT chk_avail_block_type  CHECK (CASE block_type WHEN 'OWNER_BLOCKED' THEN 1 WHEN 'CONFIRMED_BOOKING' THEN 1 WHEN 'BOOKING_HOLD' THEN 1 ELSE 0 END = 1),
+    CONSTRAINT chk_avail_hold_expiry CHECK (block_type <> 'BOOKING_HOLD' OR expiry_ts IS NOT NULL),
+    CONSTRAINT fk_avail_billboard    FOREIGN KEY (billboard_id) REFERENCES billboard_listings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_avail_created_by   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    -- Note on PostgreSQL GiST exclusion constraints:
+    -- A blanket EXCLUDE USING gist across all rows is omitted here because:
+    --   1. H2 (PostgreSQL mode) test dialect does not support btree_gist / EXCLUDE USING gist.
+    --   2. Active BOOKING_HOLD rows expire via expiry_ts, and temporary unpurged expired holds
+    --      would otherwise block valid writes before AvailabilityHoldCleanupJob runs.
+    --   3. CREATE EXTENSION btree_gist may require database superuser privileges.
+    -- In PostgreSQL deployments with btree_gist pre-installed, DBAs may optionally apply:
+    --   ALTER TABLE billboard_availability_blocks
+    --     ADD CONSTRAINT ex_avail_non_hold_no_overlap
+    --     EXCLUDE USING gist (billboard_id WITH =, daterange(start_date, end_date, '[]') WITH &&)
+    --     WHERE (block_type IN ('OWNER_BLOCKED', 'CONFIRMED_BOOKING'));
 );
 
-CREATE INDEX idx_avail_billboard_dates ON billboard_availability_blocks (billboard_id, start_date, end_date);
-CREATE INDEX idx_avail_billboard_type  ON billboard_availability_blocks (billboard_id, block_type);
-CREATE INDEX idx_avail_expiry          ON billboard_availability_blocks (expiry_ts);
-
+CREATE INDEX idx_avail_billboard_dates    ON billboard_availability_blocks (billboard_id, start_date, end_date);
+CREATE INDEX idx_avail_billboard_type     ON billboard_availability_blocks (billboard_id, block_type);
+CREATE INDEX idx_avail_billboard_end_date ON billboard_availability_blocks (billboard_id, end_date);
+CREATE INDEX idx_avail_expiry             ON billboard_availability_blocks (expiry_ts);
