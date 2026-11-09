@@ -879,6 +879,90 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
     });
 
+    it('surfaces error banner and remains on Step 3 when setCover fails during edit save', async () => {
+      const stateListing = {
+        id: 99,
+        name: 'Cover Change Billboard',
+        status: 'ACTIVE',
+        addressLine1: 'MG Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400053',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Commuters',
+        startPrice: 85000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+        media: [
+          {
+            id: 301,
+            category: 'DAY_PHOTO',
+            url: 'https://img.com/301',
+            isCover: true,
+            displayOrder: 1,
+          },
+          {
+            id: 302,
+            category: 'DAY_PHOTO',
+            url: 'https://img.com/302',
+            isCover: false,
+            displayOrder: 2,
+          },
+        ],
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce({ id: 99 });
+      vi.spyOn(ownerListingApi, 'setCover').mockRejectedValueOnce({
+        response: { data: { message: 'Failed to update cover' } },
+      });
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/owners/listings/99/edit',
+              state: { listing: stateListing },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      // Step 1 -> Step 2 -> Step 3
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue to media uploads/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+
+      // Select 302 as cover
+      await waitFor(() => {
+        expect(screen.getByLabelText('Set as cover photo')).toBeDefined();
+      });
+      fireEvent.click(screen.getByLabelText('Set as cover photo'));
+
+      // Submit
+      const submitBtn = screen.getByRole('button', { name: /submit billboard listing/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/setting cover photo failed/i)).toBeDefined();
+        expect(screen.queryByText('Billboard Updated!')).toBeNull();
+      });
+    });
+
     it('editing an ACTIVE listing displays live listing notice warning only when media changes are pending', async () => {
       const stateListing = {
         id: 96,

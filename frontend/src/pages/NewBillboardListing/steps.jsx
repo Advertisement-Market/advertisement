@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/config';
@@ -22,6 +23,7 @@ import {
   BOOKING_DURATION_UNITS,
 } from '../OwnerRegister/widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from '../OwnerRegister/calendar';
+import { ImageLightboxModal } from '@/components/ui/ImageLightboxModal/ImageLightboxModal';
 
 const TOTAL = 3;
 
@@ -500,20 +502,39 @@ const VideoIcon = (
   </svg>
 );
 
+const EMPTY_ARRAY = [];
+
 export function ListingStep3() {
   const { field, setField, submit, submitting } = useRegister();
 
-  const dayPhotos = field('f_dayPhotos') || [];
-  const nightPhotos = field('f_nightPhotos') || [];
-  const surroundingPhotos = field('f_surroundingPhotos') || [];
-  const video = field('f_video') || [];
+  const dayPhotos = field('f_dayPhotos') || EMPTY_ARRAY;
+  const nightPhotos = field('f_nightPhotos') || EMPTY_ARRAY;
+  const surroundingPhotos = field('f_surroundingPhotos') || EMPTY_ARRAY;
+  const video = field('f_video') || EMPTY_ARRAY;
 
-  const existingDayPhotos = field('f_existingDayPhotos') || [];
-  const existingNightPhotos = field('f_existingNightPhotos') || [];
-  const existingSurroundingPhotos = field('f_existingSurroundingPhotos') || [];
-  const existingVideo = field('f_existingVideo') || [];
+  const existingDayPhotos = field('f_existingDayPhotos') || EMPTY_ARRAY;
+  const existingNightPhotos = field('f_existingNightPhotos') || EMPTY_ARRAY;
+  const existingSurroundingPhotos = field('f_existingSurroundingPhotos') || EMPTY_ARRAY;
+  const existingVideo = field('f_existingVideo') || EMPTY_ARRAY;
 
-  const stagedDeleteIds = field('f_stagedDeleteIds') || [];
+  const stagedDeleteIds = field('f_stagedDeleteIds') || EMPTY_ARRAY;
+  const selectedCover = field('f_selectedCover') || null;
+
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxInitialIndex, setLightboxInitialIndex] = useState(0);
+
+  const survivingExistingDayPhotos = existingDayPhotos.filter(
+    (m) => !stagedDeleteIds.some((id) => String(id) === String(m.id)),
+  );
+
+  const totalSurvivingDayPhotos = survivingExistingDayPhotos.length + dayPhotos.length;
+  const isDraft = field('status') === 'DRAFT';
+  const submitForReview = Boolean(field('f_submitForReview'));
+  const hasMinDayPhotos = totalSurvivingDayPhotos >= 2;
+  const isSubmitDisabled =
+    submitting ||
+    (!isDraft && !hasMinDayPhotos) ||
+    (isDraft && submitForReview && !hasMinDayPhotos);
 
   const hasPendingMediaChanges =
     dayPhotos.length > 0 ||
@@ -522,22 +543,84 @@ export function ListingStep3() {
     video.length > 0 ||
     stagedDeleteIds.length > 0;
 
-  const totalDayPhotos = existingDayPhotos.length + dayPhotos.length;
-  const isDraft = field('status') === 'DRAFT';
-  const submitForReview = Boolean(field('f_submitForReview'));
-  const hasMinDayPhotos = totalDayPhotos >= 2;
-  const isSubmitDisabled =
-    submitting ||
-    (!isDraft && !hasMinDayPhotos) ||
-    (isDraft && submitForReview && !hasMinDayPhotos);
+  // Unified projected cover when no cover is explicitly chosen:
+  // First surviving existing day photo, or first newly added day photo
+  const projectedCoverId = (() => {
+    if (selectedCover) return null;
+    if (survivingExistingDayPhotos.length > 0) {
+      return survivingExistingDayPhotos[0].id;
+    }
+    if (dayPhotos.length > 0) {
+      return dayPhotos[0].id;
+    }
+    return null;
+  })();
 
-  const handleRemoveExisting = (id, categoryField) => {
-    setField('f_stagedDeleteIds', [...stagedDeleteIds, id]);
-    const currentExisting = field(categoryField) || [];
+  const handleRemoveExisting = (id) => {
+    const nextStaged = stagedDeleteIds.some((sId) => String(sId) === String(id))
+      ? stagedDeleteIds
+      : [...stagedDeleteIds, id];
+    setField('f_stagedDeleteIds', nextStaged);
+    if (selectedCover?.type === 'EXISTING' && String(selectedCover.id) === String(id)) {
+      setField('f_selectedCover', null);
+    }
+  };
+
+  const handleUndoDelete = (id) => {
+    setField(
+      'f_stagedDeleteIds',
+      stagedDeleteIds.filter((stagedId) => String(stagedId) !== String(id)),
+    );
+  };
+
+  const handleRemoveNewFile = (categoryField, itemToRemove) => {
+    const currentList = field(categoryField) || [];
     setField(
       categoryField,
-      currentExisting.filter((m) => m.id !== id),
+      currentList.filter((it) => it.id !== itemToRemove.id),
     );
+    if (selectedCover?.type === 'NEW' && selectedCover.uploadId === itemToRemove.id) {
+      setField('f_selectedCover', null);
+    }
+  };
+
+  // Compile unified list for full lightbox navigation
+  const allLightboxItems = useMemo(() => {
+    const list = [];
+    existingDayPhotos.forEach((m) => list.push({ ...m, type: 'EXISTING', category: 'DAY_PHOTO' }));
+    dayPhotos.forEach((f) => list.push({ ...f, type: 'NEW', category: 'DAY_PHOTO' }));
+    existingNightPhotos.forEach((m) =>
+      list.push({ ...m, type: 'EXISTING', category: 'NIGHT_PHOTO' }),
+    );
+    nightPhotos.forEach((f) => list.push({ ...f, type: 'NEW', category: 'NIGHT_PHOTO' }));
+    existingSurroundingPhotos.forEach((m) =>
+      list.push({ ...m, type: 'EXISTING', category: 'SURROUNDING_PHOTO' }),
+    );
+    surroundingPhotos.forEach((f) =>
+      list.push({ ...f, type: 'NEW', category: 'SURROUNDING_PHOTO' }),
+    );
+    existingVideo.forEach((m) => list.push({ ...m, type: 'EXISTING', category: 'VIDEO' }));
+    video.forEach((f) => list.push({ ...f, type: 'NEW', category: 'VIDEO' }));
+    return list;
+  }, [
+    existingDayPhotos,
+    dayPhotos,
+    existingNightPhotos,
+    nightPhotos,
+    existingSurroundingPhotos,
+    surroundingPhotos,
+    existingVideo,
+    video,
+  ]);
+
+  const handleOpenPreview = (item) => {
+    const idx = allLightboxItems.findIndex((it) => it.id === item.id);
+    setLightboxInitialIndex(idx >= 0 ? idx : 0);
+    setLightboxOpen(true);
+  };
+
+  const handleSelectCover = (coverTarget) => {
+    setField('f_selectedCover', coverTarget);
   };
 
   return (
@@ -659,7 +742,7 @@ export function ListingStep3() {
               }}
             >
               ⚠️ At least 2 daylight photos are required to submit for review (currently{' '}
-              {totalDayPhotos}). Upload more photos below or uncheck to save as draft.
+              {totalSurvivingDayPhotos}). Upload more photos below or uncheck to save as draft.
             </div>
           )}
         </div>
@@ -724,7 +807,13 @@ export function ListingStep3() {
           files={dayPhotos}
           onChange={(files) => setField('f_dayPhotos', files)}
           existingFiles={existingDayPhotos}
-          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingDayPhotos')}
+          onRemoveExisting={handleRemoveExisting}
+          selectedCover={selectedCover}
+          onSelectCover={handleSelectCover}
+          projectedCoverId={projectedCoverId}
+          stagedDeleteIds={stagedDeleteIds}
+          onUndoDelete={handleUndoDelete}
+          onPreviewItem={handleOpenPreview}
         />
       </FormSection>
 
@@ -741,7 +830,11 @@ export function ListingStep3() {
           files={nightPhotos}
           onChange={(files) => setField('f_nightPhotos', files)}
           existingFiles={existingNightPhotos}
-          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingNightPhotos')}
+          onRemoveExisting={handleRemoveExisting}
+          selectedCover={selectedCover}
+          stagedDeleteIds={stagedDeleteIds}
+          onUndoDelete={handleUndoDelete}
+          onPreviewItem={handleOpenPreview}
         />
       </FormSection>
 
@@ -758,7 +851,11 @@ export function ListingStep3() {
           files={surroundingPhotos}
           onChange={(files) => setField('f_surroundingPhotos', files)}
           existingFiles={existingSurroundingPhotos}
-          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingSurroundingPhotos')}
+          onRemoveExisting={handleRemoveExisting}
+          selectedCover={selectedCover}
+          stagedDeleteIds={stagedDeleteIds}
+          onUndoDelete={handleUndoDelete}
+          onPreviewItem={handleOpenPreview}
           style={{ padding: 0 }}
         />
         <UploadZone
@@ -775,10 +872,50 @@ export function ListingStep3() {
           files={video}
           onChange={(files) => setField('f_video', files)}
           existingFiles={existingVideo}
-          onRemoveExisting={(id) => handleRemoveExisting(id, 'f_existingVideo')}
+          onRemoveExisting={handleRemoveExisting}
+          selectedCover={selectedCover}
+          stagedDeleteIds={stagedDeleteIds}
+          onUndoDelete={handleUndoDelete}
+          onPreviewItem={handleOpenPreview}
           style={{ marginBottom: 0 }}
         />
       </FormSection>
+
+      <ImageLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        items={allLightboxItems}
+        initialIndex={lightboxInitialIndex}
+        selectedCover={selectedCover}
+        projectedCoverId={projectedCoverId}
+        isStagedForDelete={(item) => stagedDeleteIds.includes(item.id)}
+        onSetCover={(item) =>
+          handleSelectCover(
+            item.type === 'EXISTING'
+              ? { type: 'EXISTING', id: item.id }
+              : { type: 'NEW', uploadId: item.id },
+          )
+        }
+        onRemove={(item) => {
+          if (item.type === 'EXISTING') {
+            if (stagedDeleteIds.includes(item.id)) {
+              handleUndoDelete(item.id);
+            } else {
+              handleRemoveExisting(item.id);
+            }
+          } else {
+            const catField =
+              item.category === 'DAY_PHOTO'
+                ? 'f_dayPhotos'
+                : item.category === 'NIGHT_PHOTO'
+                  ? 'f_nightPhotos'
+                  : item.category === 'SURROUNDING_PHOTO'
+                    ? 'f_surroundingPhotos'
+                    : 'f_video';
+            handleRemoveNewFile(catField, item);
+          }
+        }}
+      />
 
       <RegNav showBack={true}>
         <button

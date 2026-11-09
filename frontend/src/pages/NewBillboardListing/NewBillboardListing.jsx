@@ -10,6 +10,7 @@ import {
   mapFormDataToPatchPayload,
 } from '@/features/auth/registrationMappers';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { normalizeUploadItem } from '../OwnerRegister/widgets';
 import { LISTINGS } from '@/pages/OwnerDashboard/data';
 import { apiErrorMessage } from '@/lib/apiClient';
 import { isOther, isBlank, FieldFormatError, decimalRange, isValidPincode } from '@/lib/validators';
@@ -287,29 +288,78 @@ export function NewBillboardListing() {
       const video = data.f_video || [];
 
       const allNewFiles = [
-        ...dayPhotos.map((f) => ({ file: f, category: 'DAY_PHOTO' })),
-        ...nightPhotos.map((f) => ({ file: f, category: 'NIGHT_PHOTO' })),
-        ...surroundingPhotos.map((f) => ({ file: f, category: 'SURROUNDING_PHOTO' })),
-        ...video.map((f) => ({ file: f, category: 'VIDEO' })),
+        ...dayPhotos
+          .map(normalizeUploadItem)
+          .filter(Boolean)
+          .map((it) => ({ ...it, category: 'DAY_PHOTO' })),
+        ...nightPhotos
+          .map(normalizeUploadItem)
+          .filter(Boolean)
+          .map((it) => ({ ...it, category: 'NIGHT_PHOTO' })),
+        ...surroundingPhotos
+          .map(normalizeUploadItem)
+          .filter(Boolean)
+          .map((it) => ({ ...it, category: 'SURROUNDING_PHOTO' })),
+        ...video
+          .map(normalizeUploadItem)
+          .filter(Boolean)
+          .map((it) => ({ ...it, category: 'VIDEO' })),
       ];
+
+      const selectedCover = data.f_selectedCover;
 
       if (isEdit) {
         const payload = mapFormDataToPatchPayload(data);
         await ownerListingApi.updateListing(id, payload);
 
-        // Synchronize media if any staged deletions or new files exist
+        // 1. Synchronize media first (settles additions & staged deletions)
         if (stagedDeleteIds.length > 0 || allNewFiles.length > 0) {
           const fileMappings = allNewFiles.map((item, idx) => ({
             clientIndex: idx,
             category: item.category,
-            uploadId: crypto.randomUUID(),
+            uploadId: item.id,
+            isCover:
+              item.category === 'DAY_PHOTO' &&
+              selectedCover?.type === 'NEW' &&
+              selectedCover.uploadId === item.id,
           }));
           const filesToSend = allNewFiles.map((item) => item.file);
           const manifest = {
             stagedDeleteIds,
             fileMappings,
           };
-          await ownerListingApi.syncMedia(id, manifest, filesToSend);
+          const syncResult = await ownerListingApi.syncMedia(id, manifest, filesToSend);
+
+          // Safe state hydration: clear staged files and deletes immediately so retries won't duplicate
+          data.f_stagedDeleteIds = [];
+          data.f_dayPhotos = [];
+          data.f_nightPhotos = [];
+          data.f_surroundingPhotos = [];
+          data.f_video = [];
+
+          if (selectedCover?.type === 'NEW') {
+            const activeCover = syncResult.find((m) => m.isCover);
+            data.f_selectedCover = activeCover ? { type: 'EXISTING', id: activeCover.id } : null;
+          }
+        }
+
+        // 2. If an existing photo was designated as cover, invoke setCover AFTER syncMedia
+        const serverInitialCoverId = initialData?.media?.find((m) => m.isCover)?.id || null;
+        if (
+          selectedCover?.type === 'EXISTING' &&
+          (selectedCover.id !== serverInitialCoverId ||
+            stagedDeleteIds.includes(serverInitialCoverId))
+        ) {
+          try {
+            await ownerListingApi.setCover(id, selectedCover.id);
+          } catch (coverErr) {
+            const coverError = new Error(
+              `Media updated, but setting cover photo failed: ${apiErrorMessage(coverErr)}. Please retry setting cover.`,
+              { cause: coverErr },
+            );
+            coverError.isSubmissionFailure = true;
+            throw coverError;
+          }
         }
 
         // If the listing was previously REJECTED, or DRAFT with submit requested,
@@ -341,11 +391,30 @@ export function NewBillboardListing() {
 
         // Upload media files if any
         if (allNewFiles.length > 0) {
-          const fileMappings = allNewFiles.map((item, idx) => ({
-            clientIndex: idx,
-            category: item.category,
-            uploadId: crypto.randomUUID(),
-          }));
+          const hasExplicitDayCover = allNewFiles.some(
+            (item) =>
+              item.category === 'DAY_PHOTO' &&
+              selectedCover?.type === 'NEW' &&
+              selectedCover.uploadId === item.id,
+          );
+          let firstDayAssigned = false;
+          const fileMappings = allNewFiles.map((item, idx) => {
+            let isCover = false;
+            if (item.category === 'DAY_PHOTO') {
+              if (hasExplicitDayCover) {
+                isCover = selectedCover?.type === 'NEW' && selectedCover.uploadId === item.id;
+              } else if (!firstDayAssigned) {
+                isCover = true;
+                firstDayAssigned = true;
+              }
+            }
+            return {
+              clientIndex: idx,
+              category: item.category,
+              uploadId: item.id,
+              isCover,
+            };
+          });
           const filesToSend = allNewFiles.map((item) => item.file);
           const manifest = {
             stagedDeleteIds: [],
