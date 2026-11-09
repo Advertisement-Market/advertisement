@@ -4,6 +4,22 @@
  */
 
 import { isOther, sanitizeText, DECIMAL_RE, FieldFormatError } from '@/lib/validators';
+import { dayStatusMapToRanges, isValidDateKey } from '@/features/availability/availabilityUtils';
+
+function extractBlockedRanges(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    const map = {};
+    for (const d of raw) {
+      if (isValidDateKey(d)) map[d] = 'blocked';
+    }
+    return dayStatusMapToRanges(map);
+  }
+  if (typeof raw === 'object') {
+    return dayStatusMapToRanges(raw);
+  }
+  return [];
+}
 
 const trimOrNull = (v) => {
   const s = v == null ? '' : sanitizeText(v);
@@ -150,6 +166,7 @@ export function mapOwner(d) {
   const isTypeOther = isOther(d.f_bbType);
   const isTrafficOther = isOther(d.f_trafficType);
   const isAudienceOther = isOther(d.f_audience);
+  const blockedRanges = extractBlockedRanges(d.f_blockedDates);
 
   return {
     firstName: d.f_firstName,
@@ -193,6 +210,7 @@ export function mapOwner(d) {
       minBookingValue,
       minBookingUnit,
       discountNote: trimOrNull(d.f_discountNote),
+      ...(blockedRanges.length > 0 ? { blockedRanges } : {}),
     },
     acceptedTerms: !!d.f_termsAccept,
   };
@@ -244,6 +262,7 @@ export function mapBillboardListing(d) {
   const isTypeOther = isOther(d.f_bbType);
   const isTrafficOther = isOther(d.f_trafficType);
   const isAudienceOther = isOther(d.f_audience);
+  const blockedRanges = extractBlockedRanges(d.f_blockedDates);
 
   return {
     name: trimOrNull(d.f_bbName),
@@ -268,6 +287,7 @@ export function mapBillboardListing(d) {
     minBookingValue,
     minBookingUnit,
     discountNote: trimOrNull(d.f_discountNote),
+    ...(blockedRanges.length > 0 ? { blockedRanges } : {}),
   };
 }
 

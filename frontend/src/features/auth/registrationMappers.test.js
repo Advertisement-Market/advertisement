@@ -826,4 +826,70 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(formData.media[0].url).toBe('/api/media/day1.jpg');
     });
   });
+
+  describe('Initial Availability Blocked Ranges Mapping', () => {
+    const baseBillboardForm = {
+      f_bbName: 'Blocked Dates Board',
+      f_bbAddr: 'Worli Sea Face',
+      f_bbCity: 'Mumbai',
+      f_bbState: 'Maharashtra',
+      f_bbPin: '400018',
+      f_bbType: 'LED_DIGITAL',
+      f_bbWidth: '40',
+      f_bbHeight: '20',
+      f_facing: 'North',
+      f_trafficType: 'City / Urban',
+      f_audience: 'Commuters',
+      f_startPrice: '300000',
+      f_minBookingValue: 1,
+      f_minBookingUnit: 'MONTHS',
+    };
+
+    it('serializes f_blockedDates into contiguous merged blockedRanges in mapBillboardListing and mapOwner', () => {
+      const blocked = {
+        '2027-01-05': 'blocked',
+        '2027-01-06': 'blocked',
+        '2027-01-07': 'blocked',
+        '2027-01-12': 'blocked',
+      };
+
+      const listingPayload = mapBillboardListing({
+        ...baseBillboardForm,
+        f_blockedDates: blocked,
+      });
+
+      expect(listingPayload.blockedRanges).toEqual([
+        { startDate: '2027-01-05', endDate: '2027-01-07' },
+        { startDate: '2027-01-12', endDate: '2027-01-12' },
+      ]);
+
+      const ownerPayload = mapOwner({
+        ...baseBillboardForm,
+        f_firstName: 'Raj',
+        f_lastName: 'Patel',
+        f_phone: '9876543210',
+        f_email: 'raj@example.com',
+        f_password: 'Password123!',
+        f_companyName: 'Apex OOH',
+        f_bizAddr1: 'Plot 5',
+        f_bizCity: 'Mumbai',
+        f_bizState: 'Maharashtra',
+        f_bizPin: '400018',
+        f_blockedDates: blocked,
+      });
+
+      expect(ownerPayload.billboard.blockedRanges).toEqual([
+        { startDate: '2027-01-05', endDate: '2027-01-07' },
+        { startDate: '2027-01-12', endDate: '2027-01-12' },
+      ]);
+    });
+
+    it('omits blockedRanges when f_blockedDates is empty', () => {
+      const payload = mapBillboardListing({
+        ...baseBillboardForm,
+        f_blockedDates: {},
+      });
+      expect(payload).not.toHaveProperty('blockedRanges');
+    });
+  });
 });
