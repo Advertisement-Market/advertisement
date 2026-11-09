@@ -7,6 +7,8 @@ import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS } from '../OwnerRegister/steps';
 import { validate, NewBillboardListing, createSubmitHandler } from './NewBillboardListing';
 import { FieldFormatError, MSG } from '@/lib/validators';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { availabilityApi } from '@/features/availability/availabilityApi';
+import { formatDateKey, addDays } from '@/features/availability/availabilityUtils';
 import { ROUTES } from '@/lib/routes';
 
 /**
@@ -1438,6 +1440,203 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
 
       // Must surface the normal fallback message, NOT a ground-height error!
       await expect(handler({ data: {} })).rejects.toThrow('Failed to update billboard listing.');
+    });
+  });
+
+  describe('Step 2 Availability Calendar Persistence in Create and Edit Modes', () => {
+    afterEach(() => {
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('sends initial blockedRanges from Step 2 when creating a new listing', async () => {
+      window.scrollTo = vi.fn();
+      const createSpy = vi
+        .spyOn(ownerListingApi, 'createListing')
+        .mockResolvedValueOnce({ id: 501 });
+      const syncMediaSpy = vi.spyOn(ownerListingApi, 'syncMedia').mockResolvedValueOnce({});
+      const submitSpy = vi.spyOn(ownerListingApi, 'submitListing').mockResolvedValueOnce({});
+
+      const now = new Date();
+      // Navigate to next month so all days 5..7 are strictly in the future
+      const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1;
+      const nextMonthYear = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+      const startDayKey = formatDateKey(nextMonthYear, nextMonth, 5);
+      const endDayKey = formatDateKey(nextMonthYear, nextMonth, 7);
+
+      render(
+        <MemoryRouter initialEntries={[ROUTES.newBillboardListing]}>
+          <Routes>
+            <Route path={ROUTES.newBillboardListing} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      // Step 1 inputs
+      fireEvent.change(screen.getByPlaceholderText(/Andheri Flyover/i), {
+        target: { value: 'Marine Drive Hoarding' },
+      });
+      fireEvent.change(screen.getByPlaceholderText(/Road \/ Street \/ Highway name/i), {
+        target: { value: 'Marine Drive' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Mumbai'), { target: { value: 'Mumbai' } });
+      fireEvent.change(screen.getByPlaceholderText('Maharashtra'), {
+        target: { value: 'Maharashtra' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('400053'), { target: { value: '400020' } });
+      fireEvent.click(screen.getByText('LED Digital').closest('.type-option'));
+      fireEvent.change(screen.getByPlaceholderText('40'), { target: { value: '40' } });
+      fireEvent.change(screen.getByPlaceholderText('20'), { target: { value: '20' } });
+
+      const selects = screen.getAllByRole('combobox');
+      fireEvent.change(selects[0], { target: { value: 'North' } });
+      fireEvent.change(selects[1], { target: { value: 'Highway' } });
+      fireEvent.change(selects[2], { target: { value: 'Commuters' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /next month/i })).toBeDefined();
+      });
+
+      // Enter starting rate
+      fireEvent.change(screen.getByPlaceholderText('9500'), { target: { value: '9500' } });
+
+      // Block 5th..7th of next month in AvailabilityCalendar
+      fireEvent.click(screen.getByRole('button', { name: /next month/i }));
+      fireEvent.click(document.querySelector(`[data-date="${startDayKey}"]`));
+      fireEvent.click(document.querySelector(`[data-date="${endDayKey}"]`));
+      expect(screen.getByText('3 days marked as blocked')).toBeDefined();
+
+      // Advance to Step 3 and add 2 daylight photos
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      const f1 = new File(['img1'], 'day1.jpg', { type: 'image/jpeg' });
+      const f2 = new File(['img2'], 'day2.jpg', { type: 'image/jpeg' });
+      fireEvent.change(fileInputs[0], { target: { files: [f1, f2] } });
+
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(createSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'Marine Drive Hoarding',
+            blockedRanges: [{ startDate: startDayKey, endDate: endDayKey }],
+          }),
+        );
+      });
+      expect(syncMediaSpy).toHaveBeenCalledTimes(1);
+      expect(submitSpy).toHaveBeenCalledWith(501);
+    });
+
+    it('hydrates availability and syncs modified blocked dates in edit mode', async () => {
+      window.scrollTo = vi.fn();
+      const now = new Date();
+      const firstOfMonth = formatDateKey(now.getFullYear(), now.getMonth(), 1);
+      const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1;
+      const nextMonthYear = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+      const existingBlocked = formatDateKey(nextMonthYear, nextMonth, 10);
+      const bookedDay = addDays(existingBlocked, 2);
+      const newlyBlocked = addDays(existingBlocked, 4);
+
+      const stateListing = {
+        id: 88,
+        name: 'Edit Calendar Unipole',
+        status: 'ACTIVE',
+        addressLine1: 'Worli Road',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400018',
+        type: 'UNIPOLE',
+        widthFt: 30,
+        heightFt: 15,
+        facing: 'North',
+        trafficType: 'City / Urban',
+        audienceType: 'Commuters',
+        startPrice: 300000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+        media: [
+          { id: 1, category: 'DAY_PHOTO', url: '/m/1.jpg' },
+          { id: 2, category: 'DAY_PHOTO', url: '/m/2.jpg' },
+        ],
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(ownerListingApi, 'updateListing').mockResolvedValueOnce(stateListing);
+      vi.spyOn(availabilityApi, 'getListingAvailability').mockResolvedValueOnce({
+        blocks: [
+          {
+            id: 1,
+            startDate: existingBlocked,
+            endDate: existingBlocked,
+            blockType: 'OWNER_BLOCKED',
+          },
+          { id: 2, startDate: bookedDay, endDate: bookedDay, blockType: 'CONFIRMED_BOOKING' },
+        ],
+        etag: '"edit-etag-1"',
+        today: firstOfMonth,
+      });
+      const syncAvailSpy = vi
+        .spyOn(availabilityApi, 'syncListingAvailability')
+        .mockResolvedValueOnce({ blocks: [], etag: '"edit-etag-2"', today: firstOfMonth });
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            { pathname: '/owners/listings/88/edit', state: { listing: stateListing } },
+          ]}
+        >
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /next month/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /next month/i }));
+
+      await waitFor(() => {
+        const preBlockedCell = document.querySelector(`[data-date="${existingBlocked}"]`);
+        expect(preBlockedCell.classList.contains('blocked')).toBe(true);
+      });
+      expect(
+        document.querySelector(`[data-date="${bookedDay}"]`).classList.contains('booked'),
+      ).toBe(true);
+
+      // Block one additional day (twice click for single day range)
+      const newCell = document.querySelector(`[data-date="${newlyBlocked}"]`);
+      fireEvent.click(newCell);
+      fireEvent.click(newCell);
+
+      fireEvent.click(screen.getByRole('button', { name: /continue to media uploads/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit billboard listing/i })).toBeDefined();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /submit billboard listing/i }));
+
+      await waitFor(() => {
+        expect(syncAvailSpy).toHaveBeenCalledWith(
+          '88',
+          [
+            { startDate: existingBlocked, endDate: existingBlocked },
+            { startDate: newlyBlocked, endDate: newlyBlocked },
+          ],
+          '"edit-etag-1"',
+        );
+      });
     });
   });
 });

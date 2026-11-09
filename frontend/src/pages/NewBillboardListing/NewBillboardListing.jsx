@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { ROUTES } from '@/lib/routes';
@@ -9,6 +9,11 @@ import {
   mapListingToFormData,
   mapFormDataToPatchPayload,
 } from '@/features/auth/registrationMappers';
+import { availabilityApi } from '@/features/availability/availabilityApi';
+import {
+  blocksToDayStatusMap,
+  dayStatusMapToRanges,
+} from '@/features/availability/availabilityUtils';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { normalizeUploadItem } from '../OwnerRegister/widgets';
 import { LISTINGS } from '@/pages/OwnerDashboard/data';
@@ -145,7 +150,49 @@ export function validate(step, { data, showToast }) {
 
 const STEP_COMPONENTS = [ListingStep1, ListingStep2, ListingStep3];
 
-function WizardBody({ isEdit, initialStatus }) {
+function EditAvailabilityHydrator({ isEdit, listingId }) {
+  const { field, setField } = useRegister();
+  const dirtyRef = useRef(false);
+  const isDirty = Boolean(field('f_availabilityDirty'));
+
+  useEffect(() => {
+    dirtyRef.current = isDirty;
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!isEdit || !listingId || !/^\d+$/.test(String(listingId))) return;
+    let ignore = false;
+    Promise.resolve(availabilityApi.getListingAvailability(listingId))
+      .then((res) => {
+        if (ignore || !res) return;
+        const { statusMap, confirmedDates, holdDates } = blocksToDayStatusMap(res.blocks || []);
+        if (!dirtyRef.current) {
+          const ownerBlocked = {};
+          for (const [k, v] of Object.entries(statusMap)) {
+            if (v === 'blocked' && !confirmedDates.has(k) && !holdDates.has(k)) {
+              ownerBlocked[k] = 'blocked';
+            }
+          }
+          setField('f_blockedDates', ownerBlocked);
+        }
+        setField('f_lockedBookedDates', Array.from(confirmedDates));
+        setField('f_lockedHoldDates', Array.from(holdDates));
+        setField('f_availabilityEtag', res.etag ?? null);
+        setField('f_availabilityServerToday', res.today ?? null);
+        setField('f_availabilityLoaded', true);
+      })
+      .catch(() => {
+        // Edit metadata/media flow still works even if availability preload is unavailable.
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [isEdit, listingId, setField]);
+
+  return null;
+}
+
+function WizardBody({ isEdit, listingId, initialStatus }) {
   const { currentStep, submitted, field } = useRegister();
   if (submitted) {
     const isResubmitted =
@@ -172,7 +219,12 @@ function WizardBody({ isEdit, initialStatus }) {
     );
   }
   const Step = STEP_COMPONENTS[currentStep - 1];
-  return <Step />;
+  return (
+    <>
+      <EditAvailabilityHydrator isEdit={isEdit} listingId={listingId} />
+      <Step />
+    </>
+  );
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -362,6 +414,16 @@ export function NewBillboardListing() {
           }
         }
 
+        // Sync availability calendar if user modified blocked dates after hydration
+        if (data.f_availabilityLoaded && data.f_availabilityDirty) {
+          const ranges = dayStatusMapToRanges(
+            data.f_blockedDates || {},
+            new Set(data.f_lockedBookedDates || []),
+            new Set(data.f_lockedHoldDates || []),
+          );
+          await availabilityApi.syncListingAvailability(id, ranges, data.f_availabilityEtag);
+        }
+
         // If the listing was previously REJECTED, or DRAFT with submit requested,
         // submit for moderation review to prevent leaving listings stranded in DRAFT status.
         const prevStatus = data?.status || initialData?.status || stateListing?.status;
@@ -478,7 +540,11 @@ export function NewBillboardListing() {
           signInTo={ROUTES.ownerListingsTab}
           cancelTo={ROUTES.ownerListingsTab}
         >
-          <WizardBody isEdit={isEdit} initialStatus={initialData?.status || stateListing?.status} />
+          <WizardBody
+            isEdit={isEdit}
+            listingId={id}
+            initialStatus={initialData?.status || stateListing?.status}
+          />
         </RegisterShell>
       </RegisterProvider>
     </div>
