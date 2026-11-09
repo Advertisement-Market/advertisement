@@ -15,6 +15,7 @@ CREATE TABLE billboard_availability_blocks (
     CONSTRAINT chk_avail_date_order CHECK (end_date >= start_date),
     CONSTRAINT fk_avail_billboard   FOREIGN KEY (billboard_id) REFERENCES billboard_listings(id) ON DELETE CASCADE,
     CONSTRAINT fk_avail_created_by  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    -- Consider: CONSTRAINT ex_avail_no_overlap EXCLUDE USING gist (billboard_id WITH =, daterange(start_date, end_date, '[]') WITH &&)
 );
 
 CREATE INDEX idx_avail_billboard_dates ON billboard_availability_blocks (billboard_id, start_date, end_date);
