@@ -2,6 +2,7 @@ package com.theadbasket.backend.availability;
 
 import com.theadbasket.backend.availability.dto.*;
 import com.theadbasket.backend.availability.exception.HoldConflictException;
+import com.theadbasket.backend.availability.exception.StaleAvailabilityException;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.owner.BillboardListing;
@@ -788,6 +789,31 @@ class AvailabilityServiceTest {
         BulkSyncResponse resp = availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\"");
 
         assertThat(resp.blocks()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Stale If-Match with active booking hold throws 412 StaleAvailabilityException, not 409 HoldConflictException")
+    void staleIfMatch_withActiveBookingHold_throwsStaleAvailability_notHoldConflict() {
+        BillboardAvailabilityBlock existingBlock = createBlock(1L, TODAY.plusDays(1), TODAY.plusDays(3), AvailabilityBlockType.OWNER_BLOCKED);
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of(existingBlock));
+
+        // Incoming range changes dates: [today + 5, today + 10]
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(TODAY.plusDays(5), TODAY.plusDays(10))
+        );
+
+        // Stale ETag provided
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"stale-etag\""))
+                .isInstanceOf(StaleAvailabilityException.class)
+                .satisfies(ex -> {
+                    StaleAvailabilityException sae = (StaleAvailabilityException) ex;
+                    assertThat(sae.getEtag()).isEqualTo(calculateETag(List.of(existingBlock)));
+                    assertThat(sae.getCurrentBlocks()).hasSize(1);
+                });
+
+        // Blocker/hold queries must never be invoked on a stale session
+        verify(blockRepository, never()).findActiveOverlapping(any(), any(), any(), any());
     }
 
     @Test

@@ -170,12 +170,12 @@ public class AvailabilityService {
         }
 
         // Step 2: Load existing OWNER_BLOCKED and compute current ETag
+        final LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
         List<BillboardAvailabilityBlock> existing = blockRepository
                 .findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED);
         String currentETag = computeETag(existing);
 
         // Step 3: Two-List Split at Today & Past Coverage Checks ⟳ Rev2
-        final LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
         List<String> warnings = new ArrayList<>();
 
         // 3a. Extract canonical immutable historyList from existing pre-today DB rows
@@ -245,7 +245,46 @@ public class AvailabilityService {
             }
         }
 
-        // 4b. Check active holds and confirmed bookings strictly against editableList
+        // 4b. Replay safe content-equality short-circuit before blocker queries
+        List<DateRangeDto> proposedRanges = new ArrayList<>(historyList);
+        if (!mergedEditable.isEmpty()) {
+            if (!proposedRanges.isEmpty()) {
+                DateRangeDto lastHistory = proposedRanges.get(proposedRanges.size() - 1);
+                DateRangeDto firstEditable = mergedEditable.get(0);
+                if (lastHistory.endDate().plusDays(1).equals(firstEditable.startDate())) {
+                    proposedRanges.set(proposedRanges.size() - 1, new DateRangeDto(lastHistory.startDate(), firstEditable.endDate()));
+                    proposedRanges.addAll(mergedEditable.subList(1, mergedEditable.size()));
+                } else {
+                    proposedRanges.addAll(mergedEditable);
+                }
+            } else {
+                proposedRanges.addAll(mergedEditable);
+            }
+        }
+
+        Set<String> proposedPairs = proposedRanges.stream()
+                .map(r -> r.startDate() + "|" + r.endDate())
+                .collect(Collectors.toSet());
+        Set<String> existingPairs = existing.stream()
+                .map(b -> b.getStartDate() + "|" + b.getEndDate())
+                .collect(Collectors.toSet());
+
+        if (proposedPairs.equals(existingPairs)) {
+            List<AvailabilityBlockDto> dtos = existing.stream().map(AvailabilityBlockDto::from).toList();
+            return new BulkSyncResponse(dtos, warnings, currentETag, today);
+        }
+
+        // 4c. ETag optimistic concurrency check (fail fast before querying blockers or holds)
+        if (ifMatchHeader == null || ifMatchHeader.isBlank()) {
+            throw new PreconditionRequiredException();
+        }
+        Set<String> parsedIfMatch = parseETag(ifMatchHeader);
+        if (!parsedIfMatch.contains(currentETag)) {
+            List<AvailabilityBlockDto> currentDtos = existing.stream().map(AvailabilityBlockDto::from).toList();
+            throw new StaleAvailabilityException(currentDtos, currentETag, today);
+        }
+
+        // 4d. Check active holds and confirmed bookings strictly against editableList
         Instant now = clock.instant();
         Map<Long, BillboardAvailabilityBlock> conflictingHoldsById = new LinkedHashMap<>();
         List<DateRangeDto> trimmedEditable = new ArrayList<>();
@@ -308,27 +347,14 @@ public class AvailabilityService {
             }
         }
 
-        // Step 6: Content-equality short-circuit (Replay safe)
+        // Step 6: Content-equality short-circuit (Replay safe after trimming)
         Set<String> desiredPairs = finalRanges.stream()
                 .map(r -> r.startDate() + "|" + r.endDate())
-                .collect(Collectors.toSet());
-        Set<String> existingPairs = existing.stream()
-                .map(b -> b.getStartDate() + "|" + b.getEndDate())
                 .collect(Collectors.toSet());
 
         if (desiredPairs.equals(existingPairs)) {
             List<AvailabilityBlockDto> dtos = existing.stream().map(AvailabilityBlockDto::from).toList();
             return new BulkSyncResponse(dtos, warnings, currentETag, today);
-        }
-
-        // Step 7: ETag optimistic concurrency check
-        if (ifMatchHeader == null || ifMatchHeader.isBlank()) {
-            throw new PreconditionRequiredException();
-        }
-        Set<String> parsedIfMatch = parseETag(ifMatchHeader);
-        if (!parsedIfMatch.contains(currentETag)) {
-            List<AvailabilityBlockDto> currentDtos = existing.stream().map(AvailabilityBlockDto::from).toList();
-            throw new StaleAvailabilityException(currentDtos, currentETag, today);
         }
 
         // Step 8: In-batch diff update without clearing persistence context ⟳ Rev2
