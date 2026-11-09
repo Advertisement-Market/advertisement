@@ -33,7 +33,7 @@ describe('availabilityApi client', () => {
     expect(api.put).toHaveBeenCalledWith(
       '/api/owner/listings/42/availability',
       { ranges },
-      { headers: { 'If-Match': '"strongHash123"' } }
+      { headers: { 'If-Match': '"strongHash123"' } },
     );
   });
 
@@ -46,7 +46,7 @@ describe('availabilityApi client', () => {
     expect(api.put).toHaveBeenCalledWith(
       '/api/owner/listings/42/availability',
       { ranges },
-      { headers: { 'If-Match': '"weakHash123"' } }
+      { headers: { 'If-Match': '"weakHash123"' } },
     );
   });
 
@@ -59,7 +59,7 @@ describe('availabilityApi client', () => {
     expect(api.put).toHaveBeenCalledWith(
       '/api/owner/listings/42/availability',
       { ranges },
-      { headers: {} }
+      { headers: {} },
     );
   });
 
@@ -73,4 +73,3 @@ describe('availabilityApi client', () => {
     });
   });
 });
-
