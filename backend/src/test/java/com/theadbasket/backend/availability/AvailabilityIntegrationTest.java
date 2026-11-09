@@ -69,12 +69,16 @@ class AvailabilityIntegrationTest {
     @Autowired
     private Clock clock;
 
+    @Autowired
+    private AvailabilityHoldCleanupJob holdCleanupJob;
+
     private User owner;
     private User otherOwner;
     private String ownerToken;
     private String otherOwnerToken;
     private BillboardListing activeListing;
     private BillboardListing draftListing;
+    private BillboardListing suspendedListing;
 
     @BeforeEach
     void setUp() {
@@ -124,6 +128,24 @@ class AvailabilityIntegrationTest {
         draftListing.setMinBookingDays(1);
         draftListing.setStatus(BillboardStatus.DRAFT);
         draftListing = billboardListingRepository.save(draftListing);
+
+        Address addr3 = Address.of("300 MG Road", "Near Park", "Indiranagar", "Bangalore", "Karnataka", "560038");
+        suspendedListing = new BillboardListing();
+        suspendedListing.setUser(owner);
+        suspendedListing.setName("Suspended Billboard");
+        suspendedListing.setAddress(addr3);
+        suspendedListing.setType(BillboardType.STATIC_HOARDING);
+        suspendedListing.setWidthFt(new BigDecimal("20.00"));
+        suspendedListing.setHeightFt(new BigDecimal("10.00"));
+        suspendedListing.setFacing(FacingDirection.EAST);
+        suspendedListing.setTrafficType(TrafficType.CITY_URBAN);
+        suspendedListing.setAudienceType(AudienceType.COMMUTERS);
+        suspendedListing.setStartPrice(new BigDecimal("50000.00"));
+        suspendedListing.setMinBookingValue(1);
+        suspendedListing.setMinBookingUnit(BookingDurationUnit.DAYS);
+        suspendedListing.setMinBookingDays(1);
+        suspendedListing.setStatus(BillboardStatus.SUSPENDED);
+        suspendedListing = billboardListingRepository.save(suspendedListing);
     }
 
     @AfterEach
@@ -146,7 +168,7 @@ class AvailabilityIntegrationTest {
     void security_publicGet_returns200() throws Exception {
         mockMvc.perform(get("/api/listings/" + activeListing.getId() + "/availability"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=300"))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=15, stale-while-revalidate=30"))
                 .andExpect(jsonPath("$").isArray());
     }
 
@@ -484,14 +506,14 @@ class AvailabilityIntegrationTest {
     }
 
     @Test
-    @DisplayName("Public endpoint: window entirely in past returns empty list 200 with Cache-Control 300s")
+    @DisplayName("Public endpoint: window entirely in past returns empty list 200 with Cache-Control 15s + SWR 30s")
     void publicEndpoint_windowEntirelyInPast_returnsEmptyList200() throws Exception {
         LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
         mockMvc.perform(get("/api/listings/" + activeListing.getId() + "/availability")
                         .param("from", today.minusDays(60).toString())
                         .param("to", today.minusDays(10).toString()))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=300"))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=15, stale-while-revalidate=30"))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
     }
@@ -655,5 +677,260 @@ class AvailabilityIntegrationTest {
         BillboardAvailabilityBlock reloaded = blockRepository.findById(block.getId()).orElseThrow();
         assertThat(reloaded.getCreatedBy()).isNull();
         assertThat(reloaded.getBlockType()).isEqualTo(AvailabilityBlockType.CONFIRMED_BOOKING);
+    }
+
+    @Test
+    @DisplayName("Security method scoping: unauthenticated POST to public availability returns 401; authenticated POST returns 405")
+    void security_publicAvailability_postBlocked() throws Exception {
+        mockMvc.perform(post("/api/listings/" + activeListing.getId() + "/availability"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.errorCode").value("METHOD_NOT_ALLOWED"));
+    }
+
+    @Test
+    @DisplayName("Public GET on draft, suspended, or missing listing with past window returns 404 LISTING_NOT_ACTIVE")
+    void publicGet_nonActiveOrMissingWithPastWindow_returns404() throws Exception {
+        LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
+
+        mockMvc.perform(get("/api/listings/" + draftListing.getId() + "/availability")
+                        .param("to", today.minusDays(5).toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("LISTING_NOT_ACTIVE"));
+
+        mockMvc.perform(get("/api/listings/" + suspendedListing.getId() + "/availability")
+                        .param("to", today.minusDays(5).toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("LISTING_NOT_ACTIVE"));
+
+        mockMvc.perform(get("/api/listings/9999999/availability")
+                        .param("to", today.minusDays(5).toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("LISTING_NOT_ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("Public GET with from > to and past to returns 400 AVAILABILITY_WINDOW_INVALID")
+    void publicGet_fromAfterToInPast_returns400() throws Exception {
+        LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
+
+        mockMvc.perform(get("/api/listings/" + activeListing.getId() + "/availability")
+                        .param("from", today.plusDays(10).toString())
+                        .param("to", today.minusDays(5).toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("AVAILABILITY_WINDOW_INVALID"));
+    }
+
+    @Test
+    @DisplayName("Malformed inputs map to structured 400 VALIDATION_FAILED instead of 500")
+    void malformedInputs_return400ValidationFailedNot500() throws Exception {
+        LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
+
+        // 1. Null element inside ranges array
+        mockMvc.perform(put("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .header(HttpHeaders.IF_MATCH, "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ranges\":[null]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+
+        // 2. Invalid calendar date in JSON body
+        mockMvc.perform(put("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ranges\":[{\"startDate\":\"2026-02-30\",\"endDate\":\"2026-03-01\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+
+        // 3. Invalid query date param on public GET
+        mockMvc.perform(get("/api/listings/" + activeListing.getId() + "/availability")
+                        .param("from", "not-a-date"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.from").exists());
+
+        // 4. Non-numeric path variable
+        mockMvc.perform(get("/api/listings/not-a-number/availability"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.billboardId").exists());
+
+        // 5. Extreme ISO date overflow on public GET
+        mockMvc.perform(get("/api/listings/" + activeListing.getId() + "/availability")
+                        .param("from", "+999999999-12-30"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("AVAILABILITY_DATE_OUT_OF_BOUNDS"));
+
+        // 6. Unsupported content-type returns 415 UNSUPPORTED_CONTENT_TYPE, not 500
+        mockMvc.perform(put("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("{\"ranges\":[]}"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.errorCode").value("UNSUPPORTED_CONTENT_TYPE"));
+
+        // 7. Unknown route returns 404 RESOURCE_NOT_FOUND, not 500
+        mockMvc.perform(get("/api/owner/listings/" + activeListing.getId() + "/nonexistent")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+
+        // 8. Malformed lone-quote If-Match header returns 412, not 500
+        BulkSyncRequest validReq = new BulkSyncRequest(List.of(
+                new AvailabilityRangeRequest(today.plusDays(2), today.plusDays(4))
+        ));
+        mockMvc.perform(put("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .header(HttpHeaders.IF_MATCH, "\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validReq)))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.errorCode").value("AVAILABILITY_STALE"));
+    }
+
+    @Test
+    @DisplayName("Suspended listing rejects owner availability PUT with 400 LISTING_SUSPENDED while DRAFT succeeds")
+    void lifecycleGuards_suspendedRejected_draftAllowed() throws Exception {
+        LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
+        BulkSyncRequest request = new BulkSyncRequest(List.of(
+                new AvailabilityRangeRequest(today.plusDays(2), today.plusDays(5))
+        ));
+        String emptyETag = "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"";
+
+        mockMvc.perform(put("/api/owner/listings/" + suspendedListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .header(HttpHeaders.IF_MATCH, emptyETag)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("LISTING_SUSPENDED"));
+
+        mockMvc.perform(put("/api/owner/listings/" + draftListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .header(HttpHeaders.IF_MATCH, emptyETag)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.blocks", hasSize(1)));
+    }
+
+    @Test
+    @DisplayName("Owner GET/PUT/412 return upcoming CONFIRMED_BOOKING and active BOOKING_HOLD without exposing expired holds or PII")
+    void ownerVisibility_includesBookingsAndActiveHolds_omitsExpiredAndPii() throws Exception {
+        Instant now = clock.instant();
+        LocalDate today = now.atZone(IST_ZONE).toLocalDate();
+
+        User buyer = userRepository.save(new User("Ad", "Buyer", "buyer.vis@example.com", "pass", "9876543219", Role.ADVERTISER));
+
+        // 1. Owner block
+        blockRepository.save(new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(1), today.plusDays(3),
+                AvailabilityBlockType.OWNER_BLOCKED, owner.getId()));
+
+        // 2. Upcoming confirmed booking (with bookingRefId & buyer createdBy that must NOT leak in DTO)
+        BillboardAvailabilityBlock futureBooking = new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(10), today.plusDays(12),
+                AvailabilityBlockType.CONFIRMED_BOOKING, buyer.getId());
+        futureBooking.setBookingRefId(777L);
+        blockRepository.save(futureBooking);
+
+        // 3. Past confirmed booking (should be excluded from upcoming owner visibility)
+        BillboardAvailabilityBlock pastBooking = new BillboardAvailabilityBlock(
+                activeListing.getId(), today.minusDays(15), today.minusDays(10),
+                AvailabilityBlockType.CONFIRMED_BOOKING, buyer.getId());
+        pastBooking.setBookingRefId(776L);
+        blockRepository.save(pastBooking);
+
+        // 4. Active hold (expires in +10m)
+        BillboardAvailabilityBlock activeHold = new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(20), today.plusDays(22),
+                AvailabilityBlockType.BOOKING_HOLD, buyer.getId());
+        activeHold.setBookingRefId(888L);
+        activeHold.setExpiryTs(now.plusSeconds(600));
+        blockRepository.save(activeHold);
+
+        // 5. Expired hold (expired 10s ago -> must NOT be shown)
+        BillboardAvailabilityBlock expiredHold = new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(25), today.plusDays(27),
+                AvailabilityBlockType.BOOKING_HOLD, buyer.getId());
+        expiredHold.setBookingRefId(889L);
+        expiredHold.setExpiryTs(now.minusSeconds(10));
+        blockRepository.save(expiredHold);
+
+        // Verify GET includes OWNER_BLOCKED, upcoming CONFIRMED_BOOKING, active BOOKING_HOLD (3 total), no bookingRefId/createdBy
+        MvcResult getRes = mockMvc.perform(get("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.blocks", hasSize(3)))
+                .andExpect(jsonPath("$.blocks[0].blockType").value("OWNER_BLOCKED"))
+                .andExpect(jsonPath("$.blocks[1].blockType").value("CONFIRMED_BOOKING"))
+                .andExpect(jsonPath("$.blocks[2].blockType").value("BOOKING_HOLD"))
+                .andExpect(jsonPath("$.blocks[1].bookingRefId").doesNotExist())
+                .andExpect(jsonPath("$.blocks[1].createdBy").doesNotExist())
+                .andReturn();
+        String initialETag = getRes.getResponse().getHeader(HttpHeaders.ETAG);
+
+        // Verify stale PUT returns 412 with the same 3 blocks (bookings + holds preserved in 412 body)
+        BulkSyncRequest syncReq = new BulkSyncRequest(List.of(
+                new AvailabilityRangeRequest(today.plusDays(1), today.plusDays(3)),
+                new AvailabilityRangeRequest(today.plusDays(8), today.plusDays(15))
+        ));
+        mockMvc.perform(put("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .header(HttpHeaders.IF_MATCH, "\"wrong-etag\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(syncReq)))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.currentBlocks", hasSize(3)))
+                .andExpect(jsonPath("$.etag").value(initialETag.replace("\"", "")));
+
+        // Verify valid PUT overlapping the CONFIRMED_BOOKING trims around it and STILL returns booking + active hold
+        mockMvc.perform(put("/api/owner/listings/" + activeListing.getId() + "/availability")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ownerToken)
+                        .header(HttpHeaders.IF_MATCH, initialETag)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(syncReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.warnings", hasSize(1)))
+                .andExpect(jsonPath("$.blocks[*].blockType", contains("OWNER_BLOCKED", "OWNER_BLOCKED", "CONFIRMED_BOOKING", "OWNER_BLOCKED", "BOOKING_HOLD")));
+    }
+
+    @Test
+    @DisplayName("Scheduled hold cleanup job deletes only expired BOOKING_HOLD rows and preserves active holds, bookings, and owner blocks")
+    void holdCleanupJob_purgesExpiredHoldsOnly() {
+        Instant now = clock.instant();
+        LocalDate today = now.atZone(IST_ZONE).toLocalDate();
+
+        BillboardAvailabilityBlock ownerBlock = blockRepository.save(new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(1), today.plusDays(2),
+                AvailabilityBlockType.OWNER_BLOCKED, owner.getId()));
+
+        BillboardAvailabilityBlock booking = blockRepository.save(new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(4), today.plusDays(5),
+                AvailabilityBlockType.CONFIRMED_BOOKING, owner.getId()));
+
+        BillboardAvailabilityBlock activeHold = new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(7), today.plusDays(8),
+                AvailabilityBlockType.BOOKING_HOLD, owner.getId());
+        activeHold.setExpiryTs(now.plusSeconds(300));
+        activeHold = blockRepository.save(activeHold);
+
+        BillboardAvailabilityBlock expiredHold = new BillboardAvailabilityBlock(
+                activeListing.getId(), today.plusDays(10), today.plusDays(11),
+                AvailabilityBlockType.BOOKING_HOLD, owner.getId());
+        expiredHold.setExpiryTs(now.minusSeconds(1));
+        expiredHold = blockRepository.save(expiredHold);
+
+        int deleted = holdCleanupJob.purgeExpiredHolds();
+
+        assertThat(deleted).isEqualTo(1);
+        assertThat(blockRepository.findById(expiredHold.getId())).isEmpty();
+        assertThat(blockRepository.findById(activeHold.getId())).isPresent();
+        assertThat(blockRepository.findById(booking.getId())).isPresent();
+        assertThat(blockRepository.findById(ownerBlock.getId())).isPresent();
     }
 }

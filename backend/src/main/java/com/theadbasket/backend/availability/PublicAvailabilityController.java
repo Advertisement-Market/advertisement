@@ -34,7 +34,7 @@ public class PublicAvailabilityController {
             @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         List<PublicAvailabilityDto> blocks = availabilityService.getPublicBlocks(billboardId, from, to);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=15, stale-while-revalidate=30")
                 .body(blocks);
     }
 

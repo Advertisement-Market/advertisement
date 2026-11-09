@@ -2,11 +2,13 @@ package com.theadbasket.backend.availability;
 
 import com.theadbasket.backend.availability.dto.*;
 import com.theadbasket.backend.availability.exception.HoldConflictException;
+import com.theadbasket.backend.availability.exception.ListingNotActiveException;
 import com.theadbasket.backend.availability.exception.StaleAvailabilityException;
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
+import com.theadbasket.backend.owner.BillboardStatus;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +53,7 @@ class AvailabilityServiceTest {
 
         BillboardListing mockListing = mock(BillboardListing.class);
         when(mockListing.getId()).thenReturn(billboardId);
+        when(mockListing.getStatus()).thenReturn(BillboardStatus.ACTIVE);
         when(billboardRepository.findByIdAndUserIdForUpdate(billboardId, userId)).thenReturn(Optional.of(mockListing));
         when(billboardRepository.existsByIdAndUserId(billboardId, userId)).thenReturn(true);
     }
@@ -737,11 +740,8 @@ class AvailabilityServiceTest {
     }
 
     @Test
-    @DisplayName("Range duration exceeding 730 days throws AVAILABILITY_RANGE_TOO_LONG")
+    @DisplayName("Range duration exceeding 730 days throws AVAILABILITY_RANGE_TOO_LONG before lock")
     void rangeDurationExceeding730Days_throwsAvailabilityRangeTooLong() {
-        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
-                .thenReturn(List.of());
-
         // 731 days duration starting from today
         List<AvailabilityRangeRequest> ranges = List.of(
                 new AvailabilityRangeRequest(TODAY, TODAY.plusDays(730))
@@ -751,14 +751,13 @@ class AvailabilityServiceTest {
         assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\""))
                 .isInstanceOf(BadRequestException.class)
                 .matches(e -> ((BadRequestException) e).getErrorCode() == ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
+
+        verifyNoInteractions(billboardRepository);
     }
 
     @Test
-    @DisplayName("Forward scheduling horizon exceeding 730 days from today throws AVAILABILITY_RANGE_TOO_LONG")
+    @DisplayName("Forward scheduling horizon exceeding 730 days from today throws AVAILABILITY_RANGE_TOO_LONG before lock")
     void forwardSchedulingHorizonExceeding730Days_throwsAvailabilityRangeTooLong() {
-        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
-                .thenReturn(List.of());
-
         // Short 3-day block but 5 years in the future (exceeds 730 days from today)
         LocalDate farFuture = TODAY.plusYears(5);
         List<AvailabilityRangeRequest> ranges = List.of(
@@ -769,6 +768,8 @@ class AvailabilityServiceTest {
         assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"" + currentETag + "\""))
                 .isInstanceOf(BadRequestException.class)
                 .matches(e -> ((BadRequestException) e).getErrorCode() == ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
+
+        verifyNoInteractions(billboardRepository);
     }
 
     @Test
@@ -817,6 +818,133 @@ class AvailabilityServiceTest {
     }
 
     @Test
+    @DisplayName("Pre-lock: null range entry or null date throws VALIDATION_FAILED before lock")
+    void preLock_nullRangeElement_throwsValidationFailedBeforeLock() {
+        List<AvailabilityRangeRequest> withNullElement = Arrays.asList((AvailabilityRangeRequest) null);
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, withNullElement, "\"etag\""))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VALIDATION_FAILED);
+
+        List<AvailabilityRangeRequest> withNullDate = List.of(new AvailabilityRangeRequest(TODAY, null));
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, withNullDate, "\"etag\""))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VALIDATION_FAILED);
+
+        verifyNoInteractions(billboardRepository);
+    }
+
+    @Test
+    @DisplayName("Pre-lock: extreme past or future years fail fast consistently with AVAILABILITY_DATE_OUT_OF_BOUNDS before lock")
+    void preLock_extremeDateYears_failFastBeforeLock() {
+        List<AvailabilityRangeRequest> extremePast = List.of(
+                new AvailabilityRangeRequest(LocalDate.of(1800, 1, 1), LocalDate.of(1800, 1, 5))
+        );
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, extremePast, "\"etag\""))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AVAILABILITY_DATE_OUT_OF_BOUNDS);
+
+        List<AvailabilityRangeRequest> extremeFuture = List.of(
+                new AvailabilityRangeRequest(TODAY.plusDays(1), LocalDate.MAX)
+        );
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, extremeFuture, "\"etag\""))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AVAILABILITY_DATE_OUT_OF_BOUNDS);
+
+        verifyNoInteractions(billboardRepository);
+    }
+
+    @Test
+    @DisplayName("Suspended listing rejects owner availability sync with LISTING_SUSPENDED")
+    void suspendedListing_rejectsSyncWithListingSuspended() {
+        BillboardListing suspended = mock(BillboardListing.class);
+        when(suspended.getId()).thenReturn(billboardId);
+        when(suspended.getStatus()).thenReturn(BillboardStatus.SUSPENDED);
+        when(billboardRepository.findByIdAndUserIdForUpdate(billboardId, userId)).thenReturn(Optional.of(suspended));
+
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(TODAY.plusDays(1), TODAY.plusDays(3))
+        );
+
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\"etag\""))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.LISTING_SUSPENDED);
+
+        verifyNoInteractions(blockRepository);
+    }
+
+    @Test
+    @DisplayName("parseETag: malformed lone quote or weak lone quote returns empty/raw without StringIndexOutOfBoundsException")
+    @SuppressWarnings("unchecked")
+    void parseETag_malformedLoneQuote_doesNotCrash() throws Exception {
+        Method method = AvailabilityService.class.getDeclaredMethod("parseETag", String.class);
+        method.setAccessible(true);
+
+        Set<String> loneQuote = (Set<String>) method.invoke(availabilityService, "\"");
+        assertThat(loneQuote).containsExactly("\"");
+
+        Set<String> emptyQuotes = (Set<String>) method.invoke(availabilityService, "\"\"");
+        assertThat(emptyQuotes).isEmpty();
+
+        Set<String> weakLoneQuote = (Set<String>) method.invoke(availabilityService, "W/\"");
+        assertThat(weakLoneQuote).containsExactly("\"");
+    }
+
+    @Test
+    @DisplayName("PUT with malformed lone quote If-Match throws 412 StaleAvailabilityException instead of 500")
+    void putWithMalformedLoneQuoteIfMatch_throws412Not500() {
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of());
+
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(TODAY.plusDays(1), TODAY.plusDays(3))
+        );
+
+        assertThatThrownBy(() -> availabilityService.bulkSyncOwnerBlocks(billboardId, userId, ranges, "\""))
+                .isInstanceOf(StaleAvailabilityException.class);
+    }
+
+    @Test
+    @DisplayName("Public GET: inactive/missing listing throws ListingNotActiveException even for past query window")
+    void publicGet_inactiveListingWithPastWindow_throwsListingNotActive() {
+        when(billboardRepository.existsByIdAndStatus(billboardId, BillboardStatus.ACTIVE)).thenReturn(false);
+
+        assertThatThrownBy(() -> availabilityService.getPublicBlocks(billboardId, TODAY.minusDays(30), TODAY.minusDays(10)))
+                .isInstanceOf(ListingNotActiveException.class);
+    }
+
+    @Test
+    @DisplayName("Public GET: from > to throws AVAILABILITY_WINDOW_INVALID even when to is in the past")
+    void publicGet_fromAfterToInPast_throwsWindowInvalid() {
+        assertThatThrownBy(() -> availabilityService.getPublicBlocks(billboardId, TODAY.plusDays(5), TODAY.minusDays(10)))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AVAILABILITY_WINDOW_INVALID);
+
+        verifyNoInteractions(billboardRepository);
+    }
+
+    @Test
+    @DisplayName("Public GET: out-of-bounds LocalDate.MAX from throws AVAILABILITY_DATE_OUT_OF_BOUNDS instead of DateTimeException")
+    void publicGet_extremeMaxDate_throwsWindowInvalidNoOverflow() {
+        assertThatThrownBy(() -> availabilityService.getPublicBlocks(billboardId, LocalDate.MAX.minusDays(5), null))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AVAILABILITY_DATE_OUT_OF_BOUNDS);
+    }
+
+    @Test
+    @DisplayName("Public GET: valid boundary date near year 9999 clamps defaultTo safely to 9999-12-31")
+    void publicGet_nearYear9999WithoutTo_clampsSafely() {
+        when(billboardRepository.existsByIdAndStatus(billboardId, BillboardStatus.ACTIVE)).thenReturn(true);
+        LocalDate dec9999 = LocalDate.of(9999, 12, 1);
+        when(blockRepository.findPublicActiveBlocks(eq(billboardId), eq(dec9999), eq(LocalDate.of(9999, 12, 31)), any()))
+                .thenReturn(List.of());
+
+        List<PublicAvailabilityDto> result = availabilityService.getPublicBlocks(billboardId, dec9999, null);
+
+        assertThat(result).isEmpty();
+        verify(blockRepository).findPublicActiveBlocks(eq(billboardId), eq(dec9999), eq(LocalDate.of(9999, 12, 31)), any());
+    }
+
+    @Test
     @DisplayName("Error catalog: every ErrorCode has a message key defined in messages.properties")
     void errorCatalog_everyErrorCodeHasMessageKey() throws Exception {
         Properties props = new Properties();
@@ -830,5 +958,107 @@ class AvailabilityServiceTest {
                     .as("ErrorCode %s is missing key %s in messages.properties", code.name(), code.messageKey())
                     .isTrue();
         }
+    }
+
+    @Test
+    @DisplayName("Owner GET includes upcoming CONFIRMED_BOOKING and active BOOKING_HOLD sorted with OWNER_BLOCKED, while ETag remains owner-scoped")
+    void ownerGet_includesBookingsAndActiveHolds_etagOwnerScoped() {
+        BillboardAvailabilityBlock ownerBlock = createBlock(1L, TODAY.plusDays(1), TODAY.plusDays(3), AvailabilityBlockType.OWNER_BLOCKED);
+        BillboardAvailabilityBlock booking = createBlock(2L, TODAY.plusDays(10), TODAY.plusDays(12), AvailabilityBlockType.CONFIRMED_BOOKING);
+        BillboardAvailabilityBlock hold = createBlock(3L, TODAY.plusDays(5), TODAY.plusDays(6), AvailabilityBlockType.BOOKING_HOLD);
+        hold.setExpiryTs(FIXED_INSTANT.plusSeconds(300));
+
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of(ownerBlock));
+        when(blockRepository.findOwnerActiveNonOwnerBlocks(billboardId, TODAY, FIXED_INSTANT))
+                .thenReturn(List.of(hold, booking));
+
+        OwnerAvailabilityResponse response = availabilityService.getOwnerBlocks(billboardId, userId);
+
+        assertThat(response.etag()).isEqualTo(calculateETag(List.of(ownerBlock)));
+        assertThat(response.blocks()).hasSize(3);
+        assertThat(response.blocks()).extracting(AvailabilityBlockDto::blockType)
+                .containsExactly(
+                        AvailabilityBlockType.OWNER_BLOCKED,
+                        AvailabilityBlockType.BOOKING_HOLD,
+                        AvailabilityBlockType.CONFIRMED_BOOKING
+                );
+    }
+
+    @Test
+    @DisplayName("Sync trimmed around CONFIRMED_BOOKING keeps booking in reloaded response so UI never reverts booked days to Available")
+    void syncTrimmedByBooking_keepsConfirmedBookingInResponse() {
+        BillboardAvailabilityBlock booking = createBlock(88L, TODAY.plusDays(10), TODAY.plusDays(12), AvailabilityBlockType.CONFIRMED_BOOKING);
+        when(blockRepository.findActiveOverlapping(eq(billboardId), any(), any(), any()))
+                .thenReturn(List.of(booking));
+        when(blockRepository.findOwnerActiveNonOwnerBlocks(billboardId, TODAY, FIXED_INSTANT))
+                .thenReturn(List.of(booking));
+
+        List<BillboardAvailabilityBlock> savedOwnerBlocks = List.of(
+                createBlock(1L, TODAY.plusDays(8), TODAY.plusDays(9), AvailabilityBlockType.OWNER_BLOCKED),
+                createBlock(2L, TODAY.plusDays(13), TODAY.plusDays(15), AvailabilityBlockType.OWNER_BLOCKED)
+        );
+        when(blockRepository.findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED))
+                .thenReturn(List.of())
+                .thenReturn(savedOwnerBlocks);
+
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(TODAY.plusDays(8), TODAY.plusDays(15))
+        );
+
+        BulkSyncResponse resp = availabilityService.bulkSyncOwnerBlocks(
+                billboardId, userId, ranges, "\"" + calculateETag(List.of()) + "\"");
+
+        assertThat(resp.blocks()).hasSize(3);
+        assertThat(resp.blocks()).extracting(AvailabilityBlockDto::blockType)
+                .containsExactly(
+                        AvailabilityBlockType.OWNER_BLOCKED,
+                        AvailabilityBlockType.CONFIRMED_BOOKING,
+                        AvailabilityBlockType.OWNER_BLOCKED
+                );
+        assertThat(resp.etag()).isEqualTo(calculateETag(savedOwnerBlocks));
+    }
+
+    @Test
+    @DisplayName("createInitialOwnerBlocks merges adjacent ranges, clamps straddling start date to today, and skips past-only ranges")
+    void createInitialOwnerBlocks_mergesAndClamps() {
+        List<AvailabilityRangeRequest> ranges = List.of(
+                new AvailabilityRangeRequest(TODAY.minusDays(5), TODAY.minusDays(1)),
+                new AvailabilityRangeRequest(TODAY.minusDays(2), TODAY.plusDays(2)),
+                new AvailabilityRangeRequest(TODAY.plusDays(3), TODAY.plusDays(5)),
+                new AvailabilityRangeRequest(TODAY.plusDays(10), TODAY.plusDays(10))
+        );
+
+        availabilityService.createInitialOwnerBlocks(billboardId, userId, ranges);
+
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<BillboardAvailabilityBlock>> captor =
+                org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(blockRepository).saveAll(captor.capture());
+
+        List<BillboardAvailabilityBlock> saved = captor.getValue();
+        assertThat(saved).hasSize(2);
+        assertThat(saved.get(0).getStartDate()).isEqualTo(TODAY);
+        assertThat(saved.get(0).getEndDate()).isEqualTo(TODAY.plusDays(5));
+        assertThat(saved.get(0).getBlockType()).isEqualTo(AvailabilityBlockType.OWNER_BLOCKED);
+        assertThat(saved.get(0).getCreatedBy()).isEqualTo(userId);
+        assertThat(saved.get(1).getStartDate()).isEqualTo(TODAY.plusDays(10));
+        assertThat(saved.get(1).getEndDate()).isEqualTo(TODAY.plusDays(10));
+        verify(entityManager).flush();
+    }
+
+    @Test
+    @DisplayName("createInitialOwnerBlocks no-ops when null or empty and rejects >730-day ranges")
+    void createInitialOwnerBlocks_emptyAndTooLong() {
+        availabilityService.createInitialOwnerBlocks(billboardId, userId, null);
+        availabilityService.createInitialOwnerBlocks(billboardId, userId, List.of());
+        verifyNoInteractions(blockRepository);
+
+        List<AvailabilityRangeRequest> tooFar = List.of(
+                new AvailabilityRangeRequest(TODAY.plusDays(731), TODAY.plusDays(732))
+        );
+        assertThatThrownBy(() -> availabilityService.createInitialOwnerBlocks(billboardId, userId, tooFar))
+                .isInstanceOf(BadRequestException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
     }
 }

@@ -14,6 +14,7 @@ import com.theadbasket.backend.availability.exception.StaleAvailabilityException
 import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.owner.BillboardListing;
 import com.theadbasket.backend.owner.BillboardListingRepository;
 import com.theadbasket.backend.owner.BillboardStatus;
 import jakarta.persistence.EntityManager;
@@ -47,6 +48,12 @@ import java.util.stream.Collectors;
 public class AvailabilityService {
 
     private static final Logger log = LoggerFactory.getLogger(AvailabilityService.class);
+
+    /**
+     * Canonical business timezone for billboard calendar boundaries ("today" / past cutoff).
+     * Anchored deliberately to IST (Asia/Kolkata) and returned as {@code today} in owner API
+     * responses so client calendars and server validation agree across client timezones.
+     */
     public static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
 
     private final BillboardAvailabilityBlockRepository blockRepository;
@@ -74,19 +81,27 @@ public class AvailabilityService {
         if (!billboardRepository.existsByIdAndUserId(billboardId, userId)) {
             throw new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND);
         }
-        List<BillboardAvailabilityBlock> blocks = blockRepository
+        Instant now = clock.instant();
+        LocalDate today = now.atZone(IST_ZONE).toLocalDate();
+        List<BillboardAvailabilityBlock> ownerBlocks = blockRepository
                 .findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED);
-        String etag = computeETag(blocks);
-        LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
-        return new OwnerAvailabilityResponse(
-                blocks.stream().map(AvailabilityBlockDto::from).toList(),
-                etag,
-                today);
+        String etag = computeETag(ownerBlocks);
+        List<AvailabilityBlockDto> dtos = buildOwnerCalendarDtos(billboardId, ownerBlocks, today, now);
+        return new OwnerAvailabilityResponse(dtos, etag, today);
     }
 
     @Transactional(readOnly = true)
     public List<PublicAvailabilityDto> getPublicBlocks(Long billboardId, LocalDate from, LocalDate to) {
-        LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
+        AvailabilityDateValidator.validatePublicWindow(from, to);
+
+        // Visibility check runs before the past-window short-circuit so non-active or missing
+        // listings consistently return 404 LISTING_NOT_ACTIVE instead of cacheable 200 [].
+        if (!isPubliclyVisible(billboardId)) {
+            throw new ListingNotActiveException();
+        }
+
+        final Instant now = clock.instant();
+        final LocalDate today = now.atZone(IST_ZONE).toLocalDate();
 
         // Privacy: If the query window ends before today, it is entirely past -> return empty list immediately
         if (to != null && to.isBefore(today)) {
@@ -95,21 +110,20 @@ public class AvailabilityService {
 
         // Privacy: Clamp effective window start to today (never leak historical owner blocks or past bookings)
         LocalDate effectiveFrom = (from != null && from.isAfter(today)) ? from : today;
-        LocalDate effectiveTo   = (to != null) ? to : effectiveFrom.plusDays(365);
+        LocalDate defaultTo = effectiveFrom.plusDays(AvailabilityDateValidator.DEFAULT_PUBLIC_WINDOW_DAYS);
+        LocalDate effectiveTo = (to != null)
+                ? to
+                : (defaultTo.isAfter(AvailabilityDateValidator.MAX_SUPPORTED_DATE)
+                        ? AvailabilityDateValidator.MAX_SUPPORTED_DATE
+                        : defaultTo);
 
         if (effectiveFrom.isAfter(effectiveTo)) {
             throw new BadRequestException(ErrorCode.AVAILABILITY_WINDOW_INVALID);
         }
-        if (ChronoUnit.DAYS.between(effectiveFrom, effectiveTo) + 1 > 730) {
+        if (ChronoUnit.DAYS.between(effectiveFrom, effectiveTo) + 1 > AvailabilityDateValidator.MAX_RANGE_DAYS) {
             throw new BadRequestException(ErrorCode.AVAILABILITY_WINDOW_TOO_LARGE);
         }
 
-        // Visibility check: inactive/draft throws dedicated ListingNotActiveException
-        if (!isPubliclyVisible(billboardId)) {
-            throw new ListingNotActiveException();
-        }
-
-        Instant now = clock.instant();
         List<BillboardAvailabilityBlock> activeBlocks = blockRepository.findPublicActiveBlocks(
                 billboardId, effectiveFrom, effectiveTo, now);
 
@@ -143,34 +157,77 @@ public class AvailabilityService {
     }
 
     @Transactional
+    public void createInitialOwnerBlocks(
+            Long billboardId, Long userId, List<AvailabilityRangeRequest> incomingRanges) {
+        if (incomingRanges == null || incomingRanges.isEmpty()) {
+            return;
+        }
+        final Instant now = clock.instant();
+        final LocalDate today = now.atZone(IST_ZONE).toLocalDate();
+        List<AvailabilityRangeRequest> validated = AvailabilityDateValidator.validateBulkSyncRanges(incomingRanges, today);
+
+        List<DateRangeDto> editableList = new ArrayList<>();
+        for (AvailabilityRangeRequest range : validated) {
+            if (range.endDate().isBefore(today)) {
+                continue;
+            }
+            LocalDate start = range.startDate().isBefore(today) ? today : range.startDate();
+            editableList.add(new DateRangeDto(start, range.endDate()));
+        }
+        if (editableList.isEmpty()) {
+            return;
+        }
+
+        editableList.sort(Comparator.comparing(DateRangeDto::startDate).thenComparing(DateRangeDto::endDate));
+        List<DateRangeDto> merged = mergeContiguousRanges(editableList);
+        for (DateRangeDto range : merged) {
+            long days = ChronoUnit.DAYS.between(range.startDate(), range.endDate()) + 1;
+            if (days > AvailabilityDateValidator.MAX_RANGE_DAYS
+                    || ChronoUnit.DAYS.between(today, range.endDate()) > AvailabilityDateValidator.MAX_RANGE_DAYS) {
+                throw new BadRequestException(ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
+            }
+        }
+
+        List<BillboardAvailabilityBlock> blocks = new ArrayList<>(merged.size());
+        for (DateRangeDto range : merged) {
+            BillboardAvailabilityBlock block = new BillboardAvailabilityBlock();
+            block.setBillboardId(billboardId);
+            block.setStartDate(range.startDate());
+            block.setEndDate(range.endDate());
+            block.setBlockType(AvailabilityBlockType.OWNER_BLOCKED);
+            block.setCreatedBy(userId);
+            block.setCreatedTs(now);
+            block.setUpdatedTs(now);
+            blocks.add(block);
+        }
+        blockRepository.saveAll(blocks);
+        entityManager.flush();
+    }
+
+    @Transactional
     public BulkSyncResponse bulkSyncOwnerBlocks(
             Long billboardId, Long userId, List<AvailabilityRangeRequest> incomingRanges, String ifMatchHeader) {
 
-        // Step 0: Pre-Lock Fast Validation (Stateless, Zero DB State) ⟳ Rev2
-        if (incomingRanges != null) {
-            if (incomingRanges.size() > 500) {
-                throw new BadRequestException(ErrorCode.AVAILABILITY_PAYLOAD_TOO_LARGE);
-            }
-            for (AvailabilityRangeRequest range : incomingRanges) {
-                if (range.startDate().isAfter(range.endDate())) {
-                    throw new BadRequestException(ErrorCode.AVAILABILITY_DATE_ORDER_INVALID);
-                }
-            }
-        } else {
-            incomingRanges = List.of();
-        }
+        // Step 0: Pre-Lock Fast Validation (Stateless, Zero DB State)
+        // Capture a single instant and server today once per request from the injected Clock so pre-lock and post-lock phases stay consistent.
+        final Instant now = clock.instant();
+        final LocalDate today = now.atZone(IST_ZONE).toLocalDate();
+        incomingRanges = AvailabilityDateValidator.validateBulkSyncRanges(incomingRanges, today);
 
         // Step 1: Acquire PESSIMISTIC_WRITE lock via existing repository method
+        BillboardListing listing;
         try {
-            billboardRepository.findByIdAndUserIdForUpdate(billboardId, userId)
+            listing = billboardRepository.findByIdAndUserIdForUpdate(billboardId, userId)
                     .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND));
         } catch (PessimisticLockingFailureException e) {
             log.warn("Lock acquisition timed out for billboard id={}: {}", billboardId, e.getMessage());
             throw new AvailabilityBusyException();
         }
+        if (listing.getStatus() == BillboardStatus.SUSPENDED) {
+            throw new BadRequestException(ErrorCode.LISTING_SUSPENDED, "Listing is suspended and cannot be modified");
+        }
 
         // Step 2: Load existing OWNER_BLOCKED and compute current ETag
-        final LocalDate today = LocalDate.now(clock.withZone(IST_ZONE));
         List<BillboardAvailabilityBlock> existing = blockRepository
                 .findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED);
         String currentETag = computeETag(existing);
@@ -187,6 +244,8 @@ public class AvailabilityService {
                 historyList.add(new DateRangeDto(b.getStartDate(), today.minusDays(1)));
             }
         }
+        historyList.sort(Comparator.comparing(DateRangeDto::startDate).thenComparing(DateRangeDto::endDate));
+        historyList = mergeContiguousRanges(historyList);
 
         // 3b. Extract incomingPast: all incoming coverage clipped to (-inf, today - 1]
         List<DateRangeDto> incomingPast = new ArrayList<>();
@@ -240,7 +299,8 @@ public class AvailabilityService {
         // 4a. 730-day cap check strictly on editableList (cannot trip on history)
         for (DateRangeDto range : mergedEditable) {
             long days = ChronoUnit.DAYS.between(range.startDate(), range.endDate()) + 1;
-            if (days > 730 || ChronoUnit.DAYS.between(today, range.endDate()) > 730) {
+            if (days > AvailabilityDateValidator.MAX_RANGE_DAYS
+                    || ChronoUnit.DAYS.between(today, range.endDate()) > AvailabilityDateValidator.MAX_RANGE_DAYS) {
                 throw new BadRequestException(ErrorCode.AVAILABILITY_RANGE_TOO_LONG);
             }
         }
@@ -269,8 +329,8 @@ public class AvailabilityService {
                 .map(b -> b.getStartDate() + "|" + b.getEndDate())
                 .collect(Collectors.toSet());
 
-        if (proposedPairs.equals(existingPairs)) {
-            List<AvailabilityBlockDto> dtos = existing.stream().map(AvailabilityBlockDto::from).toList();
+        if (proposedRanges.size() == existing.size() && proposedPairs.equals(existingPairs)) {
+            List<AvailabilityBlockDto> dtos = buildOwnerCalendarDtos(billboardId, existing, today, now);
             return new BulkSyncResponse(dtos, warnings, currentETag, today);
         }
 
@@ -280,12 +340,11 @@ public class AvailabilityService {
         }
         Set<String> parsedIfMatch = parseETag(ifMatchHeader);
         if (!parsedIfMatch.contains(currentETag)) {
-            List<AvailabilityBlockDto> currentDtos = existing.stream().map(AvailabilityBlockDto::from).toList();
+            List<AvailabilityBlockDto> currentDtos = buildOwnerCalendarDtos(billboardId, existing, today, now);
             throw new StaleAvailabilityException(currentDtos, currentETag, today);
         }
 
         // 4d. Check active holds and confirmed bookings strictly against editableList
-        Instant now = clock.instant();
         Map<Long, BillboardAvailabilityBlock> conflictingHoldsById = new LinkedHashMap<>();
         List<DateRangeDto> trimmedEditable = new ArrayList<>();
 
@@ -352,8 +411,8 @@ public class AvailabilityService {
                 .map(r -> r.startDate() + "|" + r.endDate())
                 .collect(Collectors.toSet());
 
-        if (desiredPairs.equals(existingPairs)) {
-            List<AvailabilityBlockDto> dtos = existing.stream().map(AvailabilityBlockDto::from).toList();
+        if (finalRanges.size() == existing.size() && desiredPairs.equals(existingPairs)) {
+            List<AvailabilityBlockDto> dtos = buildOwnerCalendarDtos(billboardId, existing, today, now);
             return new BulkSyncResponse(dtos, warnings, currentETag, today);
         }
 
@@ -391,9 +450,28 @@ public class AvailabilityService {
         List<BillboardAvailabilityBlock> savedBlocks = blockRepository
                 .findByBillboardIdAndBlockTypeOrderByStartDateAsc(billboardId, AvailabilityBlockType.OWNER_BLOCKED);
         String newETag = computeETag(savedBlocks);
-        List<AvailabilityBlockDto> savedDtos = savedBlocks.stream().map(AvailabilityBlockDto::from).toList();
+        List<AvailabilityBlockDto> savedDtos = buildOwnerCalendarDtos(billboardId, savedBlocks, today, now);
 
         return new BulkSyncResponse(savedDtos, warnings, newETag, today);
+    }
+
+    private List<AvailabilityBlockDto> buildOwnerCalendarDtos(
+            Long billboardId,
+            List<BillboardAvailabilityBlock> ownerBlocks,
+            LocalDate today,
+            Instant now) {
+        List<BillboardAvailabilityBlock> nonOwnerBlocks =
+                blockRepository.findOwnerActiveNonOwnerBlocks(billboardId, today, now);
+        if (nonOwnerBlocks == null || nonOwnerBlocks.isEmpty()) {
+            return ownerBlocks.stream().map(AvailabilityBlockDto::from).toList();
+        }
+        List<BillboardAvailabilityBlock> combined = new ArrayList<>(ownerBlocks.size() + nonOwnerBlocks.size());
+        combined.addAll(ownerBlocks);
+        combined.addAll(nonOwnerBlocks);
+        combined.sort(Comparator.comparing(BillboardAvailabilityBlock::getStartDate)
+                .thenComparing(BillboardAvailabilityBlock::getEndDate)
+                .thenComparing(b -> b.getId() != null ? b.getId() : Long.MAX_VALUE));
+        return combined.stream().map(AvailabilityBlockDto::from).toList();
     }
 
     private List<DateRangeDto> mergeContiguousRanges(List<DateRangeDto> ranges) {
@@ -449,7 +527,8 @@ public class AvailabilityService {
     private String computeETag(List<BillboardAvailabilityBlock> blocks) {
         String payload = blocks.stream()
                 .filter(b -> b.getBlockType() == AvailabilityBlockType.OWNER_BLOCKED)
-                .sorted(Comparator.comparing(BillboardAvailabilityBlock::getStartDate))
+                .sorted(Comparator.comparing(BillboardAvailabilityBlock::getStartDate)
+                        .thenComparing(BillboardAvailabilityBlock::getEndDate))
                 .map(b -> b.getStartDate() + "|" + b.getEndDate())
                 .collect(Collectors.joining(";"));
         try {
@@ -465,8 +544,11 @@ public class AvailabilityService {
         if (header == null || header.isBlank() || "*".equals(header.trim())) return Set.of();
         return Arrays.stream(header.split(","))
                 .map(String::trim)
-                .map(s -> s.startsWith("W/") ? s.substring(2) : s)
-                .map(s -> s.startsWith("\"") && s.endsWith("\"") ? s.substring(1, s.length() - 1) : s)
+                .map(s -> s.startsWith("W/") ? s.substring(2).trim() : s)
+                .map(s -> s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")
+                        ? s.substring(1, s.length() - 1)
+                        : s)
+                .filter(s -> !s.isBlank())
                 .collect(Collectors.toSet());
     }
 
