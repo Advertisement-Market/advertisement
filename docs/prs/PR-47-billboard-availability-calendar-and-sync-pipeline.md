@@ -183,17 +183,20 @@ CREATE INDEX idx_avail_billboard_active
 
 ## 4. Implementation Traps, Invariants & Design Decisions
 
-### Trap 1: Staged Block Loss During Sync (Pre-Existing Date Preservation)
-- **Problem:** When an owner staged and saved a new blocked range, previously blocked dates mysteriously vanished from the calendar.
-- **Root Cause:** `dayStatusMapToRanges` originally checked only `dayStatusMap[k] === 'blocked'`. Because pre-existing entries from `calData` carried the status `'booked'`, they were omitted from the sync payload. The backend subsequently replaced all forward blocks with only the newly clicked dates.
-- **Solution:** Broadened `dayStatusMapToRanges` in `availabilityUtils.js` to collect all non-confirmed dates with either `'blocked'` or `'booked'` status:
+### Trap 1: Staged Block Loss During Sync & Avoiding Phantom Mock Blocks
+- **Problem:** When an owner staged and saved a new blocked range, previously blocked dates were lost, and conversely, merging client-side mock data reintroduced phantom blocks.
+- **Root Cause:** 
+  1. `dayStatusMapToRanges` originally checked only `dayStatusMap[k] === 'blocked'`. Because pre-existing entries carried the status `'booked'`, they were omitted from the sync payload.
+  2. Merging `normalizedFallback` (from `initCalData()`) with the server response injected hardcoded mock dates (e.g. days 3–8, 14–18, 21–22) into real listings on save, preventing owners from ever clearing blocked dates.
+- **Solution:** 
+  1. Broadened `dayStatusMapToRanges` in `availabilityUtils.js` to collect all non-confirmed dates with either `'blocked'` or `'booked'` status:
   ```javascript
   const isBlocked = status === 'blocked' || status === 'booked';
   if (isBlocked && !confirmedDates.has(dateStr)) {
     // Collect contiguous ranges and normalize to OWNER_BLOCKED
   }
   ```
-  In `OwnerDashboard.jsx`, initial fallback blocks are explicitly normalized and merged into the active status map.
+  2. In `OwnerDashboard.jsx`, the server response is the sole source of truth upon successful fetch (`setDayStatusMap(statusMap)`), preserving `normalizedFallback` strictly in `.catch()` as an offline/error fallback.
 
 ### Trap 2: React Hook Cascades & ESLint Warnings
 - **Problem:** Synchronous state updates during listing hydration (`setBlockedRanges(...)`) triggered `react-hooks/set-state-in-effect` and caused intermittent disabled state on the "Save Changes" button.
@@ -224,6 +227,10 @@ CREATE INDEX idx_avail_billboard_active
 ### Trap 6: Timezone Invariance
 - **Problem:** Date boundary calculations rolling over at midnight UTC could inadvertently drop or shift dates for Indian billboards.
 - **Solution:** Configured `DateTimeConfig` with `@Bean Clock clock() { return Clock.system(ZoneId.of("Asia/Kolkata")); }`. Server responses return authoritative `today: "YYYY-MM-DD"` so clients render disabled past dates consistently regardless of local browser timezone.
+
+### Trap 7: N+1 Overlapping Queries Under Row Lock
+- **Problem:** When validating editable ranges against active booking holds and confirmed bookings, querying `findActiveOverlapping` per range inside a loop while holding the billboard row lock produced N+1 database queries under load.
+- **Solution:** Replaced per-range queries with a single query across the overall bounding span `[mergedEditable.get(0).startDate(), mergedEditable.get(mergedEditable.size() - 1).endDate()]` and evaluated interval overlaps in-memory, minimizing lock retention time.
 
 ---
 
@@ -334,6 +341,7 @@ CREATE INDEX idx_avail_billboard_active
   - Replaces static mockup in the Calendar tab with an active, keyed subcomponent (`key={activeListingId}`).
   - Provides custom number input (`minBookingValue`) and unit dropdown (`minBookingUnit`: `DAYS`, `WEEKS`, `MONTHS`), exactly matching the layout and schema in `NewBillboardListing` and `OwnerRegister`.
   - Persists changes directly to the database via `PATCH /api/owner/listings/{id}` (`ownerListingApi.updateListing`).
+  - Synchronizes updated duration values back to the parent `listings` state via `onListingUpdated`, preventing input fields from reverting when switching between billboards in the dropdown.
   - Leaves Advance Notice as a standard, read-only 7-day default notice badge.
 - **Resilience Banners & Modals:**
   - **412 Conflict Modal:** Displays when another session modified the schedule; provides a 1-click refresh button.
@@ -344,10 +352,11 @@ CREATE INDEX idx_avail_billboard_active
 
 ## 7. Automated Test Suite & Verification
 
-### 7.1 Backend Test Coverage (60 Tests Passed)
-- **Unit Tests: `AvailabilityServiceTest.java` (31 tests):**
+### 7.1 Backend Test Coverage (61 Tests Passed)
+- **Unit Tests: `AvailabilityServiceTest.java` (32 tests):**
   - Past history preservation across midnight boundaries.
   - Adjacent and overlapping range coalescing.
+  - Single bounding span query preventing N+1 queries across multiple editable ranges.
   - Maximum payload size enforcement (500 ranges).
   - Maximum scheduling window enforcement (730 days).
   - SHA-256 ETag deterministic calculation and replay short-circuiting.
@@ -361,16 +370,17 @@ CREATE INDEX idx_avail_billboard_active
 - **Postgres Row Lock Timeout Test: `PostgresLockTimeoutIT.java`:**
   - Verified concurrent transaction contention triggers `503 Service Unavailable` with `Retry-After: 5`.
 
-### 7.2 Frontend Test Coverage (161 Tests Passed)
+### 7.2 Frontend Test Coverage (163 Tests Passed)
 - **Unit Tests: `availabilityUtils.test.js` (11 tests):**
   - Contiguous day range expansion and aggregation.
   - Non-confirmed `'booked'` date preservation.
   - Cross-month and leap-year date math.
   - `Retry-After` header extraction.
-- **Integration Tests: `CalendarPage.test.jsx` (8 tests):**
+- **Integration Tests: `CalendarPage.test.jsx` (10 tests):**
   - Initial calendar load and block hydration.
+  - Loading state (`isLoading`) and "Refreshing..." indicator validation with disabled Save button during fetch.
   - Two-click range selection (e.g. clicking 20 and 24 selects and stages 20–24 inclusive).
-  - Drag range selection across multiple cells.
+  - Multi-cell drag selection preservation across `mouseup` and trailing browser `click` event.
   - Cell click and range staging.
   - Dirty state indicator and Save button enablement.
   - Successful save lifecycle.
