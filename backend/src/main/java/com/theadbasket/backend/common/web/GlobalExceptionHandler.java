@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -27,15 +28,25 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** Translates exceptions into consistent {@link ApiError} JSON responses. */
 @RestControllerAdvice
@@ -180,6 +191,102 @@ public class GlobalExceptionHandler {
                 ErrorCode.VALIDATION_FAILED.name(), resolve(ErrorCode.VALIDATION_FAILED),
                 request.getRequestURI(), fieldErrors);
         return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ApiError> handleMethodValidation(
+            HandlerMethodValidationException ex, HttpServletRequest request) {
+        log.warn("Method validation failed on {} ({})", sanitizeForLog(request.getRequestURI()), ex.getClass().getSimpleName());
+        return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, request);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableMessage(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String uri = sanitizeForLog(request.getRequestURI());
+        log.warn("Malformed request body on {} ({})", uri, ex.getClass().getSimpleName());
+        log.debug("Unreadable request body details on {}", uri, ex);
+        return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, request);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        String paramName = sanitizeForLog(ex.getName());
+        log.warn("Type mismatch on {} for parameter '{}'", sanitizeForLog(request.getRequestURI()), paramName);
+        if (!paramName.isBlank()) {
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            ApiError body = ApiError.validation(status.value(), status.getReasonPhrase(),
+                    ErrorCode.VALIDATION_FAILED.name(), resolve(ErrorCode.VALIDATION_FAILED),
+                    request.getRequestURI(), Map.of(paramName, "Invalid value format."));
+            return ResponseEntity.status(status).body(body);
+        }
+        return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, request);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingParam(
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
+        String paramName = sanitizeForLog(ex.getParameterName());
+        log.warn("Missing required parameter '{}' on {}", paramName, sanitizeForLog(request.getRequestURI()));
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        ApiError body = ApiError.validation(status.value(), status.getReasonPhrase(),
+                ErrorCode.VALIDATION_FAILED.name(), resolve(ErrorCode.VALIDATION_FAILED),
+                request.getRequestURI(), Map.of(paramName, "Required parameter is missing."));
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        String method = sanitizeForLog(ex.getMethod());
+        log.warn("Method {} not supported on {}", method, sanitizeForLog(request.getRequestURI()));
+        HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
+        String message = resolve(ErrorCode.METHOD_NOT_ALLOWED, method);
+        ApiError body = ApiError.of(status.value(), status.getReasonPhrase(),
+                ErrorCode.METHOD_NOT_ALLOWED.name(), message, request.getRequestURI());
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(status);
+        Set<HttpMethod> supported = ex.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            builder.allow(supported.toArray(HttpMethod[]::new));
+        }
+        return builder.body(body);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+        log.warn("Unsupported media type on {} ({})", sanitizeForLog(request.getRequestURI()), sanitizeForLog(String.valueOf(ex.getContentType())));
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ErrorCode.UNSUPPORTED_CONTENT_TYPE, request);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ApiError> handleNotAcceptable(
+            HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
+        log.warn("Not acceptable representation requested on {}", sanitizeForLog(request.getRequestURI()));
+        return build(HttpStatus.NOT_ACCEPTABLE, ErrorCode.NOT_ACCEPTABLE, request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleMaxUploadSize(
+            MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        log.warn("Upload size exceeded on {}", sanitizeForLog(request.getRequestURI()));
+        HttpStatus status = HttpStatus.CONTENT_TOO_LARGE;
+        String message = resolve(ErrorCode.FILE_TOO_LARGE, "Uploaded payload exceeds the maximum allowed size.");
+        ApiError body = ApiError.of(status.value(), status.getReasonPhrase(),
+                ErrorCode.FILE_TOO_LARGE.name(), message, request.getRequestURI());
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        log.warn("No resource found for {} {}", sanitizeForLog(request.getMethod()), sanitizeForLog(request.getRequestURI()));
+        return build(HttpStatus.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, request);
+    }
+
+    private static String sanitizeForLog(String value) {
+        return value == null ? "" : value.replaceAll("[\\r\\n\\t]", "_");
     }
 
     @ExceptionHandler({
