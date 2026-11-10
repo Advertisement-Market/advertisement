@@ -1,7 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RegisterProvider, useRegister } from '@/features/register';
-import { TypeGrid, SelectWithOther, UploadZone, ThumbnailCard, normalizeUploadItem } from './widgets';
+import {
+  TypeGrid,
+  SelectWithOther,
+  UploadZone,
+  ThumbnailCard,
+  normalizeUploadItem,
+} from './widgets';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
 import { validate as validateOwner } from './OwnerRegister';
