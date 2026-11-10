@@ -364,7 +364,7 @@ export function normalizeUploadItem(item) {
     return { id: generateUUID(), file: item };
   }
   if (item.file instanceof File) {
-    return { id: item.id || generateUUID(), file: item.file };
+    return item.id ? item : { id: generateUUID(), file: item.file };
   }
   return item;
 }

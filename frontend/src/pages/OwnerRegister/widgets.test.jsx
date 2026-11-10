@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RegisterProvider, useRegister } from '@/features/register';
-import { TypeGrid, SelectWithOther, UploadZone, ThumbnailCard } from './widgets';
+import { TypeGrid, SelectWithOther, UploadZone, ThumbnailCard, normalizeUploadItem } from './widgets';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
 import { validate as validateOwner } from './OwnerRegister';
@@ -408,6 +408,38 @@ describe('OwnerRegister and Wizard Widgets', () => {
       const img = screen.getByAltText('backend_photo.jpg');
       expect(img).toBeDefined();
       expect(img.getAttribute('src')).toBe('/api/media/backend_photo_key.jpg');
+    });
+  });
+
+  describe('normalizeUploadItem', () => {
+    it('preserves object identity when item already has an id and file', () => {
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const item = { id: 'existing-id', file };
+      const normalized = normalizeUploadItem(item);
+      expect(normalized).toBe(item);
+    });
+
+    it('generates an id and creates a new object when id is missing but file is File', () => {
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const item = { file };
+      const normalized = normalizeUploadItem(item);
+      expect(normalized).not.toBe(item);
+      expect(normalized.id).toBeDefined();
+      expect(normalized.file).toBe(file);
+    });
+
+    it('wraps a raw File into an object with id and file', () => {
+      const file = new File(['test'], 'raw.png', { type: 'image/png' });
+      const normalized = normalizeUploadItem(file);
+      expect(normalized.id).toBeDefined();
+      expect(normalized.file).toBe(file);
+    });
+
+    it('returns null for falsy inputs and passes through other items', () => {
+      expect(normalizeUploadItem(null)).toBeNull();
+      expect(normalizeUploadItem(undefined)).toBeNull();
+      const existing = { id: 'ex-1', url: 'https://foo.com/bar.jpg' };
+      expect(normalizeUploadItem(existing)).toBe(existing);
     });
   });
 });
