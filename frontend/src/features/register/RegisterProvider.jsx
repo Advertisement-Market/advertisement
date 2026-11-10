@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RegisterContext } from './RegisterContext';
 
 function scrollTop() {
@@ -16,6 +16,7 @@ function scrollTop() {
  */
 export function RegisterProvider({
   totalSteps = 7,
+  initialStep = 1,
   validate,
   validateSubmit,
   onSubmit,
@@ -24,8 +25,8 @@ export function RegisterProvider({
 }) {
   const [data, setData] = useState(initialData ?? {});
   const [selections, setSelections] = useState({});
-  const [currentStep, setCurrentStep] = useState(1);
-  const [maxStepReached, setMaxStepReached] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialStep ?? 1);
+  const [maxStepReached, setMaxStepReached] = useState(initialStep ?? 1);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [revealErrors, setRevealErrors] = useState(false);
@@ -40,7 +41,14 @@ export function RegisterProvider({
   }, []);
 
   const field = useCallback((name) => data[name] ?? '', [data]);
-  const setField = useCallback((name, value) => setData((d) => ({ ...d, [name]: value })), []);
+  const setField = useCallback(
+    (name, value) =>
+      setData((d) => ({
+        ...d,
+        [name]: typeof value === 'function' ? value(d[name]) : value,
+      })),
+    [],
+  );
 
   const selection = useCallback((group) => selections[group] ?? [], [selections]);
   const isSelected = useCallback(
@@ -120,7 +128,7 @@ export function RegisterProvider({
     }
     setSubmitting(true);
     try {
-      await onSubmit({ data, selections });
+      await onSubmit({ data, selections, showToast });
       setSubmitted(true);
       scrollTop();
     } catch (err) {
@@ -129,6 +137,16 @@ export function RegisterProvider({
       setSubmitting(false);
     }
   }, [validateSubmit, onSubmit, data, selections, showToast]);
+
+  useEffect(() => {
+    if (!submitting) return;
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [submitting]);
 
   const value = useMemo(
     () => ({

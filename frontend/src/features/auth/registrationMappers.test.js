@@ -782,5 +782,48 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(createPayload).not.toHaveProperty('clearGroundHeight');
       expect(createPayload.groundHeightFt).toBeNull();
     });
+
+    it('normalizes existing media items with url resolving from fileUrl or storageKey', () => {
+      const dtoWithMedia = {
+        ...sampleDto,
+        media: [
+          {
+            id: 101,
+            category: 'DAY_PHOTO',
+            fileUrl: '/api/media/day1.jpg',
+            originalName: 'd1.jpg',
+            isCover: true,
+          },
+          {
+            id: 102,
+            category: 'NIGHT_PHOTO',
+            fileUrl: '/api/media/night1.jpg',
+            originalName: 'n1.jpg',
+            isCover: false,
+          },
+          {
+            id: 103,
+            category: 'SURROUNDING_PHOTO',
+            storageKey: 'surr1.jpg',
+            originalName: 's1.jpg',
+            isCover: false,
+          },
+          {
+            id: 104,
+            category: 'VIDEO',
+            url: 'https://cdn.example.com/video.mp4',
+            originalName: 'v.mp4',
+          },
+        ],
+      };
+
+      const formData = mapListingToFormData(dtoWithMedia);
+
+      expect(formData.f_existingDayPhotos[0].url).toBe('/api/media/day1.jpg');
+      expect(formData.f_existingNightPhotos[0].url).toBe('/api/media/night1.jpg');
+      expect(formData.f_existingSurroundingPhotos[0].url).toBe('/api/media/surr1.jpg');
+      expect(formData.f_existingVideo[0].url).toBe('https://cdn.example.com/video.mp4');
+      expect(formData.media[0].url).toBe('/api/media/day1.jpg');
+    });
   });
 });

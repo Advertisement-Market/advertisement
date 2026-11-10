@@ -185,13 +185,18 @@ public class AuthService {
      * registration).
      */
     public AuthResponse issueTokensFor(User user) {
+        return issueTokensFor(user, null);
+    }
+
+    public AuthResponse issueTokensFor(User user, Long initialListingId) {
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.create(user);
         return AuthResponse.bearer(
                 accessToken,
                 refreshToken.getToken(),
                 jwtService.getAccessTokenExpiresInSeconds(),
-                UserResponse.from(user));
+                UserResponse.from(user),
+                initialListingId);
     }
 
     /**

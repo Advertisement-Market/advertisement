@@ -721,4 +721,166 @@ class OwnerMediaSyncIntegrationTest {
         BillboardListing updated = billboardListingRepository.findById(listing.getId()).orElseThrow();
         assertThat(updated.getStatus()).isEqualTo(BillboardStatus.ACTIVE);
     }
+
+    @Test
+    @DisplayName("syncMedia: explicit isCover=true on newly uploaded day photo clears existing DB cover and sets new cover")
+    void syncMedia_explicitCoverOnNewDayPhoto_clearsExistingAndSetsNew() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+
+        // 1. Initial upload: img1 is auto-promoted to cover
+        SyncManifest batch1 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        BillboardMedia initialCover = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
+        assertThat(initialCover.getUploadId()).isEqualTo(id1);
+
+        // 2. Upload a 3rd day photo with isCover: true
+        byte[] img3 = createTestJpeg(400, 300);
+        String id3 = UUID.randomUUID().toString();
+        SyncManifest batch2 = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id3, Boolean.TRUE))
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch2)))
+                        .file(new MockMultipartFile("files", "d3.jpg", "image/jpeg", img3))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Exactly one cover must exist, and it must be id3
+        BillboardMedia newCover = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
+        assertThat(newCover.getUploadId()).isEqualTo(id3);
+
+        // id1 must no longer be cover
+        BillboardMedia oldItem = billboardMediaRepository.findByBillboardIdAndUploadIdIn(listing.getId(), List.of(id1)).get(0);
+        assertThat(oldItem.isCover()).isFalse();
+    }
+
+    @Test
+    @DisplayName("syncMedia: manifest with multiple isCover=true honors only the first day photo (single cover guard)")
+    void syncMedia_multipleIsCoverFlags_honorsFirstDayPhotoOnly() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1, Boolean.TRUE),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2, Boolean.TRUE)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        BillboardMedia cover = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
+        assertThat(cover.getUploadId()).isEqualTo(id1);
+
+        BillboardMedia second = billboardMediaRepository.findByBillboardIdAndUploadIdIn(listing.getId(), List.of(id2)).get(0);
+        assertThat(second.isCover()).isFalse();
+    }
+
+    @Test
+    @DisplayName("syncMedia: non-DAY_PHOTO flagged with isCover=true is ignored and does not clear daylight cover")
+    void syncMedia_nonDayPhotoFlaggedIsCover_ignoredAndExistingCoverPreserved() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+
+        // Initial day photos
+        SyncManifest batch1 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Upload a night photo with isCover = true
+        byte[] nightImg = createTestJpeg(400, 300);
+        String nightId = UUID.randomUUID().toString();
+        SyncManifest batch2 = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.NIGHT_PHOTO, nightId, Boolean.TRUE))
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch2)))
+                        .file(new MockMultipartFile("files", "night.jpg", "image/jpeg", nightImg))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // Existing daylight cover must still be id1
+        BillboardMedia cover = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
+        assertThat(cover.getUploadId()).isEqualTo(id1);
+
+        BillboardMedia night = billboardMediaRepository.findByBillboardIdAndUploadIdIn(listing.getId(), List.of(nightId)).get(0);
+        assertThat(night.isCover()).isFalse();
+    }
+
+    @Test
+    @DisplayName("syncMedia: staged deletion of current cover auto-promotes lowest display_order day photo")
+    void syncMedia_stagedDeleteOfCurrentCover_autoPromotesRemainingDayPhoto() throws Exception {
+        byte[] img1 = createTestJpeg(400, 300);
+        byte[] img2 = createTestJpeg(400, 300);
+        byte[] img3 = createTestJpeg(400, 300);
+        String id1 = UUID.randomUUID().toString();
+        String id2 = UUID.randomUUID().toString();
+        String id3 = UUID.randomUUID().toString();
+
+        SyncManifest batch1 = new SyncManifest(
+                List.of(),
+                List.of(
+                        new SyncFileMapping(0, MediaCategory.DAY_PHOTO, id1),
+                        new SyncFileMapping(1, MediaCategory.DAY_PHOTO, id2),
+                        new SyncFileMapping(2, MediaCategory.DAY_PHOTO, id3)
+                )
+        );
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(batch1)))
+                        .file(new MockMultipartFile("files", "d1.jpg", "image/jpeg", img1))
+                        .file(new MockMultipartFile("files", "d2.jpg", "image/jpeg", img2))
+                        .file(new MockMultipartFile("files", "d3.jpg", "image/jpeg", img3))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        BillboardMedia cover1 = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
+        assertThat(cover1.getUploadId()).isEqualTo(id1);
+
+        // Delete id1 (the cover) without specifying a new cover
+        SyncManifest deleteManifest = new SyncManifest(List.of(cover1.getId()), List.of());
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(new MockMultipartFile("manifest", "", "application/json", objectMapper.writeValueAsBytes(deleteManifest)))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+
+        // id2 should be auto-promoted since it is the lowest display_order remaining day photo
+        BillboardMedia newCover = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
+        assertThat(newCover.getUploadId()).isEqualTo(id2);
+    }
 }

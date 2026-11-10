@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { mapOwner } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
 import { isOther, isBlank, isValidPincode } from '@/lib/validators';
+import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { normalizeUploadItem } from './widgets';
 import './OwnerRegister.css';
 
 const STEPS = [
@@ -152,7 +154,7 @@ function WizardBody() {
   return <Step />;
 }
 
-export function OwnerRegister() {
+export function OwnerRegister({ initialData: customInitialData, initialStep = 1 } = {}) {
   const { registerOwner, user } = useAuth();
   const prefill = {
     f_minBookingValue: 1,
@@ -165,18 +167,82 @@ export function OwnerRegister() {
           f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
         }
       : {}),
+    ...customInitialData,
   };
-  const onSubmit = async ({ data }) => {
+  const onSubmit = async ({ data, showToast }) => {
+    let authRes;
     try {
-      await registerOwner(mapOwner(data));
+      authRes = await registerOwner(mapOwner(data));
     } catch (err) {
       throw new Error(apiErrorMessage(err), { cause: err });
+    }
+
+    const listingId = authRes?.initialListingId;
+    if (!listingId) return;
+
+    const dayPhotos = (data.f_dayPhotos || []).map(normalizeUploadItem).filter(Boolean);
+    const nightPhotos = (data.f_nightPhotos || []).map(normalizeUploadItem).filter(Boolean);
+    const surroundingPhotos = (data.f_surroundingPhotos || [])
+      .map(normalizeUploadItem)
+      .filter(Boolean);
+    const video = (data.f_video || []).map(normalizeUploadItem).filter(Boolean);
+
+    const allNewFiles = [
+      ...dayPhotos.map((it) => ({ ...it, category: 'DAY_PHOTO' })),
+      ...nightPhotos.map((it) => ({ ...it, category: 'NIGHT_PHOTO' })),
+      ...surroundingPhotos.map((it) => ({ ...it, category: 'SURROUNDING_PHOTO' })),
+      ...video.map((it) => ({ ...it, category: 'VIDEO' })),
+    ];
+
+    const selectedCover = data.f_selectedCover;
+
+    if (allNewFiles.length > 0) {
+      try {
+        const fileMappings = allNewFiles.map((item, idx) => ({
+          clientIndex: idx,
+          category: item.category,
+          uploadId: item.id,
+          isCover:
+            item.category === 'DAY_PHOTO' &&
+            selectedCover?.type === 'NEW' &&
+            selectedCover.uploadId === item.id,
+        }));
+        const filesToSend = allNewFiles.map((item) => item.file);
+        const manifest = {
+          stagedDeleteIds: [],
+          fileMappings,
+        };
+        await ownerListingApi.syncMedia(listingId, manifest, filesToSend);
+
+        if (dayPhotos.length >= 2) {
+          try {
+            await ownerListingApi.submitListing(listingId);
+          } catch (submitErr) {
+            console.warn('Auto-submit listing failed after registration:', submitErr);
+            if (showToast) {
+              showToast(
+                'Listing created & photos saved, but submit for review failed. You can submit from My Listings.',
+                'warning',
+              );
+            }
+          }
+        }
+      } catch (mediaErr) {
+        console.warn('Post-registration media sync failed:', mediaErr);
+        if (showToast) {
+          showToast(
+            'Account created, but media upload failed. You can add photos from My Listings.',
+            'warning',
+          );
+        }
+      }
     }
   };
   return (
     <div className="owner-register-page">
       <RegisterProvider
         totalSteps={7}
+        initialStep={initialStep}
         validate={(step, ctx) => validate(step, { ...ctx, user })}
         validateSubmit={validateSubmit}
         initialData={prefill}

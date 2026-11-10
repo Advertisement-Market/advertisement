@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/cn';
 import * as v from '@/lib/validators';
 import { useAuth } from '@/context/AuthContext';
@@ -29,6 +30,7 @@ import {
   MinBookingInput,
 } from './widgets';
 import { AvailabilityCalendar, PricingTable, MapPin } from './calendar';
+import { ImageLightboxModal } from '@/components/ui/ImageLightboxModal/ImageLightboxModal';
 
 const TOTAL = 7;
 
@@ -788,7 +790,57 @@ const VideoIcon = (
   </svg>
 );
 
+const EMPTY_ARRAY = [];
+
 export function Step5() {
+  const { field, setField } = useRegister();
+  const dayPhotos = field('f_dayPhotos') || EMPTY_ARRAY;
+  const nightPhotos = field('f_nightPhotos') || EMPTY_ARRAY;
+  const surroundingPhotos = field('f_surroundingPhotos') || EMPTY_ARRAY;
+  const video = field('f_video') || EMPTY_ARRAY;
+  const selectedCover = field('f_selectedCover') || null;
+
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxInitialIndex, setLightboxInitialIndex] = useState(0);
+
+  const projectedCoverId = (() => {
+    if (selectedCover) return null;
+    if (dayPhotos.length > 0) return dayPhotos[0].id;
+    return null;
+  })();
+
+  const handleSelectCover = (coverTarget) => {
+    setField('f_selectedCover', coverTarget);
+  };
+
+  const handleRemoveNewFile = (categoryField, itemToRemove) => {
+    const currentList = field(categoryField) || [];
+    setField(
+      categoryField,
+      currentList.filter((it) => it.id !== itemToRemove.id),
+    );
+    if (selectedCover?.type === 'NEW' && selectedCover.uploadId === itemToRemove.id) {
+      setField('f_selectedCover', null);
+    }
+  };
+
+  const allLightboxItems = useMemo(() => {
+    const list = [];
+    dayPhotos.forEach((f) => list.push({ ...f, type: 'NEW', category: 'DAY_PHOTO' }));
+    nightPhotos.forEach((f) => list.push({ ...f, type: 'NEW', category: 'NIGHT_PHOTO' }));
+    surroundingPhotos.forEach((f) =>
+      list.push({ ...f, type: 'NEW', category: 'SURROUNDING_PHOTO' }),
+    );
+    video.forEach((f) => list.push({ ...f, type: 'NEW', category: 'VIDEO' }));
+    return list;
+  }, [dayPhotos, nightPhotos, surroundingPhotos, video]);
+
+  const handleOpenPreview = (item) => {
+    const idx = allLightboxItems.findIndex((it) => it.id === item.id);
+    setLightboxInitialIndex(idx >= 0 ? idx : 0);
+    setLightboxOpen(true);
+  };
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -938,7 +990,15 @@ export function Step5() {
           icon={SunIcon}
           title="Drag & drop day photos here"
           sub="JPG, PNG, WEBP · Max 10MB each · Clear angle required"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="DAY_PHOTO"
+          maxCount={10}
+          files={dayPhotos}
+          onChange={(files) => setField('f_dayPhotos', files)}
+          selectedCover={selectedCover}
+          onSelectCover={handleSelectCover}
+          projectedCoverId={projectedCoverId}
+          onPreviewItem={handleOpenPreview}
         />
       </FormSection>
       <FormSection title="Night Photos">
@@ -948,7 +1008,13 @@ export function Step5() {
           icon={MoonIcon}
           title="Drag & drop night photos here"
           sub="JPG, PNG, WEBP · Must show actual illumination · Max 10MB"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="NIGHT_PHOTO"
+          maxCount={5}
+          files={nightPhotos}
+          onChange={(files) => setField('f_nightPhotos', files)}
+          selectedCover={selectedCover}
+          onPreviewItem={handleOpenPreview}
         />
       </FormSection>
       <FormSection last title="Optional Media">
@@ -958,7 +1024,13 @@ export function Step5() {
           icon={GlobeIcon}
           title="Shows billboard in its surroundings"
           sub="Drag & drop or click to browse · JPG, PNG"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          category="SURROUNDING_PHOTO"
+          maxCount={5}
+          files={surroundingPhotos}
+          onChange={(files) => setField('f_surroundingPhotos', files)}
+          selectedCover={selectedCover}
+          onPreviewItem={handleOpenPreview}
           style={{ padding: 0 }}
         />
         <UploadZone
@@ -968,11 +1040,38 @@ export function Step5() {
           title="Drag & drop or click to browse"
           sub={MAX_VIDEO_LABEL}
           accept={VIDEO_ACCEPT_TYPES}
+          category="VIDEO"
           multiple={false}
           single
+          maxCount={1}
+          files={video}
+          onChange={(files) => setField('f_video', files)}
+          selectedCover={selectedCover}
+          onPreviewItem={handleOpenPreview}
           style={{ marginBottom: 0 }}
         />
       </FormSection>
+
+      <ImageLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        items={allLightboxItems}
+        initialIndex={lightboxInitialIndex}
+        selectedCover={selectedCover}
+        projectedCoverId={projectedCoverId}
+        onSetCover={(item) => handleSelectCover({ type: 'NEW', uploadId: item.id })}
+        onRemove={(item) => {
+          const catField =
+            item.category === 'DAY_PHOTO'
+              ? 'f_dayPhotos'
+              : item.category === 'NIGHT_PHOTO'
+                ? 'f_nightPhotos'
+                : item.category === 'SURROUNDING_PHOTO'
+                  ? 'f_surroundingPhotos'
+                  : 'f_video';
+          handleRemoveNewFile(catField, item);
+        }}
+      />
 
       <RegNav nextLabel="Continue to Legal Data" />
     </div>
@@ -1098,9 +1197,23 @@ function ReviewSection({ title, editStep, body }) {
 }
 
 export function Step7() {
-  const { field, submit } = useRegister();
+  const { field, submit, submitting } = useRegister();
   const v = (n) => String(field(n)).trim();
   const join = (arr) => arr.filter(Boolean).join(' · ');
+
+  const dayCount = (field('f_dayPhotos') || []).length;
+  const nightCount = (field('f_nightPhotos') || []).length;
+  const surrCount = (field('f_surroundingPhotos') || []).length;
+  const videoCount = (field('f_video') || []).length;
+  const mediaSummary =
+    [
+      dayCount ? `${dayCount} daylight photo${dayCount > 1 ? 's' : ''}` : null,
+      nightCount ? `${nightCount} night photo${nightCount > 1 ? 's' : ''}` : null,
+      surrCount ? `${surrCount} surrounding photo${surrCount > 1 ? 's' : ''}` : null,
+      videoCount ? `${videoCount} video` : null,
+    ]
+      .filter(Boolean)
+      .join(', ') || 'No media uploaded';
 
   return (
     <div className="step-panel active">
@@ -1143,7 +1256,7 @@ export function Step7() {
             v('f_facing'),
           ])}
         />
-        <ReviewSection title="Media Uploads" editStep={5} body="Photos & media as uploaded" />
+        <ReviewSection title="Media Uploads" editStep={5} body={mediaSummary} />
         <ReviewSection
           title="Pricing & Availability"
           editStep={4}
@@ -1184,19 +1297,19 @@ export function Step7() {
       </div>
 
       <div className="reg-nav">
-        <BackButton />
-        <button className="btn-next btn-submit" onClick={submit}>
-          Submit for Verification →
+        <BackButton disabled={submitting} />
+        <button className="btn-next btn-submit" onClick={submit} disabled={submitting}>
+          {submitting ? 'Creating account & uploading media...' : 'Submit for Verification →'}
         </button>
       </div>
     </div>
   );
 }
 
-function BackButton() {
-  const { prevStep } = useRegister();
+function BackButton({ disabled }) {
+  const { prevStep, submitting } = useRegister();
   return (
-    <button className="btn-back" onClick={prevStep}>
+    <button className="btn-back" onClick={prevStep} disabled={disabled || submitting}>
       <svg
         width="14"
         height="14"

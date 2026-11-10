@@ -3,6 +3,7 @@ package com.theadbasket.backend.owner;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -125,21 +126,44 @@ public class OwnerMediaTransactionalService {
                     "An active or pending listing must have at least 2 day photos");
         }
 
-        // 5. Delete staged rows
-        if (!toDelete.isEmpty()) {
-            billboardMediaRepository.deleteAll(toDelete);
+        // 5. Determine if an incoming daylight photo is explicitly designated as cover (category guard + single-cover guard)
+        String acceptedNewCoverUploadId = null;
+        for (IngestedMedia item : toInsert) {
+            if (Boolean.TRUE.equals(item.mapping().isCover()) && item.mapping().category() == MediaCategory.DAY_PHOTO) {
+                acceptedNewCoverUploadId = item.mapping().uploadId();
+                break; // First flagged DAY_PHOTO wins; duplicates or non-DAY_PHOTO are ignored
+            }
         }
 
-        // 6. Check existing cover
-        boolean hasCover = !coverDeleted && existingById.values().stream().anyMatch(BillboardMedia::isCover);
+        // 6. Delete staged rows and flush before resolving surviving covers
+        if (!toDelete.isEmpty()) {
+            billboardMediaRepository.deleteAll(toDelete);
+            billboardMediaRepository.flush();
+        }
 
-        // 7. Insert new files in clientIndex order
+        // 7. If a new daylight photo is accepted as cover, clear any surviving DB cover first
+        // Flushed immediately to satisfy unique constraint uq_billboard_media_cover
+        if (acceptedNewCoverUploadId != null) {
+            billboardMediaRepository.findCoverByBillboardId(listingId).ifPresent(c -> {
+                c.setIsCover(null);
+                billboardMediaRepository.saveAndFlush(c);
+            });
+        }
+
+        boolean hasCover = (acceptedNewCoverUploadId != null)
+                || (!coverDeleted && existingById.values().stream().anyMatch(BillboardMedia::isCover));
+
+        // 8. Insert new files in clientIndex order
         int maxDisplayOrder = billboardMediaRepository.findMaxDisplayOrderByBillboardId(listingId);
 
         for (IngestedMedia item : toInsert) {
             maxDisplayOrder++;
             boolean makeCover = false;
-            if (!hasCover && item.mapping().category() == MediaCategory.DAY_PHOTO) {
+            if (acceptedNewCoverUploadId != null) {
+                if (item.mapping().uploadId().equals(acceptedNewCoverUploadId)) {
+                    makeCover = true;
+                }
+            } else if (!hasCover && item.mapping().category() == MediaCategory.DAY_PHOTO) {
                 makeCover = true;
                 hasCover = true;
             }
@@ -158,15 +182,17 @@ public class OwnerMediaTransactionalService {
             BillboardMedia saved = billboardMediaRepository.save(entity);
             existingById.put(saved.getId(), saved);
         }
+        billboardMediaRepository.flush();
 
-        // 8. If cover was deleted and no new day photo claimed it, auto-promote lowest display_order day photo
-        if (!hasCover) {
+        // 9. If after deletes and inserts no cover exists, auto-promote lowest display_order day photo
+        boolean finalHasCover = existingById.values().stream().anyMatch(BillboardMedia::isCover);
+        if (!finalHasCover) {
             existingById.values().stream()
                     .filter(m -> m.getCategory() == MediaCategory.DAY_PHOTO)
-                    .min((a, b) -> Integer.compare(a.getDisplayOrder(), b.getDisplayOrder()))
+                    .min(Comparator.comparingInt(BillboardMedia::getDisplayOrder))
                     .ifPresent(m -> {
                         m.setIsCover(Boolean.TRUE);
-                        billboardMediaRepository.save(m);
+                        billboardMediaRepository.saveAndFlush(m);
                     });
         }
 
