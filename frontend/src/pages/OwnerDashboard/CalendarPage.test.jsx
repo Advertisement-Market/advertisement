@@ -744,4 +744,93 @@ describe('OwnerDashboard Availability CalendarPage', () => {
     });
     expect(document.querySelectorAll('.cal-day.booked').length).toBe(0);
   });
+
+  it('resets BookingRulesCard duration inputs when switching listings', async () => {
+    const mockListings = [
+      {
+        id: 101,
+        name: 'Marine Drive Unipole',
+        status: 'ACTIVE',
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+      },
+      {
+        id: 102,
+        name: 'Bandra Digital LED',
+        status: 'ACTIVE',
+        minBookingValue: 3,
+        minBookingUnit: 'DAYS',
+      },
+    ];
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+    vi.spyOn(availabilityApi, 'getListingAvailability').mockResolvedValue({
+      blocks: [],
+      etag: 'etag-rules',
+      today: '2026-11-06',
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Marine Drive Unipole — Availability/i)).toBeDefined();
+    });
+
+    const valInput = screen.getByLabelText(/minimum duration value/i);
+    const unitSelect = screen.getByLabelText(/minimum duration unit/i);
+    expect(valInput.value).toBe('1');
+    expect(unitSelect.value).toBe('MONTHS');
+
+    // Switch to listing 102
+    const listingSelect = screen.getByRole('combobox', { name: /select billboard listing/i });
+    fireEvent.change(listingSelect, { target: { value: '102' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bandra Digital LED — Availability/i)).toBeDefined();
+      expect(screen.getByLabelText(/minimum duration value/i).value).toBe('3');
+      expect(screen.getByLabelText(/minimum duration unit/i).value).toBe('DAYS');
+    });
+  });
+
+  it('resets blocks, confirmedDates, and holdDates on fetch error without leaking previous listing blocks', async () => {
+    const mockListings = [
+      { id: 101, name: 'Marine Drive Unipole', status: 'ACTIVE' },
+      { id: 102, name: 'Bandra Digital LED', status: 'ACTIVE' },
+    ];
+    vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+
+    // Initial listing 101 loads with active confirmed booking
+    vi.spyOn(availabilityApi, 'getListingAvailability')
+      .mockResolvedValueOnce({
+        blocks: [
+          {
+            id: 1,
+            startDate: '2026-11-20',
+            endDate: '2026-11-22',
+            blockType: 'CONFIRMED_BOOKING',
+          },
+        ],
+        etag: 'etag-101',
+        today: '2026-11-06',
+      })
+      .mockRejectedValueOnce(new Error('Network error loading availability'));
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Marine Drive Unipole — Availability/i)).toBeDefined();
+      expect(screen.getByText(/2026-11-20 to 2026-11-22/i)).toBeDefined();
+    });
+
+    // Switch to listing 102 which fails to fetch availability
+    const listingSelect = screen.getByRole('combobox', { name: /select billboard listing/i });
+    fireEvent.change(listingSelect, { target: { value: '102' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bandra Digital LED — Availability/i)).toBeDefined();
+      expect(screen.getByText(/Failed to load availability calendar/i)).toBeDefined();
+    });
+
+    // Stale booking block from 101 must not be present in the sidebar
+    expect(screen.queryByText(/2026-11-20 to 2026-11-22/i)).toBeNull();
+  });
 });

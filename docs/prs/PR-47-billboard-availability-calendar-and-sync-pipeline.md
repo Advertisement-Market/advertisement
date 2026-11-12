@@ -396,7 +396,7 @@ Verified via `npm --prefix frontend run test:coverage`, `npm --prefix frontend r
 - **`registrationMappers.test.js` (26 tests):** `blockedRanges` serialization in `mapOwner` and `mapBillboardListing` plus existing field mappers.
 - **`widgets.test.jsx` (11 tests):** `AvailabilityCalendar` range selection, unblock toggle, Clear all, and locked booking/hold enforcement.
 - **`NewBillboardListing.test.jsx` (37 tests):** Create-mode `blockedRanges` payload submission and edit-mode availability hydration + PUT sync.
-- **`CalendarPage.test.jsx` (15 tests):** Hydration, `isLoading` state, zero mock-data leak (`initCalData` isolation), two-click & drag selection, 730-day quick-range guard, locked `BOOKING_HOLD` / `CONFIRMED_BOOKING` protection, `412` / `409` / `503` recovery (including retry timer cleanup on switch), `BookingRulesCard`, and Overview `MiniCalendar` live hydration.
+- **`CalendarPage.test.jsx` (17 tests):** Hydration, `isLoading` state, zero mock-data leak (`initCalData` isolation), two-click & drag selection, 730-day quick-range guard, locked `BOOKING_HOLD` / `CONFIRMED_BOOKING` protection, `412` / `409` / `503` recovery (including retry timer cleanup on switch), `BookingRulesCard` state sync on listing switch, fetch-error state cleanup, and Overview `MiniCalendar` live hydration.
 - **`OwnerDashboard.test.jsx` (16 tests) & `OwnerDashboard.profile.test.jsx` (6 tests):** Dashboard tabs, profile flows, and listing management integration.
 
 ---

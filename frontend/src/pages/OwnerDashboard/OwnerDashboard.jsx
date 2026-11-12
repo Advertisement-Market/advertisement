@@ -1343,6 +1343,11 @@ function BookingRulesCard({ activeListingId, selectedListing, onListingUpdated }
   );
   const [savingRule, setSavingRule] = useState(false);
 
+  useEffect(() => {
+    setMinBookingVal(selectedListing?.minBookingValue ?? 1);
+    setMinBookingUnit(selectedListing?.minBookingUnit || 'MONTHS');
+  }, [activeListingId, selectedListing?.minBookingValue, selectedListing?.minBookingUnit]);
+
   const handleSaveBookingRule = async () => {
     if (!activeListingId) return;
     const val = Math.max(1, Math.min(1000, Math.round(Number(minBookingVal)) || 1));
@@ -1632,6 +1637,7 @@ function CalendarPage({
       })
       .catch((err) => {
         if (isMounted) {
+          setBlocks([]);
           setConfirmedDates(new Set());
           setHoldDates(new Set());
           setDayStatusMap(normalizedFallback);
