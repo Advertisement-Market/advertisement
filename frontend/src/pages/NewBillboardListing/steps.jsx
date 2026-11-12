@@ -413,9 +413,8 @@ export function ListingStep2() {
       <FormSection title="Availability Calendar">
         <div className="form-group">
           <div className="form-hint" style={{ marginBottom: 12 }}>
-            Click a start date then an end date to mark a range as booked. Click a booked date to
-            clear it. (Note: Cloud calendar sync will be enabled in Phase 3; your rate card
-            parameters are saved directly to your inventory.)
+            Click a start date then an end date to mark a range as blocked. Click a blocked date to
+            clear it. Your blocked dates are saved directly to your listing availability calendar.
           </div>
         </div>
         <AvailabilityCalendar />

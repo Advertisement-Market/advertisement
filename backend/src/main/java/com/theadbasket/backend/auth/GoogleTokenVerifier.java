@@ -20,11 +20,17 @@ public class GoogleTokenVerifier {
     private static final Logger log = LoggerFactory.getLogger(GoogleTokenVerifier.class);
 
     private final GoogleProperties properties;
-    private final RestClient restClient;
+    private RestClient restClient;
 
     public GoogleTokenVerifier(GoogleProperties properties) {
         this.properties = properties;
-        this.restClient = RestClient.create();
+    }
+
+    private synchronized RestClient getRestClient() {
+        if (this.restClient == null) {
+            this.restClient = RestClient.create();
+        }
+        return this.restClient;
     }
 
     /** Verifies the ID token and returns its claims, or throws if it is missing/invalid/untrusted. */
@@ -38,7 +44,7 @@ public class GoogleTokenVerifier {
 
         GoogleTokenInfo info;
         try {
-            info = restClient.get()
+            info = getRestClient().get()
                     .uri(properties.tokenInfoUri() + "?id_token={token}", idToken)
                     .retrieve()
                     .body(GoogleTokenInfo.class);

@@ -70,7 +70,24 @@ public enum ErrorCode {
     SERVICE_UNAVAILABLE("error.service.unavailable"),
     CONCURRENT_MODIFICATION("error.concurrency.conflict"),
 
+    // Availability Calendar
+    AVAILABILITY_STALE("error.availability.stale"),
+    AVAILABILITY_HOLD_CONFLICT("error.availability.holdConflict"),
+    PRECONDITION_REQUIRED("error.availability.preconditionRequired"),
+    AVAILABILITY_BUSY("error.availability.busy"),
+    AVAILABILITY_RANGE_TOO_LONG("error.availability.rangeTooLong"),
+    AVAILABILITY_DATE_ORDER_INVALID("error.availability.dateOrderInvalid"),
+    AVAILABILITY_DATE_OUT_OF_BOUNDS("error.availability.dateOutOfBounds"),
+    AVAILABILITY_PAYLOAD_TOO_LARGE("error.availability.payloadTooLarge"),
+    AVAILABILITY_WINDOW_TOO_LARGE("error.availability.windowTooLarge"),
+    AVAILABILITY_WINDOW_INVALID("error.availability.windowInvalid"),
+    LISTING_NOT_ACTIVE("error.availability.listingNotActive"),
+
     // Generic
+    METHOD_NOT_ALLOWED("error.http.methodNotAllowed"),
+    RESOURCE_NOT_FOUND("error.http.resourceNotFound"),
+    UNSUPPORTED_CONTENT_TYPE("error.http.unsupportedContentType"),
+    NOT_ACCEPTABLE("error.http.notAcceptable"),
     VALIDATION_FAILED("error.validation.failed"),
     INTERNAL_ERROR("error.internal");
 

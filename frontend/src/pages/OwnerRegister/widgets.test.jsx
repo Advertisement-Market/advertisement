@@ -8,6 +8,8 @@ import {
   ThumbnailCard,
   normalizeUploadItem,
 } from './widgets';
+import { AvailabilityCalendar } from './calendar';
+import { formatDateKey, addDays } from '@/features/availability/availabilityUtils';
 import { TYPE_OPTIONS as REGISTER_TYPE_OPTIONS, Step2, Step3 } from './steps';
 import { TYPE_OPTIONS as WIZARD_TYPE_OPTIONS, ListingStep1 } from '../NewBillboardListing/steps';
 import { validate as validateOwner } from './OwnerRegister';
@@ -446,6 +448,91 @@ describe('OwnerRegister and Wizard Widgets', () => {
       expect(normalizeUploadItem(undefined)).toBeNull();
       const existing = { id: 'ex-1', url: 'https://foo.com/bar.jpg' };
       expect(normalizeUploadItem(existing)).toBe(existing);
+    });
+  });
+
+  describe('AvailabilityCalendar RegisterContext integration', () => {
+    function BlockedInspector() {
+      const { field } = useRegister();
+      return <div data-testid="blocked-json">{JSON.stringify(field('f_blockedDates') || {})}</div>;
+    }
+
+    it('persists range blocks, toggles unblock on single click, and respects Clear all', () => {
+      const now = new Date();
+      const firstOfMonth = formatDateKey(now.getFullYear(), now.getMonth(), 1);
+      const dayA = addDays(firstOfMonth, 14);
+      const dayB = addDays(firstOfMonth, 16);
+      // Anchor serverToday cleanly to start of this month so day 15-17 are always future/editable
+      render(
+        <RegisterProvider
+          initialData={{
+            f_availabilityServerToday: firstOfMonth,
+            f_blockedDates: {},
+          }}
+        >
+          <AvailabilityCalendar />
+          <BlockedInspector />
+        </RegisterProvider>,
+      );
+
+      const cellA = document.querySelector(`[data-date="${dayA}"]`);
+      const cellB = document.querySelector(`[data-date="${dayB}"]`);
+      expect(cellA).not.toBeNull();
+      expect(cellB).not.toBeNull();
+
+      // Click start then end date
+      fireEvent.click(cellA);
+      expect(screen.getByText(/start date selected:/i)).toBeDefined();
+      fireEvent.click(cellB);
+
+      const midDay = addDays(dayA, 1);
+      expect(JSON.parse(screen.getByTestId('blocked-json').textContent)).toEqual({
+        [dayA]: 'blocked',
+        [midDay]: 'blocked',
+        [dayB]: 'blocked',
+      });
+      expect(screen.getByText('3 days marked as blocked')).toBeDefined();
+
+      // Single click on already blocked middle day unblocks just that day
+      fireEvent.click(document.querySelector(`[data-date="${midDay}"]`));
+      expect(JSON.parse(screen.getByTestId('blocked-json').textContent)).toEqual({
+        [dayA]: 'blocked',
+        [dayB]: 'blocked',
+      });
+
+      // Clear blocked dates clears f_blockedDates
+      fireEvent.click(screen.getByRole('button', { name: /clear blocked dates/i }));
+      expect(JSON.parse(screen.getByTestId('blocked-json').textContent)).toEqual({});
+    });
+
+    it('prevents editing locked confirmed booking and checkout hold dates', () => {
+      const now = new Date();
+      const firstOfMonth = formatDateKey(now.getFullYear(), now.getMonth(), 1);
+      const bookedDay = addDays(firstOfMonth, 9);
+      const holdDay = addDays(firstOfMonth, 10);
+
+      render(
+        <RegisterProvider
+          initialData={{
+            f_availabilityServerToday: firstOfMonth,
+            f_blockedDates: {},
+            f_lockedBookedDates: [bookedDay],
+            f_lockedHoldDates: [holdDay],
+          }}
+        >
+          <AvailabilityCalendar />
+          <BlockedInspector />
+        </RegisterProvider>,
+      );
+
+      const bookedCell = document.querySelector(`[data-date="${bookedDay}"]`);
+      const holdCell = document.querySelector(`[data-date="${holdDay}"]`);
+      expect(bookedCell.classList.contains('booked')).toBe(true);
+      expect(holdCell.classList.contains('hold')).toBe(true);
+
+      fireEvent.click(bookedCell);
+      fireEvent.click(holdCell);
+      expect(JSON.parse(screen.getByTestId('blocked-json').textContent)).toEqual({});
     });
   });
 });

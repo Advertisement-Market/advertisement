@@ -1,6 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { useRegister } from '@/features/register';
+import { RegisterContext } from '@/features/register/RegisterContext';
+import {
+  addDays,
+  daysBetweenInclusive,
+  formatDateKey,
+  isBefore,
+  isValidDateKey,
+} from '@/features/availability/availabilityUtils';
 
 const MONTHS = [
   'January',
@@ -17,18 +25,65 @@ const MONTHS = [
   'December',
 ];
 const DAY_NAMES = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const MAX_HORIZON_DAYS = 730;
 
-const key = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-/** Interactive availability calendar — click a start then end date to mark a booked range. */
+/** Interactive availability calendar — click a start then end date to mark a blocked range. */
 export function AvailabilityCalendar() {
-  const today = useMemo(() => {
-    const t = new Date();
-    return new Date(t.getFullYear(), t.getMonth(), t.getDate());
-  }, []);
-  const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
-  const [booked, setBooked] = useState(() => new Set());
+  const reg = useContext(RegisterContext);
+  const [localBlocked, setLocalBlocked] = useState({});
   const [rangeStart, setRangeStart] = useState(null);
+
+  const clientTodayKey = useMemo(() => {
+    const t = new Date();
+    return formatDateKey(t.getFullYear(), t.getMonth(), t.getDate());
+  }, []);
+
+  const serverToday = reg?.field('f_availabilityServerToday');
+  const todayKey = isValidDateKey(serverToday) ? serverToday : clientTodayKey;
+
+  const [view, setView] = useState(() => {
+    const t = new Date();
+    return { y: t.getFullYear(), m: t.getMonth() };
+  });
+
+  const rawBlocked = reg ? reg.field('f_blockedDates') : localBlocked;
+  const blockedMap = useMemo(() => {
+    const map = {};
+    if (Array.isArray(rawBlocked)) {
+      for (const k of rawBlocked) {
+        if (isValidDateKey(k)) map[k] = 'blocked';
+      }
+      return map;
+    }
+    if (rawBlocked && typeof rawBlocked === 'object') {
+      for (const [k, v] of Object.entries(rawBlocked)) {
+        if (isValidDateKey(k) && (v === 'blocked' || v === 'block' || v === 'booked')) {
+          map[k] = 'blocked';
+        }
+      }
+    }
+    return map;
+  }, [rawBlocked]);
+
+  const rawLockedBooked = reg?.field('f_lockedBookedDates');
+  const rawLockedHolds = reg?.field('f_lockedHoldDates');
+  const lockedBookedSet = useMemo(
+    () => new Set(Array.isArray(rawLockedBooked) ? rawLockedBooked.filter(isValidDateKey) : []),
+    [rawLockedBooked],
+  );
+  const lockedHoldSet = useMemo(
+    () => new Set(Array.isArray(rawLockedHolds) ? rawLockedHolds.filter(isValidDateKey) : []),
+    [rawLockedHolds],
+  );
+
+  const commitBlocked = (nextMap) => {
+    if (reg) {
+      reg.setField('f_blockedDates', nextMap);
+      reg.setField('f_availabilityDirty', true);
+    } else {
+      setLocalBlocked(nextMap);
+    }
+  };
 
   const first = new Date(view.y, view.m, 1);
   const startDay = first.getDay();
@@ -46,35 +101,60 @@ export function AvailabilityCalendar() {
   };
 
   const onDay = (d) => {
-    const date = new Date(view.y, view.m, d);
-    if (date < today) return;
-    const k = key(view.y, view.m, d);
-    if (booked.has(k) && !rangeStart) {
-      setBooked((s) => {
-        const next = new Set(s);
-        next.delete(k);
-        return next;
-      });
+    const k = formatDateKey(view.y, view.m, d);
+    if (isBefore(k, todayKey)) return;
+    if (lockedBookedSet.has(k) || lockedHoldSet.has(k)) {
+      reg?.showToast('Confirmed bookings and active checkout holds cannot be modified.', 'info');
       return;
     }
+    if (daysBetweenInclusive(todayKey, k) > MAX_HORIZON_DAYS) {
+      reg?.showToast(`Cannot block dates more than ${MAX_HORIZON_DAYS} days in advance.`, 'error');
+      return;
+    }
+
+    if (blockedMap[k] && !rangeStart) {
+      const next = { ...blockedMap };
+      delete next[k];
+      commitBlocked(next);
+      return;
+    }
+
     if (!rangeStart) {
-      setRangeStart(date);
+      setRangeStart(k);
     } else {
-      const [a, b] = rangeStart <= date ? [rangeStart, date] : [date, rangeStart];
-      setBooked((s) => {
-        const next = new Set(s);
-        for (let cur = new Date(a); cur <= b; cur.setDate(cur.getDate() + 1)) {
-          next.add(key(cur.getFullYear(), cur.getMonth(), cur.getDate()));
+      const [a, b] = rangeStart <= k ? [rangeStart, k] : [k, rangeStart];
+      if (daysBetweenInclusive(a, b) > MAX_HORIZON_DAYS) {
+        reg?.showToast(`Blocked range cannot exceed ${MAX_HORIZON_DAYS} days.`, 'error');
+        setRangeStart(null);
+        return;
+      }
+      const next = { ...blockedMap };
+      let cur = a;
+      while (cur && cur <= b) {
+        if (
+          !isBefore(cur, todayKey) &&
+          !lockedBookedSet.has(cur) &&
+          !lockedHoldSet.has(cur) &&
+          daysBetweenInclusive(todayKey, cur) <= MAX_HORIZON_DAYS
+        ) {
+          next[cur] = 'blocked';
         }
-        return next;
-      });
+        cur = addDays(cur, 1);
+      }
+      commitBlocked(next);
       setRangeStart(null);
     }
   };
 
-  const summary = booked.size
-    ? `${booked.size} day${booked.size === 1 ? '' : 's'} marked as booked`
-    : '';
+  const handleClearAll = () => {
+    commitBlocked({});
+    setRangeStart(null);
+  };
+
+  const blockedCount = Object.keys(blockedMap).length;
+  const summary = blockedCount
+    ? `${blockedCount} day${blockedCount === 1 ? '' : 's'} marked as blocked`
+    : 'All upcoming dates available — click any date range to block';
 
   return (
     <div className="calendar-preview">
@@ -83,14 +163,34 @@ export function AvailabilityCalendar() {
           {MONTHS[view.m]} {view.y}
         </span>
         <div className="cal-nav-btns">
-          <button type="button" className="cal-nav-btn" onClick={() => move(-1)}>
+          <button
+            type="button"
+            className="cal-nav-btn"
+            aria-label="Previous month"
+            onClick={() => move(-1)}
+          >
             ←
           </button>
-          <button type="button" className="cal-nav-btn" onClick={() => move(1)}>
+          <button
+            type="button"
+            className="cal-nav-btn"
+            aria-label="Next month"
+            onClick={() => move(1)}
+          >
             →
           </button>
         </div>
       </div>
+      {rangeStart && (
+        <div className="cal-selection-hint">
+          <span>
+            Start date selected: <strong>{rangeStart}</strong> — click an end date to block range
+          </span>
+          <button type="button" className="cal-inline-btn" onClick={() => setRangeStart(null)}>
+            Cancel
+          </button>
+        </div>
+      )}
       <div className="cal-grid">
         {DAY_NAMES.map((d) => (
           <div className="cal-day-name" key={d}>
@@ -99,17 +199,30 @@ export function AvailabilityCalendar() {
         ))}
         {cells.map((d, i) => {
           if (d == null) return <div className="cal-day empty" key={`e${i}`} />;
-          const date = new Date(view.y, view.m, d);
-          const k = key(view.y, view.m, d);
-          const past = date < today;
-          const isBooked = booked.has(k);
-          const selecting = rangeStart && rangeStart.getTime() === date.getTime();
+          const k = formatDateKey(view.y, view.m, d);
+          const past = isBefore(k, todayKey);
+          const isBooked = lockedBookedSet.has(k);
+          const isHold = lockedHoldSet.has(k);
+          const isBlocked = Boolean(blockedMap[k]);
+          const isToday = k === todayKey;
+          const selecting = rangeStart === k;
+          const statusClass = isBooked
+            ? 'booked'
+            : isHold
+              ? 'hold'
+              : isBlocked
+                ? 'blocked'
+                : 'available';
           return (
             <div
               key={k}
+              data-date={k}
+              aria-label={k}
               className={cn(
                 'cal-day',
-                past ? 'past' : isBooked ? 'booked' : 'available',
+                statusClass,
+                past && 'past',
+                isToday && 'today',
                 selecting && 'selecting',
               )}
               onClick={() => onDay(d)}
@@ -123,23 +236,54 @@ export function AvailabilityCalendar() {
         <div className="cal-legend-item">
           <span
             className="cal-legend-dot"
-            style={{ background: 'var(--cream-warm)', border: '1px solid var(--border-medium)' }}
+            style={{ background: 'rgba(5,150,105,0.12)', border: '1px solid rgba(5,150,105,0.35)' }}
           />
           Available
         </div>
         <div className="cal-legend-item">
           <span
             className="cal-legend-dot"
-            style={{ background: 'rgba(8,145,178,0.15)', border: '1px solid rgba(8,145,178,0.3)' }}
+            style={{
+              background: 'rgba(245,158,11,0.22)',
+              border: '1px solid rgba(217,119,6,0.45)',
+            }}
           />
-          Booked
+          Blocked by Owner
         </div>
+        {lockedBookedSet.size > 0 && (
+          <div className="cal-legend-item">
+            <span
+              className="cal-legend-dot"
+              style={{
+                background: 'rgba(229,57,53,0.15)',
+                border: '1px solid rgba(229,57,53,0.35)',
+              }}
+            />
+            Confirmed Booking
+          </div>
+        )}
+        {lockedHoldSet.size > 0 && (
+          <div className="cal-legend-item">
+            <span
+              className="cal-legend-dot"
+              style={{ background: 'rgba(249,115,22,0.18)', border: '1px dashed #ea580c' }}
+            />
+            Checkout Hold
+          </div>
+        )}
         <div className="cal-legend-item">
-          <span className="cal-legend-dot" style={{ background: 'rgba(156,163,175,0.15)' }} />
+          <span className="cal-legend-dot" style={{ background: '#e5e7eb' }} />
           Past
         </div>
       </div>
-      <div className="cal-summary">{summary}</div>
+      <div className="cal-footer-bar">
+        <div className="cal-summary">{summary}</div>
+        {blockedCount > 0 && (
+          <button type="button" className="cal-inline-btn" onClick={handleClearAll}>
+            Clear blocked dates
+          </button>
+        )}
+      </div>
     </div>
   );
 }

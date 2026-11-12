@@ -1,13 +1,17 @@
 package com.theadbasket.backend.owner.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
+import com.theadbasket.backend.availability.AvailabilityDateValidator;
+import com.theadbasket.backend.availability.dto.AvailabilityRangeRequest;
 import com.theadbasket.backend.common.validation.BillboardLovPayload;
 import com.theadbasket.backend.common.validation.RequiredOtherText;
 import com.theadbasket.backend.common.validation.SanitizeText;
 import com.theadbasket.backend.common.validation.ValidationPatterns;
 import com.theadbasket.backend.lov.BookingDurationUnit;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
@@ -122,7 +126,39 @@ public record BillboardListingCreateRequest(
 
         @SanitizeText
         @Size(max = 500)
-        String discountNote
+        String discountNote,
+
+        @Size(max = AvailabilityDateValidator.MAX_BULK_RANGES, message = "Too many blocked date ranges.")
+        List<@NotNull(message = "Blocked range entry is required.") @Valid AvailabilityRangeRequest> blockedRanges
 ) implements BillboardLovPayload {
+
+    public BillboardListingCreateRequest(
+            String name,
+            String addressLine1,
+            String addressLine2,
+            String landmark,
+            String city,
+            String state,
+            String pincode,
+            String type,
+            String typeOther,
+            BigDecimal widthFt,
+            BigDecimal heightFt,
+            BigDecimal groundHeightFt,
+            String facing,
+            String trafficType,
+            String trafficTypeOther,
+            String audienceType,
+            String audienceTypeOther,
+            String footfall,
+            BigDecimal startPrice,
+            Integer minBookingValue,
+            String minBookingUnit,
+            String discountNote) {
+        this(name, addressLine1, addressLine2, landmark, city, state, pincode,
+                type, typeOther, widthFt, heightFt, groundHeightFt, facing,
+                trafficType, trafficTypeOther, audienceType, audienceTypeOther,
+                footfall, startPrice, minBookingValue, minBookingUnit, discountNote, null);
+    }
 }
 

@@ -703,8 +703,8 @@ export function Step4() {
       <FormSection title="Availability Calendar">
         <div className="form-group">
           <div className="form-hint" style={{ marginBottom: 12 }}>
-            Click a start date then an end date to mark a range as booked. Click a booked date to
-            clear it.
+            Click a start date then an end date to mark a range as blocked. Click a blocked date to
+            clear it. Your blocked dates will be saved to your listing availability calendar.
           </div>
         </div>
         <AvailabilityCalendar />
@@ -1260,12 +1260,18 @@ export function Step7() {
         <ReviewSection
           title="Pricing & Availability"
           editStep={4}
-          body={join([
-            v('f_startPrice') && `From ₹${v('f_startPrice')}/day`,
-            v('f_minBookingValue') &&
-              `Min booking: ${v('f_minBookingValue')} ${(v('f_minBookingUnit') || 'MONTHS').toLowerCase()}`,
-            v('f_discountNote'),
-          ])}
+          body={(() => {
+            const blockedMap = field('f_blockedDates');
+            const blockedDays =
+              blockedMap && typeof blockedMap === 'object' ? Object.keys(blockedMap).length : 0;
+            return join([
+              v('f_startPrice') && `From ₹${v('f_startPrice')}/day`,
+              v('f_minBookingValue') &&
+                `Min booking: ${v('f_minBookingValue')} ${(v('f_minBookingUnit') || 'MONTHS').toLowerCase()}`,
+              blockedDays > 0 && `${blockedDays} blocked day${blockedDays === 1 ? '' : 's'}`,
+              v('f_discountNote'),
+            ]);
+          })()}
         />
         <ReviewSection
           title="Legal Data"

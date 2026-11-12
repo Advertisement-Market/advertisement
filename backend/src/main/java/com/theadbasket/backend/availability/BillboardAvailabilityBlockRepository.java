@@ -1,0 +1,73 @@
+package com.theadbasket.backend.availability;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+@Repository
+public interface BillboardAvailabilityBlockRepository extends JpaRepository<BillboardAvailabilityBlock, Long> {
+
+    List<BillboardAvailabilityBlock> findByBillboardIdAndBlockTypeOrderByStartDateAsc(
+            Long billboardId, AvailabilityBlockType blockType);
+
+    @Query("""
+        SELECT b FROM BillboardAvailabilityBlock b
+        WHERE b.billboardId = :billboardId
+          AND b.endDate >= :today
+          AND (
+            b.blockType = com.theadbasket.backend.availability.AvailabilityBlockType.CONFIRMED_BOOKING
+            OR (
+              b.blockType = com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
+              AND b.expiryTs IS NOT NULL
+              AND b.expiryTs > :now
+            )
+          )
+        ORDER BY b.startDate ASC, b.endDate ASC
+        """)
+    List<BillboardAvailabilityBlock> findOwnerActiveNonOwnerBlocks(
+            @Param("billboardId") Long billboardId,
+            @Param("today") LocalDate today,
+            @Param("now") Instant now);
+
+    @Query("""
+        SELECT b FROM BillboardAvailabilityBlock b
+        WHERE b.billboardId = :billboardId
+          AND b.endDate >= :from AND b.startDate <= :to
+          AND (
+            b.blockType != com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
+            OR (b.expiryTs IS NOT NULL AND b.expiryTs > :now)
+          )
+        ORDER BY b.startDate ASC
+        """)
+    List<BillboardAvailabilityBlock> findPublicActiveBlocks(
+            @Param("billboardId") Long billboardId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("now") Instant now);
+
+    @Query("""
+        SELECT b FROM BillboardAvailabilityBlock b
+        WHERE b.billboardId = :billboardId
+          AND b.startDate <= :endDate AND b.endDate >= :startDate
+          AND (
+            b.blockType != com.theadbasket.backend.availability.AvailabilityBlockType.BOOKING_HOLD
+            OR (b.expiryTs IS NOT NULL AND b.expiryTs > :now)
+          )
+        ORDER BY b.startDate ASC
+        """)
+    List<BillboardAvailabilityBlock> findActiveOverlapping(
+            @Param("billboardId") Long billboardId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("now") Instant now);
+
+    @Modifying
+    @Query("DELETE FROM BillboardAvailabilityBlock b WHERE b.blockType = :holdType AND b.expiryTs <= :now")
+    int deleteExpiredHolds(@Param("holdType") AvailabilityBlockType holdType, @Param("now") Instant now);
+}
