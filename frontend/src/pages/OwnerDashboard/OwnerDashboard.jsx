@@ -1342,11 +1342,25 @@ function BookingRulesCard({ activeListingId, selectedListing, onListingUpdated }
     () => selectedListing?.minBookingUnit || 'MONTHS',
   );
   const [savingRule, setSavingRule] = useState(false);
+  const [prevTracked, setPrevTracked] = useState({
+    id: activeListingId,
+    val: selectedListing?.minBookingValue,
+    unit: selectedListing?.minBookingUnit,
+  });
 
-  useEffect(() => {
+  if (
+    activeListingId !== prevTracked.id ||
+    selectedListing?.minBookingValue !== prevTracked.val ||
+    selectedListing?.minBookingUnit !== prevTracked.unit
+  ) {
+    setPrevTracked({
+      id: activeListingId,
+      val: selectedListing?.minBookingValue,
+      unit: selectedListing?.minBookingUnit,
+    });
     setMinBookingVal(selectedListing?.minBookingValue ?? 1);
     setMinBookingUnit(selectedListing?.minBookingUnit || 'MONTHS');
-  }, [activeListingId, selectedListing?.minBookingValue, selectedListing?.minBookingUnit]);
+  }
 
   const handleSaveBookingRule = async () => {
     if (!activeListingId) return;
