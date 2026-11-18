@@ -633,7 +633,10 @@ describe('ownerDraftStorage allowlist, TTL & handoff', () => {
 
   it('does NOT migrate an unrelated :anon draft when a user signs in without an explicit anonymous-409 handoff', async () => {
     // User A leaves an anonymous draft in sessionStorage
-    saveOwnerRegisterDraft({ f_companyName: 'User A Private Corp', f_gst: '27AAAAA0000A1Z5' }, null);
+    saveOwnerRegisterDraft(
+      { f_companyName: 'User A Private Corp', f_gst: '27AAAAA0000A1Z5' },
+      null,
+    );
 
     let currentUser = null;
     let signInUser;
