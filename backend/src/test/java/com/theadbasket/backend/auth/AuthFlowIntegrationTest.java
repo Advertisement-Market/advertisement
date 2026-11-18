@@ -86,7 +86,7 @@ class AuthFlowIntegrationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.errorCode").value("EMAIL_ALREADY_EXISTS"))
-                .andExpect(jsonPath("$.message").value("An account already exists for email: dup@example.com"));
+                .andExpect(jsonPath("$.message").value("An account already exists for dup@example.com. Please sign in to continue."));
     }
 
     @Test
