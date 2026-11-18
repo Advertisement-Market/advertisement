@@ -182,7 +182,5 @@ sequenceDiagram
 
 ## 7. Scope Boundaries & Deferred Work
 
-1. **Email & Phone OTP Verification:** Dedicated PR will implement backend OTP verification services. Demo OTP (`123456`) remains active in Step 1 to preserve UI flow.
-2. **Phone Normalization & Unique Migration (`V11`):** Dedicated PR will introduce canonical phone formatting and database-level unique indexing.
-3. **Advertiser & Agency Onboarding Parity:** Dedicated PR will provide `/api/onboarding/advertiser` and `/api/onboarding/agency` using the same patterns established in this PR.
-4. **Single-Role Architecture:** The platform intentionally enforces a single role (`MEMBER`, `ADVERTISER`, `OWNER`, `AGENCY`, `ADMIN`) per account at this stage. `ROLE_CONFLICT` prevents role overwrites.
+1. **Advertiser & Agency Onboarding Parity:** Dedicated PR will provide `/api/onboarding/advertiser` and `/api/onboarding/agency` using the same patterns established in this PR.
+2. **Single-Role Architecture:** The platform intentionally enforces a single role (`MEMBER`, `ADVERTISER`, `OWNER`, `AGENCY`, `ADMIN`) per account at this stage. `ROLE_CONFLICT` prevents role overwrites.
