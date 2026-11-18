@@ -1,12 +1,22 @@
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/routes';
 import { RegisterProvider, RegisterShell, useRegister, SuccessScreen } from '@/features/register';
 import { Step1, Step2, Step3, Step4, Step5, Step6, Step7 } from './steps';
 import { useAuth } from '@/context/AuthContext';
-import { mapOwner } from '@/features/auth/registrationMappers';
+import { AuthModalContext } from '@/context/AuthModalContext';
+import { AuthModal } from '@/features/auth/AuthModal';
+import { mapOwner, mapOwnerOnboarding } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
 import { isOther, isBlank, isValidPincode } from '@/lib/validators';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { normalizeUploadItem } from './widgets';
+import {
+  saveOwnerRegisterDraft,
+  loadOwnerRegisterDraft,
+  migrateAnonDraftToUser,
+  clearOwnerRegisterDraft,
+} from './ownerDraftStorage';
 import './OwnerRegister.css';
 
 const STEPS = [
@@ -79,9 +89,6 @@ export function validate(step, { data, showToast, user }) {
       if (!d('f_email').includes('@')) return fail('Please enter a valid email address.');
       if (pw.length < 8) return fail('Password must be at least 8 characters.');
       if (pw !== confirm) return fail('Passwords do not match.');
-    } else if (!user.hasPassword && pw) {
-      if (pw.length < 8) return fail('Password must be at least 8 characters.');
-      if (pw !== confirm) return fail('Passwords do not match.');
     }
   }
   if (step === 2) {
@@ -136,17 +143,85 @@ function validateSubmit({ data, showToast }) {
 
 const STEP_COMPONENTS = [Step1, Step2, Step3, Step4, Step5, Step6, Step7];
 
-function WizardBody() {
+/**
+ * Synchronizes allowlisted wizard fields to sessionStorage and handles anonymous-to-authenticated
+ * draft handoff when the user signs in via the in-place AuthModal mid-wizard.
+ */
+function DraftAndAuthSync({ user }) {
+  const { data, submitted, mergeData } = useRegister();
+  const prevUserIdRef = useRef(user?.id ?? null);
+
+  // Persist allowlisted non-secret fields whenever wizard state changes (until submitted).
+  useEffect(() => {
+    if (submitted) return;
+    saveOwnerRegisterDraft(data, user?.id ?? null);
+  }, [data, user?.id, submitted]);
+
+  // Migrate anonymous draft -> user scope on sign-in and hydrate authoritative account identity.
+  useEffect(() => {
+    const prevId = prevUserIdRef.current;
+    const nextId = user?.id ?? null;
+    prevUserIdRef.current = nextId;
+
+    if (prevId == null && nextId != null && user) {
+      const migrated = migrateAnonDraftToUser(nextId) || loadOwnerRegisterDraft(nextId);
+      const userPhone = (user.phone || '').replace(/\D/g, '').slice(-10);
+      const patch = {
+        ...(migrated || {}),
+        f_email: user.email || '',
+        ...(user.firstName ? { f_firstName: user.firstName } : {}),
+        ...(user.lastName ? { f_lastName: user.lastName } : {}),
+        ...(userPhone.length === 10 ? { f_phone: userPhone } : {}),
+      };
+      mergeData(patch);
+    }
+  }, [user, mergeData]);
+
+  return null;
+}
+
+function WizardBody({ partialFailure }) {
   const { currentStep, submitted } = useRegister();
   if (submitted) {
+    if (partialFailure?.stage === 'media' && partialFailure.listingId) {
+      return (
+        <div>
+          <SuccessScreen
+            accent="var(--teal)"
+            title="Account Activated — Draft Saved"
+            desc="Your owner account and billboard draft are saved, but photo upload could not finish. Finish uploading photos to submit your listing for review."
+            timeline={SUCCESS_TIMELINE}
+            dashboardTo={ROUTES.editBillboardListing(partialFailure.listingId)}
+            dashboardLabel="Finish Uploading Photos"
+          />
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <Link to={ROUTES.ownerListingsTab} className="cancel-link">
+              Go to My Listings
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    if (partialFailure?.stage === 'submit' || partialFailure?.stage === 'missing_listing') {
+      return (
+        <SuccessScreen
+          accent="var(--teal)"
+          title="Account Activated!"
+          desc="Your owner account and billboard draft were saved. Open My Listings to review and submit your listing for verification."
+          timeline={SUCCESS_TIMELINE}
+          dashboardTo={ROUTES.ownerListingsTab}
+          dashboardLabel="Go to My Listings"
+        />
+      );
+    }
     return (
       <SuccessScreen
         accent="var(--teal)"
         title="Submitted!"
         desc="Your registration is under review. Our team will verify your business details and listing within 2–3 working days."
         timeline={SUCCESS_TIMELINE}
-        dashboardTo={ROUTES.owners}
-        dashboardLabel="Back to Owner Hub"
+        dashboardTo={ROUTES.ownerListingsTab}
+        dashboardLabel="Go to My Listings"
       />
     );
   }
@@ -155,30 +230,128 @@ function WizardBody() {
 }
 
 export function OwnerRegister({ initialData: customInitialData, initialStep = 1 } = {}) {
-  const { registerOwner, user } = useAuth();
-  const prefill = {
-    f_minBookingValue: 1,
-    f_minBookingUnit: 'MONTHS',
-    ...(user
-      ? {
-          f_email: user.email,
-          f_firstName: user.firstName || '',
-          f_lastName: user.lastName || '',
-          f_phone: (user.phone || '').replace(/\D/g, '').slice(-10),
-        }
-      : {}),
-    ...customInitialData,
-  };
+  const { registerOwner, onboardOwner, clearSessionLocal, user } = useAuth();
+  const authModal = useContext(AuthModalContext);
+  const navigate = useNavigate();
+
+  const [partialFailure, setPartialFailure] = useState(null);
+  const [pendingPostLoginRedirect, setPendingPostLoginRedirect] = useState(null);
+  const clearedForReLoginRef = useRef(false);
+  const modalWasOpenForRedirectRef = useRef(false);
+
+  // Manage lost-201 post-login redirect: wait for clearSessionLocal() to take effect (user === null),
+  // then navigate ONLY once user.role === 'OWNER' is in state; clear immediately on modal close
+  // without login OR on sign-in with any non-OWNER account.
+  useEffect(() => {
+    if (!pendingPostLoginRedirect) {
+      clearedForReLoginRef.current = false;
+      modalWasOpenForRedirectRef.current = false;
+      return;
+    }
+
+    if (authModal?.view === 'login') {
+      modalWasOpenForRedirectRef.current = true;
+    }
+
+    if (!user) {
+      clearedForReLoginRef.current = true;
+      if (modalWasOpenForRedirectRef.current && authModal && authModal.view === null) {
+        setPendingPostLoginRedirect(null);
+        clearedForReLoginRef.current = false;
+        modalWasOpenForRedirectRef.current = false;
+      }
+      return;
+    }
+
+    if (clearedForReLoginRef.current && user) {
+      const target = pendingPostLoginRedirect;
+      setPendingPostLoginRedirect(null);
+      clearedForReLoginRef.current = false;
+      modalWasOpenForRedirectRef.current = false;
+      if (user.role === 'OWNER') {
+        navigate(target);
+      }
+    }
+  }, [pendingPostLoginRedirect, user, authModal, navigate]);
+
+  const prefill = useMemo(() => {
+    const savedDraft = loadOwnerRegisterDraft(user?.id ?? null) || {};
+    return {
+      f_minBookingValue: 1,
+      f_minBookingUnit: 'MONTHS',
+      ...savedDraft,
+      ...(user
+        ? {
+            f_email: user.email,
+            f_firstName: savedDraft.f_firstName || user.firstName || '',
+            f_lastName: savedDraft.f_lastName || user.lastName || '',
+            f_phone:
+              (user.phone || '').replace(/\D/g, '').slice(-10) || savedDraft.f_phone || '',
+          }
+        : {}),
+      ...customInitialData,
+    };
+    // Initial mount snapshot only (RegisterProvider holds live wizard state).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onSubmit = async ({ data, showToast }) => {
     let authRes;
     try {
-      authRes = await registerOwner(mapOwner(data));
+      if (user) {
+        authRes = await onboardOwner(mapOwnerOnboarding(data));
+      } else {
+        authRes = await registerOwner(mapOwner(data));
+      }
     } catch (err) {
+      // Let RegisterProvider suppress duplicate toast when interceptor already handled session expiry.
+      if (err?.isSessionExpired || err?.code === 'SESSION_EXPIRED') {
+        throw err;
+      }
+
+      const status = err?.response?.status;
+      const errorCode = err?.response?.data?.errorCode;
+
+      // Anonymous dead-end recovery: email already exists -> save draft and open in-place login modal.
+      if (!user && status === 409 && errorCode === 'EMAIL_ALREADY_EXISTS') {
+        saveOwnerRegisterDraft(data, null);
+        showToast(apiErrorMessage(err), 'error');
+        authModal?.openLogin?.();
+        return false;
+      }
+
+      // Lost-201 retry recovery: backend already promoted user and revoked the old MEMBER refresh token.
+      // Clear stale MEMBER session, prompt re-login, and route to My Listings once signed in as OWNER.
+      if (user && status === 409 && errorCode === 'ALREADY_REGISTERED') {
+        clearSessionLocal?.();
+        clearOwnerRegisterDraft();
+        showToast(
+          'Your owner account is already active. Please sign in again to continue.',
+          'info',
+        );
+        setPendingPostLoginRedirect(ROUTES.ownerListingsTab);
+        authModal?.openLogin?.();
+        return false;
+      }
+
       throw new Error(apiErrorMessage(err), { cause: err });
     }
 
+    // Account + initial listing are now committed; clear wizard draft immediately.
+    clearOwnerRegisterDraft();
+
     const listingId = authRes?.initialListingId;
-    if (!listingId) return;
+    if (!listingId) {
+      console.warn('Owner onboarding succeeded without initialListingId in response.');
+      setPartialFailure({ listingId: null, stage: 'missing_listing' });
+      if (showToast) {
+        showToast(
+          'Account activated! Open My Listings to review and complete your billboard.',
+          'warning',
+        );
+      }
+      return;
+    }
 
     const dayPhotos = (data.f_dayPhotos || []).map(normalizeUploadItem).filter(Boolean);
     const nightPhotos = (data.f_nightPhotos || []).map(normalizeUploadItem).filter(Boolean);
@@ -219,6 +392,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
             await ownerListingApi.submitListing(listingId);
           } catch (submitErr) {
             console.warn('Auto-submit listing failed after registration:', submitErr);
+            setPartialFailure({ listingId, stage: 'submit' });
             if (showToast) {
               showToast(
                 'Listing created & photos saved, but submit for review failed. You can submit from My Listings.',
@@ -229,6 +403,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
         }
       } catch (mediaErr) {
         console.warn('Post-registration media sync failed:', mediaErr);
+        setPartialFailure({ listingId, stage: 'media' });
         if (showToast) {
           showToast(
             'Account created, but media upload failed. You can add photos from My Listings.',
@@ -238,6 +413,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
       }
     }
   };
+
   return (
     <div className="owner-register-page">
       <RegisterProvider
@@ -248,15 +424,18 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
         initialData={prefill}
         onSubmit={onSubmit}
       >
+        <DraftAndAuthSync user={user} />
         <RegisterShell
           tagline="Billboard Owner Registration"
           steps={STEPS}
           signInTo={ROUTES.owners}
           cancelTo={ROUTES.owners}
+          onCancel={clearOwnerRegisterDraft}
         >
-          <WizardBody />
+          <WizardBody partialFailure={partialFailure} />
         </RegisterShell>
       </RegisterProvider>
+      {authModal && <AuthModal submitVariant="primary" />}
     </div>
   );
 }

@@ -14,8 +14,6 @@ import {
   StepHeader,
   RegNav,
   TermsRow,
-  PasswordField,
-  ConfirmPasswordField,
   SignedInBanner,
 } from '@/features/register';
 import {
@@ -211,7 +209,7 @@ const APPROVAL = [
 export function Step1() {
   const { field } = useRegister();
   const { isAuthenticated, user } = useAuth();
-  const needsPassword = isAuthenticated && !user?.hasPassword; // Google account without a password
+  const phoneLocked = isAuthenticated && Boolean(user?.phone && String(user.phone).trim());
   const phone = field('f_phone').replace(/\D/g, '');
   const phoneErr = useFieldError('f_phone', [v.required(), v.phone()]);
   return (
@@ -236,7 +234,7 @@ export function Step1() {
       </FormSection>
 
       <FormSection title="Contact Details">
-        {!isAuthenticated && (
+        {!isAuthenticated ? (
           <div className="form-group">
             <Field
               name="f_email"
@@ -249,19 +247,45 @@ export function Step1() {
             />
             <OtpBoxes channel="email" dest={() => field('f_email').trim() || 'your email'} />
           </div>
+        ) : (
+          <div className="form-group">
+            <label>
+              Email Address <span className="req">*</span>
+            </label>
+            <input
+              type="email"
+              className="form-control"
+              value={user?.email || field('f_email')}
+              readOnly
+              aria-readonly="true"
+            />
+            <div className="form-hint" style={{ marginBottom: 8 }}>
+              Linked to your account — verify your email below.
+            </div>
+            <OtpBoxes
+              channel="email"
+              dest={() => user?.email || field('f_email').trim() || 'your email'}
+            />
+          </div>
         )}
         <div className="form-group">
           <label>
             Mobile Number <span className="req">*</span>
           </label>
-          <PhoneInput invalidClass={phoneErr.invalidClass} onBlur={phoneErr.onBlur} />
+          <PhoneInput
+            invalidClass={phoneErr.invalidClass}
+            onBlur={phoneErr.onBlur}
+            readOnly={phoneLocked}
+          />
           {phoneErr.show ? (
             <FieldError show={phoneErr.show} error={phoneErr.error} />
           ) : (
             <div className={cn('form-hint', phone.length === 10 && 'success')}>
-              {phone.length === 10
-                ? 'Looks good — verify your number below.'
-                : 'Enter your 10-digit mobile number'}
+              {phoneLocked
+                ? 'Linked to your account; add a separate business phone in Step 2 if needed.'
+                : phone.length === 10
+                  ? 'Looks good — verify your number below.'
+                  : 'Enter your 10-digit mobile number'}
             </div>
           )}
           <OtpBoxes
@@ -281,26 +305,6 @@ export function Step1() {
           <ConfirmPwField name="f_confirmPassword" placeholder="Re-enter password" />
         </FormSection>
       )}
-      {needsPassword && (
-        <FormSection title="Set a Password (optional)">
-          <div className="form-hint" style={{ marginBottom: 12 }}>
-            Optionally set a password so you can also sign in with your email. You can skip this and
-            keep using Google.
-          </div>
-          <PasswordField
-            name="f_password"
-            label="Create Password (optional)"
-            placeholder="Min. 8 characters"
-            showReqs
-          />
-          <ConfirmPasswordField
-            name="f_confirmPassword"
-            against="f_password"
-            label="Confirm Password"
-            placeholder="Re-enter password"
-          />
-        </FormSection>
-      )}
 
       <RegNav
         showBack={false}
@@ -311,7 +315,7 @@ export function Step1() {
   );
 }
 
-function PhoneInput({ invalidClass, onBlur }) {
+function PhoneInput({ invalidClass, onBlur, readOnly = false }) {
   const { field, setField } = useRegister();
   return (
     <div className="phone-wrap">
@@ -321,8 +325,13 @@ function PhoneInput({ invalidClass, onBlur }) {
         className={cn('form-control', invalidClass)}
         placeholder="98765 43210"
         maxLength={10}
+        readOnly={readOnly}
+        aria-readonly={readOnly || undefined}
         value={field('f_phone')}
-        onChange={(e) => setField('f_phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+        onChange={(e) => {
+          if (readOnly) return;
+          setField('f_phone', e.target.value.replace(/\D/g, '').slice(0, 10));
+        }}
         onBlur={onBlur}
       />
     </div>
