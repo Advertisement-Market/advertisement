@@ -551,5 +551,16 @@ class RegistrationFlowIntegrationTest {
                 .andExpect(jsonPath("$.user.email").value("fresh.owner@example.com"))
                 .andExpect(jsonPath("$.user.role").value("OWNER"));
     }
+
+    @Test
+    void schemaConstraints_matchGlobalExceptionHandlerConstraintNames() {
+        // Guards against silent drift if a future Flyway migration renames uq_users_email or uq_owner_profiles_user
+        @SuppressWarnings("unchecked")
+        List<String> constraintNames = entityManager.createNativeQuery(
+                        "SELECT LOWER(constraint_name) FROM information_schema.table_constraints " +
+                        "WHERE LOWER(table_name) IN ('users', 'owner_profiles')")
+                .getResultList();
+        assertThat(constraintNames).contains("uq_users_email", "uq_owner_profiles_user");
+    }
 }
 
