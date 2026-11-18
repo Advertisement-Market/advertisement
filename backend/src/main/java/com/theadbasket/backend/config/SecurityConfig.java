@@ -76,6 +76,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATHS).permitAll()
                 .requestMatchers(PUBLIC_PATHS).permitAll()
+                // Authenticated role onboarding (MEMBER -> marketplace role).
+                // Missing/expired/invalid JWT triggers RestAuthenticationEntryPoint (HTTP 401 AUTHENTICATION_REQUIRED).
+                .requestMatchers("/api/onboarding/**").authenticated()
                 // Role-scoped API namespaces (MEMBER accounts must onboard into a role first).
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/advertiser/**").hasRole("ADVERTISER")

@@ -19,6 +19,7 @@ import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
+import com.theadbasket.backend.common.exception.TokenRefreshException;
 import com.theadbasket.backend.config.AuthPolicyProperties;
 import com.theadbasket.backend.config.AuthProviderPolicyProperties;
 import com.theadbasket.backend.config.RolePolicyProperties;
@@ -166,12 +167,15 @@ public class AuthService {
         return issueTokensFor(user);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = TokenRefreshException.class)
     public AuthResponse refresh(String refreshToken) {
         RefreshToken current = refreshTokenService.verify(refreshToken);
         User user = current.getUser();
         // Rotate: the presented token is single-use.
         refreshTokenService.revoke(refreshToken);
+        if (!user.isEnabled()) {
+            throw new TokenRefreshException(ErrorCode.ACCOUNT_DISABLED);
+        }
         return issueTokensFor(user);
     }
 

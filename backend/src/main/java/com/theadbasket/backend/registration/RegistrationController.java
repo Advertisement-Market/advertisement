@@ -52,10 +52,13 @@ public class RegistrationController {
                 .body(response);
     }
 
+    /**
+     * Strictly anonymous owner registration. Signed-in {@code MEMBER} accounts onboard via
+     * {@code POST /api/onboarding/owner} instead.
+     */
     @PostMapping("/owner")
-    public ResponseEntity<AuthResponse> registerOwner(@Valid @RequestBody OwnerRegistrationRequest request,
-                                                      @AuthenticationPrincipal AuthenticatedUser principal) {
-        AuthResponse response = ownerRegistrationService.register(request, currentUserId(principal));
+    public ResponseEntity<AuthResponse> registerOwner(@Valid @RequestBody OwnerRegistrationRequest request) {
+        AuthResponse response = ownerRegistrationService.registerAnonymous(request);
         ResponseCookie cookie = cookieService.createRefreshTokenCookie(response.refreshToken());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())

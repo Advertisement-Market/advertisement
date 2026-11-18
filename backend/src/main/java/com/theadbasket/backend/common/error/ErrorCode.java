@@ -21,9 +21,11 @@ public enum ErrorCode {
     // Registration
     EMAIL_ALREADY_EXISTS("error.email.alreadyExists"),
     ALREADY_REGISTERED("error.registration.alreadyRegistered"),
+    ROLE_CONFLICT("error.registration.roleConflict"),
 
     // Account / resources
     ACCOUNT_NOT_FOUND("error.account.notFound"),
+    ACCOUNT_DISABLED("error.account.disabled"),
     NOTIFICATION_NOT_FOUND("error.notification.notFound"),
     BILLBOARD_NOT_FOUND("error.billboard.notFound"),
 

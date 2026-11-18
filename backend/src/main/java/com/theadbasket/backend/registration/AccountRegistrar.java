@@ -64,6 +64,16 @@ public class AccountRegistrar {
             return userRepository.save(user);
         }
 
+        return createAnonymous(firstName, lastName, rawEmail, rawPassword, phone, role);
+    }
+
+    /**
+     * Strictly anonymous account creation: requires email + password, rejects duplicate emails
+     * uniformly with {@link EmailAlreadyExistsException} (HTTP 409), and flushes immediately so
+     * concurrent unique-constraint violations surface before commit.
+     */
+    public User createAnonymous(String firstName, String lastName, String rawEmail,
+            String rawPassword, String phone, Role role) {
         if (!authProviderPolicy.isEnabled(AuthProvider.LOCAL)) {
             throw new BadRequestException(ErrorCode.LOCAL_REGISTRATION_UNAVAILABLE);
         }
@@ -82,7 +92,7 @@ public class AccountRegistrar {
         User user = new User(firstName, blankToNull(lastName), email,
                 passwordEncoder.encode(rawPassword), blankToNull(phone), role);
         user.setAuthProvider(AuthProvider.LOCAL);
-        return userRepository.save(user);
+        return userRepository.saveAndFlush(user);
     }
 
     public static String blankToNull(String value) {

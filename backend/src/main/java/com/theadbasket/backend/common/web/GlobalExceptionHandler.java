@@ -12,21 +12,28 @@ import com.theadbasket.backend.common.error.ErrorCode;
 import com.theadbasket.backend.common.exception.AppException;
 import com.theadbasket.backend.common.exception.BadRequestException;
 import com.theadbasket.backend.common.exception.EmailAlreadyExistsException;
+import com.theadbasket.backend.common.exception.ForbiddenException;
 import com.theadbasket.backend.common.exception.InvalidCredentialsException;
 import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.common.exception.TokenRefreshException;
+import com.theadbasket.backend.common.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -146,10 +153,16 @@ public class GlobalExceptionHandler {
                 .body(body);
     }
 
-    @ExceptionHandler({ InvalidCredentialsException.class, InvalidGoogleTokenException.class })
+    @ExceptionHandler({ InvalidCredentialsException.class, InvalidGoogleTokenException.class, UnauthorizedException.class })
     public ResponseEntity<ApiError> handleUnauthorizedApp(AppException ex, HttpServletRequest request) {
         log.warn("Unauthorized on {}: {}", request.getRequestURI(), ex.getErrorCode());
         return build(HttpStatus.UNAUTHORIZED, ex, request);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiError> handleForbiddenApp(ForbiddenException ex, HttpServletRequest request) {
+        log.warn("Forbidden on {}: {}", request.getRequestURI(), ex.getErrorCode());
+        return build(HttpStatus.FORBIDDEN, ex, request);
     }
 
     @ExceptionHandler({ BadCredentialsException.class, AuthenticationException.class })
@@ -298,6 +311,61 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION, request);
     }
 
+    @ExceptionHandler({
+            DataIntegrityViolationException.class,
+            TransactionSystemException.class
+    })
+    public ResponseEntity<ApiError> handleDataIntegrity(Exception ex, HttpServletRequest request) {
+        String constraint = extractConstraintName(ex);
+        if (constraint != null) {
+            String normalized = constraint.toLowerCase(Locale.ROOT);
+            if (normalized.contains("uq_users_email")) {
+                log.warn("Unique email constraint violation on {}", request.getRequestURI());
+                return build(HttpStatus.CONFLICT, ErrorCode.EMAIL_ALREADY_EXISTS, request, "this email");
+            }
+            if (normalized.contains("uq_owner_profiles_user")) {
+                log.warn("Unique owner profile constraint violation on {}", request.getRequestURI());
+                return build(HttpStatus.CONFLICT, ErrorCode.ALREADY_REGISTERED, request, "owner");
+            }
+        }
+        if (ex instanceof DataIntegrityViolationException || isUniqueViolation(ex)) {
+            log.warn("Data integrity violation on {}: {}", request.getRequestURI(), constraint);
+            return build(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION, request);
+        }
+        log.error("Transaction failure on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, request);
+    }
+
+    private static String extractConstraintName(Throwable ex) {
+        Throwable cur = ex;
+        while (cur != null) {
+            if (cur instanceof ConstraintViolationException cve && cve.getConstraintName() != null) {
+                return cve.getConstraintName();
+            }
+            if (cur instanceof SQLException sqlEx && sqlEx.getMessage() != null) {
+                String msg = sqlEx.getMessage().toLowerCase(Locale.ROOT);
+                if (msg.contains("uq_users_email")) return "uq_users_email";
+                if (msg.contains("uq_owner_profiles_user")) return "uq_owner_profiles_user";
+            }
+            cur = cur.getCause();
+        }
+        return null;
+    }
+
+    private static boolean isUniqueViolation(Throwable ex) {
+        Throwable cur = ex;
+        while (cur != null) {
+            if (cur instanceof ConstraintViolationException) {
+                return true;
+            }
+            if (cur instanceof SQLException sqlEx && "23505".equals(sqlEx.getSQLState())) {
+                return true;
+            }
+            cur = cur.getCause();
+        }
+        return false;
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest request) {
         // Log the real cause internally; never leak exception/DB details to the client.
@@ -312,9 +380,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
-    private ResponseEntity<ApiError> build(HttpStatus status, ErrorCode code, HttpServletRequest request) {
+    private ResponseEntity<ApiError> build(HttpStatus status, ErrorCode code, HttpServletRequest request, Object... args) {
         ApiError body = ApiError.of(status.value(), status.getReasonPhrase(),
-                code.name(), resolve(code), request.getRequestURI());
+                code.name(), resolve(code, args), request.getRequestURI());
         return ResponseEntity.status(status).body(body);
     }
 
