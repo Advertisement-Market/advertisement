@@ -14,6 +14,7 @@ import {
   clearOwnerRegisterDraft,
   draftKeyFor,
   OWNER_DRAFT_TTL_MS,
+  OWNER_DRAFT_MAX_AGE_MS,
 } from './ownerDraftStorage';
 
 const navigateSpy = vi.fn();
@@ -559,11 +560,121 @@ describe('ownerDraftStorage allowlist, TTL & handoff', () => {
     t = originalExpiresAt + 1;
     expect(loadOwnerRegisterDraft(77, clock)).toBeNull();
 
+    // Re-save and verify hard 2-hour cap expires draft even across sliding writes
+    t = 5_000_000;
+    saveOwnerRegisterDraft({ f_companyName: 'Sliding Cap Co' }, 77, clock);
+    // Repeated sliding saves every 20 minutes up to 1h50m
+    t += 20 * 60 * 1000;
+    saveOwnerRegisterDraft({ f_companyName: 'Sliding Cap Co' }, 77, clock);
+    t += 90 * 60 * 1000;
+    saveOwnerRegisterDraft({ f_companyName: 'Sliding Cap Co' }, 77, clock);
+    // Still alive at 1h50m, but must expire past the 2h absolute hard cap (at 2h01m)
+    expect(loadOwnerRegisterDraft(77, clock)?.f_companyName).toBe('Sliding Cap Co');
+    t = 5_000_000 + OWNER_DRAFT_MAX_AGE_MS + 1;
+    expect(loadOwnerRegisterDraft(77, clock)).toBeNull();
+
     // Re-save and verify clearOwnerRegisterDraft wipes all keys
     saveOwnerRegisterDraft({ f_companyName: 'Another Corp' }, 77, clock);
     expect(loadOwnerRegisterDraft(77, clock)).not.toBeNull();
     clearOwnerRegisterDraft();
     expect(loadOwnerRegisterDraft(77, clock)).toBeNull();
     expect(OWNER_DRAFT_TTL_MS).toBe(30 * 60 * 1000);
+  });
+
+  it('does NOT migrate an unrelated :anon draft when a user signs in without an explicit anonymous-409 handoff', async () => {
+    // User A leaves an anonymous draft in sessionStorage
+    saveOwnerRegisterDraft(
+      { f_companyName: 'User A Private Corp', f_gst: '27AAAAA0000A1Z5' },
+      null,
+    );
+
+    let currentUser = null;
+    let signInUser;
+    function UnrelatedSignInHarness() {
+      const [, setTick] = useState(0);
+      signInUser = (u) => {
+        currentUser = u;
+        setTick((n) => n + 1);
+      };
+      useAuth.mockReturnValue({
+        registerOwner: vi.fn(),
+        onboardOwner: vi.fn(),
+        clearSessionLocal: vi.fn(),
+        user: currentUser,
+        isAuthenticated: Boolean(currentUser),
+      });
+      return <OwnerRegister initialStep={1} />;
+    }
+
+    render(
+      <MemoryRouter>
+        <UnrelatedSignInHarness />
+      </MemoryRouter>,
+    );
+
+    // User B signs in normally (no anonymous-409 handoff occurred)
+    signInUser({
+      id: 88,
+      firstName: 'UserB',
+      lastName: 'Member',
+      email: 'userb@example.com',
+      phone: '+91 90000 00001',
+      role: 'MEMBER',
+    });
+
+    await waitFor(() => {
+      // :anon must be wiped and User A's company/GST must NOT be copied into :u:88
+      expect(sessionStorage.getItem(draftKeyFor(null))).toBeNull();
+      const userBDraft = loadOwnerRegisterDraft(88);
+      expect(userBDraft?.f_companyName).toBeUndefined();
+      expect(userBDraft?.f_gst).toBeUndefined();
+    });
+  });
+
+  it('does NOT migrate an unrelated :anon draft when a user signs in without an explicit anonymous-409 handoff', async () => {
+    // User A leaves an anonymous draft in sessionStorage
+    saveOwnerRegisterDraft({ f_companyName: 'User A Private Corp', f_gst: '27AAAAA0000A1Z5' }, null);
+
+    let currentUser = null;
+    let signInUser;
+    function UnrelatedSignInHarness() {
+      const [, setTick] = useState(0);
+      signInUser = (u) => {
+        currentUser = u;
+        setTick((n) => n + 1);
+      };
+      useAuth.mockReturnValue({
+        registerOwner: vi.fn(),
+        onboardOwner: vi.fn(),
+        clearSessionLocal: vi.fn(),
+        user: currentUser,
+        isAuthenticated: Boolean(currentUser),
+      });
+      return <OwnerRegister initialStep={1} />;
+    }
+
+    render(
+      <MemoryRouter>
+        <UnrelatedSignInHarness />
+      </MemoryRouter>,
+    );
+
+    // User B signs in normally (no anonymous-409 handoff occurred)
+    signInUser({
+      id: 88,
+      firstName: 'UserB',
+      lastName: 'Member',
+      email: 'userb@example.com',
+      phone: '+91 90000 00001',
+      role: 'MEMBER',
+    });
+
+    await waitFor(() => {
+      // :anon must be wiped and User A's company/GST must NOT be copied into :u:88
+      expect(sessionStorage.getItem(draftKeyFor(null))).toBeNull();
+      const userBDraft = loadOwnerRegisterDraft(88);
+      expect(userBDraft?.f_companyName).toBeUndefined();
+      expect(userBDraft?.f_gst).toBeUndefined();
+    });
   });
 });

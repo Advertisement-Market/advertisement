@@ -15,6 +15,7 @@ import {
   saveOwnerRegisterDraft,
   loadOwnerRegisterDraft,
   migrateAnonDraftToUser,
+  clearAnonOwnerDraft,
   clearOwnerRegisterDraft,
 } from './ownerDraftStorage';
 import './OwnerRegister.css';
@@ -147,35 +148,62 @@ const STEP_COMPONENTS = [Step1, Step2, Step3, Step4, Step5, Step6, Step7];
  * Synchronizes allowlisted wizard fields to sessionStorage and handles anonymous-to-authenticated
  * draft handoff when the user signs in via the in-place AuthModal mid-wizard.
  */
-function DraftAndAuthSync({ user }) {
-  const { data, submitted, mergeData } = useRegister();
+function DraftAndAuthSync({ user, pendingAnonHandoffRef }) {
+  const { data, submitted, mergeData, replaceData } = useRegister();
   const prevUserIdRef = useRef(user?.id ?? null);
+  const skipNextSaveRef = useRef(false);
 
-  // Persist allowlisted non-secret fields whenever wizard state changes (until submitted).
-  useEffect(() => {
-    if (submitted) return;
-    saveOwnerRegisterDraft(data, user?.id ?? null);
-  }, [data, user?.id, submitted]);
-
-  // Migrate anonymous draft -> user scope on sign-in and hydrate authoritative account identity.
+  // Handle identity transitions BEFORE saving drafts so pre-transition data is never written
+  // under a newly signed-in user's storage key (or leaked back to :anon on logout).
   useEffect(() => {
     const prevId = prevUserIdRef.current;
     const nextId = user?.id ?? null;
+    if (prevId === nextId) return;
     prevUserIdRef.current = nextId;
 
     if (prevId == null && nextId != null && user) {
-      const migrated = migrateAnonDraftToUser(nextId) || loadOwnerRegisterDraft(nextId);
+      const shouldMigrate = Boolean(pendingAnonHandoffRef?.current);
+      if (pendingAnonHandoffRef) {
+        pendingAnonHandoffRef.current = false;
+      }
       const userPhone = (user.phone || '').replace(/\D/g, '').slice(-10);
-      const patch = {
-        ...(migrated || {}),
+      const userIdentity = {
         f_email: user.email || '',
         ...(user.firstName ? { f_firstName: user.firstName } : {}),
         ...(user.lastName ? { f_lastName: user.lastName } : {}),
         ...(userPhone.length === 10 ? { f_phone: userPhone } : {}),
       };
-      mergeData(patch);
+      skipNextSaveRef.current = true;
+      if (shouldMigrate) {
+        const hydrated = migrateAnonDraftToUser(nextId) || loadOwnerRegisterDraft(nextId);
+        mergeData({
+          ...(hydrated || {}),
+          ...userIdentity,
+        });
+      } else {
+        clearAnonOwnerDraft();
+        const userDraft = loadOwnerRegisterDraft(nextId);
+        replaceData({
+          f_minBookingValue: 1,
+          f_minBookingUnit: 'MONTHS',
+          ...(userDraft || {}),
+          ...userIdentity,
+        });
+      }
+    } else if (prevId != null && nextId == null) {
+      skipNextSaveRef.current = true;
     }
-  }, [user, mergeData]);
+  }, [user, mergeData, replaceData, pendingAnonHandoffRef]);
+
+  // Persist allowlisted non-secret fields whenever wizard state changes (until submitted).
+  useEffect(() => {
+    if (submitted) return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+    saveOwnerRegisterDraft(data, user?.id ?? null);
+  }, [data, user?.id, submitted]);
 
   return null;
 }
@@ -238,6 +266,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
   const [pendingPostLoginRedirect, setPendingPostLoginRedirect] = useState(null);
   const clearedForReLoginRef = useRef(false);
   const modalWasOpenForRedirectRef = useRef(false);
+  const pendingAnonHandoffRef = useRef(false);
 
   // Manage lost-201 post-login redirect: wait for clearSessionLocal() to take effect (user === null),
   // then navigate ONLY once user.role === 'OWNER' is in state; clear immediately on modal close
@@ -285,8 +314,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
             f_email: user.email,
             f_firstName: savedDraft.f_firstName || user.firstName || '',
             f_lastName: savedDraft.f_lastName || user.lastName || '',
-            f_phone:
-              (user.phone || '').replace(/\D/g, '').slice(-10) || savedDraft.f_phone || '',
+            f_phone: (user.phone || '').replace(/\D/g, '').slice(-10) || savedDraft.f_phone || '',
           }
         : {}),
       ...customInitialData,
@@ -312,9 +340,10 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
       const status = err?.response?.status;
       const errorCode = err?.response?.data?.errorCode;
 
-      // Anonymous dead-end recovery: email already exists -> save draft and open in-place login modal.
+      // Anonymous dead-end recovery: email already exists -> save draft, arm handoff flag, and open login modal.
       if (!user && status === 409 && errorCode === 'EMAIL_ALREADY_EXISTS') {
         saveOwnerRegisterDraft(data, null);
+        pendingAnonHandoffRef.current = true;
         showToast(apiErrorMessage(err), 'error');
         authModal?.openLogin?.();
         return false;
@@ -424,7 +453,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
         initialData={prefill}
         onSubmit={onSubmit}
       >
-        <DraftAndAuthSync user={user} />
+        <DraftAndAuthSync user={user} pendingAnonHandoffRef={pendingAnonHandoffRef} />
         <RegisterShell
           tagline="Billboard Owner Registration"
           steps={STEPS}

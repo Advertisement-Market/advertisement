@@ -12,6 +12,7 @@
 
 export const OWNER_DRAFT_PREFIX = 'ab_owner_register_draft:';
 export const OWNER_DRAFT_TTL_MS = 30 * 60 * 1000;
+export const OWNER_DRAFT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 export const OWNER_DRAFT_ALLOWLIST = Object.freeze([
   // Step 1 (non-secret identity)
@@ -85,18 +86,38 @@ function getStorage() {
   }
 }
 
-/** Saves allowlisted wizard fields with a 30-minute sliding TTL. */
+/** Saves allowlisted wizard fields with a 30-min sliding TTL capped at 2 hours absolute age. */
 export function saveOwnerRegisterDraft(data, userId = null, now = () => Date.now()) {
   const storage = getStorage();
   if (!storage) return;
   const fields = pickAllowlisted(data, { excludeEmail: userId != null });
   if (Object.keys(fields).length === 0) return;
+  const key = draftKeyFor(userId);
+  const currentTs = now();
+  let createdAt = currentTs;
+  try {
+    const existingRaw = storage.getItem(key);
+    if (existingRaw) {
+      const existing = JSON.parse(existingRaw);
+      if (
+        existing &&
+        typeof existing.createdAt === 'number' &&
+        currentTs < existing.createdAt + OWNER_DRAFT_MAX_AGE_MS
+      ) {
+        createdAt = existing.createdAt;
+      }
+    }
+  } catch {
+    // Ignore parse errors and start fresh
+  }
+  const hardCap = createdAt + OWNER_DRAFT_MAX_AGE_MS;
   const envelope = {
-    expiresAt: now() + OWNER_DRAFT_TTL_MS,
+    createdAt,
+    expiresAt: Math.min(currentTs + OWNER_DRAFT_TTL_MS, hardCap),
     fields,
   };
   try {
-    storage.setItem(draftKeyFor(userId), JSON.stringify(envelope));
+    storage.setItem(key, JSON.stringify(envelope));
   } catch {
     // Ignore quota/storage errors
   }
@@ -115,7 +136,12 @@ export function loadOwnerRegisterDraft(userId = null, now = () => Date.now()) {
       storage.removeItem(key);
       return null;
     }
-    if (now() >= parsed.expiresAt) {
+    const currentTs = now();
+    const hardCap =
+      typeof parsed.createdAt === 'number'
+        ? parsed.createdAt + OWNER_DRAFT_MAX_AGE_MS
+        : parsed.expiresAt;
+    if (currentTs >= parsed.expiresAt || currentTs >= hardCap) {
       storage.removeItem(key);
       return null;
     }
@@ -134,7 +160,7 @@ export function loadOwnerRegisterDraft(userId = null, now = () => Date.now()) {
 /**
  * Migrates a non-expired anonymous draft to the newly signed-in user's scope:
  * - Drops `f_email` so the signed-in account's email always wins.
- * - Preserves the original `expiresAt` timestamp (does not extend TTL).
+ * - Preserves original `createdAt` and `expiresAt` (does not extend TTL).
  * - Deletes the `:anon` key immediately.
  */
 export function migrateAnonDraftToUser(userId, now = () => Date.now()) {
@@ -147,12 +173,23 @@ export function migrateAnonDraftToUser(userId, now = () => Date.now()) {
     if (!raw) return null;
     storage.removeItem(anonKey);
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed.expiresAt !== 'number' || now() >= parsed.expiresAt) {
+    const currentTs = now();
+    const hardCap =
+      typeof parsed?.createdAt === 'number'
+        ? parsed.createdAt + OWNER_DRAFT_MAX_AGE_MS
+        : parsed?.expiresAt;
+    if (
+      !parsed ||
+      typeof parsed.expiresAt !== 'number' ||
+      currentTs >= parsed.expiresAt ||
+      currentTs >= hardCap
+    ) {
       return null;
     }
     const fields = pickAllowlisted(parsed.fields, { excludeEmail: true });
     if (Object.keys(fields).length === 0) return null;
     const envelope = {
+      createdAt: typeof parsed.createdAt === 'number' ? parsed.createdAt : currentTs,
       expiresAt: parsed.expiresAt,
       fields,
     };
@@ -165,6 +202,17 @@ export function migrateAnonDraftToUser(userId, now = () => Date.now()) {
       // Ignore storage errors
     }
     return null;
+  }
+}
+
+/** Discards only the `:anon` draft (used when a user signs in without an explicit handoff). */
+export function clearAnonOwnerDraft() {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(draftKeyFor(null));
+  } catch {
+    // Ignore storage errors
   }
 }
 

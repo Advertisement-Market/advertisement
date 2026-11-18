@@ -60,6 +60,8 @@ export function RegisterProvider({
     [],
   );
 
+  const replaceData = useCallback((nextData) => setData(nextData ?? {}), []);
+
   const selection = useCallback((group) => selections[group] ?? [], [selections]);
   const isSelected = useCallback(
     (group, value) => (selections[group] ?? []).includes(value),
@@ -181,6 +183,7 @@ export function RegisterProvider({
       field,
       setField,
       mergeData,
+      replaceData,
       selection,
       isSelected,
       toggleSelection,
@@ -203,6 +206,7 @@ export function RegisterProvider({
       field,
       setField,
       mergeData,
+      replaceData,
       selection,
       isSelected,
       toggleSelection,

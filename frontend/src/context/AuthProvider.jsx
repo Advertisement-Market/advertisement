@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import { authStorage } from '@/lib/authStorage';
 import { authApi } from '@/features/auth/authApi';
-import {
-  registerSessionRefreshedHandler,
-  resetSessionExpiryGuard,
-} from '@/lib/apiClient';
+import { registerSessionRefreshedHandler, resetSessionExpiryGuard } from '@/lib/apiClient';
 import { clearOwnerRegisterDraft } from '@/pages/OwnerRegister/ownerDraftStorage';
 
 /**
@@ -30,11 +27,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    return registerSessionRefreshedHandler((data) => {
+    const unregisterRefresh = registerSessionRefreshedHandler((data) => {
       if (data?.user) {
         setUser(data.user);
       }
     });
+
+    // Synchronize auth state (role promotion, login, logout) across open browser tabs so
+    // background tabs pick up the promoted OWNER role immediately without a 15-min stale window.
+    const onStorage = (event) => {
+      if (event.key === 'ab_user' || event.key === null) {
+        setUser(authStorage.getUser());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      unregisterRefresh();
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const login = useCallback(

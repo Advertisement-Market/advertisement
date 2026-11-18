@@ -249,7 +249,10 @@ describe('apiClient 401 refresh & replay interceptor', () => {
     });
 
     const formData = new FormData();
-    formData.append('manifest', new Blob([JSON.stringify({ fileMappings: [] })], { type: 'application/json' }));
+    formData.append(
+      'manifest',
+      new Blob([JSON.stringify({ fileMappings: [] })], { type: 'application/json' }),
+    );
     formData.append('files', new File(['img-bytes'], 'day1.jpg', { type: 'image/jpeg' }));
 
     const res = await api.post('/api/owner/listings/501/media/sync', formData, {
@@ -264,17 +267,29 @@ describe('apiClient 401 refresh & replay interceptor', () => {
     expect(seenRequests[1].data.getAll('files')).toHaveLength(1);
   });
 
-  it('refreshes on 401 for GET /api/auth/me', async () => {
-    let calls = 0;
+  it('refreshes on 401 for GET /api/auth/me when opted in via _allowRefresh, while skipping other /api/auth/* routes by default', async () => {
+    let meCalls = 0;
     api.defaults.adapter = async (config) => {
-      calls += 1;
-      if (calls === 1) {
-        const err = new Error('Unauthorized');
-        err.config = config;
-        err.response = { status: 401, data: { errorCode: 'AUTHENTICATION_REQUIRED' } };
-        throw err;
+      if (config.url === '/api/auth/me') {
+        meCalls += 1;
+        if (meCalls === 1) {
+          const err = new Error('Unauthorized');
+          err.config = config;
+          err.response = { status: 401, data: { errorCode: 'AUTHENTICATION_REQUIRED' } };
+          throw err;
+        }
+        return {
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          data: { id: 10, role: 'MEMBER' },
+        };
       }
-      return { status: 200, statusText: 'OK', headers: {}, config, data: { id: 10, role: 'MEMBER' } };
+      const err = new Error('Wrong OTP');
+      err.config = config;
+      err.response = { status: 401, data: { errorCode: 'INVALID_OTP' } };
+      throw err;
     };
 
     refreshPostSpy.mockResolvedValueOnce({
@@ -284,9 +299,69 @@ describe('apiClient 401 refresh & replay interceptor', () => {
       },
     });
 
-    const res = await api.get('/api/auth/me');
+    // Any un-flagged /api/auth/* endpoint (e.g. future OTP verify) must NOT trigger refresh
+    await expect(api.post('/api/auth/otp-verify', { code: '000000' })).rejects.toThrow();
+    expect(refreshPostSpy).not.toHaveBeenCalled();
+
+    // Explicitly opted-in /api/auth/me refreshes once and replays
+    const res = await api.get('/api/auth/me', { _allowRefresh: true });
     expect(res.status).toBe(200);
     expect(refreshPostSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT clear authStorage, wipe draft, or fire onSessionExpired on transient 5xx or network refresh failures', async () => {
+    saveOwnerRegisterDraft({ f_companyName: 'Preserve Me Co' }, 10);
+
+    api.defaults.adapter = async (config) => {
+      const err = new Error('Unauthorized');
+      err.config = config;
+      err.response = { status: 401, data: { errorCode: 'AUTHENTICATION_REQUIRED' } };
+      throw err;
+    };
+
+    const expiredSpy = vi.fn();
+    registerSessionExpiredHandler(expiredSpy);
+
+    // 1. 503 Service Unavailable from /api/auth/refresh
+    const transient503 = new Error('Service Unavailable');
+    transient503.response = { status: 503, data: { errorCode: 'SERVICE_UNAVAILABLE' } };
+    refreshPostSpy.mockRejectedValueOnce(transient503);
+
+    await expect(api.post('/api/onboarding/owner', { companyName: 'Preserve Me Co' })).rejects.toBe(
+      transient503,
+    );
+    expect(expiredSpy).not.toHaveBeenCalled();
+    expect(authStorage.getAccessToken()).toBe('EXPIRED_MEMBER_TOKEN');
+    expect(loadOwnerRegisterDraft(10)?.f_companyName).toBe('Preserve Me Co');
+
+    // 2. Network error (no response object) from /api/auth/refresh
+    const networkErr = new Error('Network Error');
+    networkErr.code = 'ERR_NETWORK';
+    refreshPostSpy.mockRejectedValueOnce(networkErr);
+
+    await expect(api.post('/api/onboarding/owner', { companyName: 'Preserve Me Co' })).rejects.toBe(
+      networkErr,
+    );
+    expect(expiredSpy).not.toHaveBeenCalled();
+    expect(authStorage.getAccessToken()).toBe('EXPIRED_MEMBER_TOKEN');
+    expect(loadOwnerRegisterDraft(10)?.f_companyName).toBe('Preserve Me Co');
+  });
+
+  it('does NOT attempt refresh or fire onSessionExpired for an anonymous visitor with no prior session', async () => {
+    authStorage.clear();
+    const expiredSpy = vi.fn();
+    registerSessionExpiredHandler(expiredSpy);
+
+    api.defaults.adapter = async (config) => {
+      const err = new Error('Unauthorized');
+      err.config = config;
+      err.response = { status: 401, data: { errorCode: 'AUTHENTICATION_REQUIRED' } };
+      throw err;
+    };
+
+    await expect(api.get('/api/auth/me', { _allowRefresh: true })).rejects.toThrow();
+    expect(refreshPostSpy).not.toHaveBeenCalled();
+    expect(expiredSpy).not.toHaveBeenCalled();
   });
 
   it('shares a single in-flight refresh across concurrent 401 requests', async () => {
@@ -340,7 +415,9 @@ describe('apiClient 401 refresh & replay interceptor', () => {
       throw err;
     };
 
-    await expect(api.post('/api/auth/login', { email: 'a@b.com', password: 'bad' })).rejects.toThrow();
+    await expect(
+      api.post('/api/auth/login', { email: 'a@b.com', password: 'bad' }),
+    ).rejects.toThrow();
     await expect(
       api.post('/api/custom/otp', { code: '000000' }, { _skipRefresh: true }),
     ).rejects.toThrow();
@@ -381,7 +458,7 @@ describe('apiClient 401 refresh & replay interceptor', () => {
 
     const results = await Promise.allSettled([
       api.post('/api/onboarding/owner', { companyName: 'X' }),
-      api.get('/api/auth/me'),
+      api.get('/api/auth/me', { _allowRefresh: true }),
     ]);
 
     expect(results[0].status).toBe('rejected');
