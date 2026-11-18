@@ -10,7 +10,9 @@ import { createContext, useContext } from 'react';
  *   registerBasic: (payload: object) => Promise<object>,
  *   registerAdvertiser: (dto: object) => Promise<object>,
  *   registerOwner: (dto: object) => Promise<object>,
+ *   onboardOwner: (dto: object) => Promise<object>,
  *   registerAgency: (dto: object) => Promise<object>,
+ *   clearSessionLocal: () => void,
  *   logout: () => void,
  * }} AuthValue
  */
