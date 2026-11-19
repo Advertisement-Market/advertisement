@@ -26,6 +26,14 @@ const trimOrNull = (v) => {
   return s === '' ? null : s;
 };
 
+// Normalizes a phone number: trims and collapses internal whitespace runs to a
+// single space, so a formatted value like "+91  20   2222 3333" stays within the
+// backend's 20-char limit (ValidationPatterns.PHONE_OPTIONAL).
+const phoneOrNull = (v) => {
+  const s = trimOrNull(v);
+  return s == null ? null : s.replace(/\s+/g, ' ');
+};
+
 const toNumber = (v) => {
   if (v == null || String(v).trim() === '') return null;
   const n = parseFloat(String(v).replace(/,/g, ''));
@@ -175,7 +183,7 @@ export function mapOwner(d) {
     phone: d.f_phone,
     password: d.f_password,
     companyName: d.f_companyName,
-    companyPhone: trimOrNull(d.f_companyPhone),
+    companyPhone: phoneOrNull(d.f_companyPhone),
     companyRegNumber: trimOrNull(d.f_companyReg),
     gstNumber: trimOrNull(d.f_gst),
     addressLine1: d.f_bizAddr1,
