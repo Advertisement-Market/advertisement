@@ -9,6 +9,8 @@ export const MSG = {
   required: 'This field is required.',
   email: 'Enter a valid email address.',
   phone: 'Enter a valid 10-digit mobile number.',
+  // Office/landline numbers: keep in sync with backend ValidationPatterns.PHONE.
+  telephone: 'Enter a valid phone number.',
   number: 'Enter a valid number.',
   url: 'Enter a valid URL (https://…).',
   // Keep in sync with backend ValidationPatterns.PINCODE_MESSAGE
@@ -33,6 +35,15 @@ export const phone =
   (msg = MSG.phone) =>
   (v) =>
     isEmpty(v) || String(v).replace(/\D/g, '').length === 10 ? null : msg;
+
+// General phone (office/landline): digits, spaces, +, -, 10-20 chars.
+// Mirrors backend ValidationPatterns.PHONE so a formatted number like
+// "+91 20 2222 3333" validates identically on both sides.
+const TELEPHONE_RE = /^[0-9+\-\s]{10,20}$/;
+export const telephone =
+  (msg = MSG.telephone) =>
+  (v) =>
+    isEmpty(v) || TELEPHONE_RE.test(String(v).trim()) ? null : msg;
 
 export const number =
   (msg = MSG.number) =>
