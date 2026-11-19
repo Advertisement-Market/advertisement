@@ -215,6 +215,16 @@ export function mapOwner(d) {
     acceptedTerms: !!d.f_termsAccept,
   };
 }
+
+/**
+ * Maps wizard state to the authenticated owner onboarding DTO (`POST /api/onboarding/owner`).
+ * Strictly omits `accountEmail` and `password` — identity comes from the JWT principal.
+ */
+export function mapOwnerOnboarding(d) {
+  const full = mapOwner(d);
+  const { accountEmail: _omittedEmail, password: _omittedPassword, ...onboardingPayload } = full;
+  return onboardingPayload;
+}
 export function mapAgency(d, s) {
   return {
     accountEmail: d.f_loginEmail,

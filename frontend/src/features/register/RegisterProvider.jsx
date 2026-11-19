@@ -29,6 +29,7 @@ export function RegisterProvider({
   const [maxStepReached, setMaxStepReached] = useState(initialStep ?? 1);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [revealErrors, setRevealErrors] = useState(false);
 
   const [toast, setToast] = useState({ message: '', type: '', show: false });
@@ -49,6 +50,17 @@ export function RegisterProvider({
       })),
     [],
   );
+
+  const mergeData = useCallback(
+    (patch) =>
+      setData((d) => ({
+        ...d,
+        ...patch,
+      })),
+    [],
+  );
+
+  const replaceData = useCallback((nextData) => setData(nextData ?? {}), []);
 
   const selection = useCallback((group) => selections[group] ?? [], [selections]);
   const isSelected = useCallback(
@@ -116,6 +128,7 @@ export function RegisterProvider({
   }, []);
 
   const submit = useCallback(async () => {
+    if (submittingRef.current) return;
     const ok = validateSubmit ? validateSubmit({ data, selections, showToast }) : true;
     if (!ok) {
       setRevealErrors(true);
@@ -126,14 +139,22 @@ export function RegisterProvider({
       scrollTop();
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
-      await onSubmit({ data, selections, showToast });
+      const result = await onSubmit({ data, selections, showToast });
+      if (result === false) {
+        return;
+      }
       setSubmitted(true);
       scrollTop();
     } catch (err) {
+      if (err?.isSessionExpired || err?.code === 'SESSION_EXPIRED') {
+        return;
+      }
       showToast(err?.message || 'Registration failed. Please try again.', 'error');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }, [validateSubmit, onSubmit, data, selections, showToast]);
@@ -161,6 +182,8 @@ export function RegisterProvider({
       revealErrors,
       field,
       setField,
+      mergeData,
+      replaceData,
       selection,
       isSelected,
       toggleSelection,
@@ -182,6 +205,8 @@ export function RegisterProvider({
       revealErrors,
       field,
       setField,
+      mergeData,
+      replaceData,
       selection,
       isSelected,
       toggleSelection,

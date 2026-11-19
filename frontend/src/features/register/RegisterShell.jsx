@@ -55,7 +55,7 @@ function StepItem({ index, title, desc }) {
  * @param {string} props.signInTo           route for the sign-in link
  * @param {string} props.cancelTo           route for the cancel link
  */
-export function RegisterShell({ tagline, steps, signInTo, cancelTo, children }) {
+export function RegisterShell({ tagline, steps, signInTo, cancelTo, onCancel, children }) {
   const { currentStep, totalSteps, submitted, toast } = useRegister();
 
   return (
@@ -137,7 +137,7 @@ export function RegisterShell({ tagline, steps, signInTo, cancelTo, children }) 
                 </div>
                 <span className="step-counter">{steps[currentStep - 1]?.title}</span>
               </div>
-              <Link to={cancelTo} className="cancel-link">
+              <Link to={cancelTo} className="cancel-link" onClick={() => onCancel?.()}>
                 <svg
                   width="14"
                   height="14"

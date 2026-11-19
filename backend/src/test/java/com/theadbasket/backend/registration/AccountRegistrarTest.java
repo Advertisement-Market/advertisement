@@ -67,7 +67,7 @@ class AccountRegistrarTest {
     void attachOrCreate_whenAnonymousAndLocalProviderEnabled_createsLocalUser() {
         when(userRepository.existsByEmailIgnoreCase("rohan@example.com")).thenReturn(false);
         when(passwordEncoder.encode("Passw0rd!")).thenReturn("hashed-pwd");
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         User user = accountRegistrar.attachOrCreate(
                 null, "Rohan", "Kapoor", "rohan@example.com", "Passw0rd!", "+91 98765 43210", Role.ADVERTISER
@@ -77,7 +77,7 @@ class AccountRegistrarTest {
         assertThat(user.getRole()).isEqualTo(Role.ADVERTISER);
         assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.LOCAL);
         verify(authService).validateNewPassword("Passw0rd!");
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).saveAndFlush(any(User.class));
     }
 
     @Test

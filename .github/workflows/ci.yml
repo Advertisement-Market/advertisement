@@ -94,6 +94,13 @@ jobs:
       - name: Build, test, and verify coverage (Maven & JaCoCo)
         run: mvn clean verify
 
+      - name: Verify PostgreSQL concurrency IT executed (not skipped)
+        run: |
+          report="target/surefire-reports/TEST-com.theadbasket.backend.registration.OwnerOnboardingConcurrencyIT.xml"
+          test -f "$report"
+          grep -q 'skipped="0"' "$report"
+          ! grep -q 'tests="0"' "$report"
+
       - name: Upload Backend JaCoCo Coverage Report
         if: always()
         uses: actions/upload-artifact@v4

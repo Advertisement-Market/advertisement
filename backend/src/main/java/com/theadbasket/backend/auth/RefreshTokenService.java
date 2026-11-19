@@ -50,4 +50,10 @@ public class RefreshTokenService {
             repository.save(rt);
         });
     }
+
+    /** Revokes all active refresh tokens for the given user (e.g., on role promotion). */
+    @Transactional
+    public void revokeAllForUser(Long userId) {
+        repository.revokeAllActiveByUserId(userId);
+    }
 }
