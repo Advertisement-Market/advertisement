@@ -514,6 +514,25 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
       expect(navigateSpy).toHaveBeenCalledWith('/owners/dashboard?tab=listings');
     });
   });
+
+  it('renders "Pin Your Billboard\'s Exact Location" on Step 3 (Billboard Details) and not on Step 5 (Media Uploads)', () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <OwnerRegister initialStep={3} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Pin Your Billboard's Exact Location/i)).toBeDefined();
+    unmount();
+
+    render(
+      <MemoryRouter>
+        <OwnerRegister initialStep={5} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/Pin Your Billboard's Exact Location/i)).toBeNull();
+  });
 });
 
 describe('ownerDraftStorage allowlist, TTL & handoff', () => {

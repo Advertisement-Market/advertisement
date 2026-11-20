@@ -280,6 +280,50 @@ export function ListingStep1() {
             <div className="form-group" />
           </FormRow>
         )}
+        <div
+          style={{
+            background: 'var(--cream-warm)',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 12,
+            padding: '16px 18px',
+            marginTop: 14,
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--ink)',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Pin Your Billboard&apos;s Exact Location
+          </div>
+          <div
+            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
+          >
+            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
+            the map to mark the exact location of your billboard.
+          </div>
+          <MapPin />
+        </div>
       </FormSection>
 
       <FormSection title="Structure Type">
@@ -746,52 +790,6 @@ export function ListingStep3() {
           )}
         </div>
       )}
-
-      <FormSection title="Location Pin Verification">
-        <div
-          style={{
-            background: 'var(--cream-warm)',
-            border: '1.5px solid var(--border-strong)',
-            borderRadius: 12,
-            padding: '16px 18px',
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              marginBottom: 6,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-            }}
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--teal)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            Pin Your Billboard&apos;s Exact Location
-          </div>
-          <div
-            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
-          >
-            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
-            the map to mark the exact location of your billboard.
-          </div>
-          <MapPin />
-        </div>
-      </FormSection>
 
       <FormSection title="Day Photos">
         <UploadZone

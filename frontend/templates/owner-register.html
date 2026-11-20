@@ -926,6 +926,25 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
             <label>Address / Street Name <span class="req">*</span></label>
             <input type="text" id="f_bbAddr" class="form-control" placeholder="Road / Street / Highway name"/>
           </div>
+          <div style="background:var(--cream-warm);border:1.5px solid var(--border-strong);border-radius:12px;padding:16px 18px;margin-top:14px;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:7px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Pin Your Billboard's Exact Location
+            </div>
+            <div style="font-size:12.5px;color:var(--ink-muted);margin-bottom:12px;line-height:1.6;">The map below is pre-zoomed to your billboard's pincode. Drag the pin or click on the map to mark the exact location of your billboard.</div>
+            <div id="mapPinContainer" style="width:100%;height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border-strong);background:#e8f0e0;position:relative;">
+              <div id="mapPinPlaceholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 100%);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <div style="font-size:13px;font-weight:600;color:var(--teal-dark);">Map loads after you enter your billboard pincode</div>
+                <div style="font-size:12px;color:var(--ink-faint);">Enter billboard pincode above to activate the map</div>
+                <button type="button" onclick="initMapPin()" style="margin-top:6px;background:var(--teal);color:white;border:none;font-family:var(--font-body);font-size:12.5px;font-weight:600;padding:9px 20px;border-radius:8px;cursor:pointer;">Load Map Now</button>
+              </div>
+            </div>
+            <div id="mapPinCoordsDisplay" style="display:none;margin-top:10px;padding:9px 13px;background:var(--green-light);border:1px solid rgba(5,150,105,0.2);border-radius:8px;font-size:13px;color:var(--green);font-weight:500;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="mapPinCoordsText">Pin set</span>
+            </div>
+          </div>
         </div>
 
         <div class="form-section">
@@ -1233,29 +1252,6 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               View Media Reference Guide (PDF)
             </a>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Location Pin Verification</div>
-          <div style="background:var(--cream-warm);border:1.5px solid var(--border-strong);border-radius:12px;padding:16px 18px;margin-bottom:8px;">
-            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:7px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              Pin Your Billboard's Exact Location
-            </div>
-            <div style="font-size:12.5px;color:var(--ink-muted);margin-bottom:12px;line-height:1.6;">The map below is pre-zoomed to your billboard's pincode. Drag the pin or click on the map to mark the exact location of your billboard.</div>
-            <div id="mapPinContainer" style="width:100%;height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border-strong);background:#e8f0e0;position:relative;">
-              <div id="mapPinPlaceholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 100%);">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <div style="font-size:13px;font-weight:600;color:var(--teal-dark);">Map loads after you enter your billboard pincode (Step 3)</div>
-                <div style="font-size:12px;color:var(--ink-faint);">Enter pincode on the previous step to activate the map</div>
-                <button type="button" onclick="initMapPin()" style="margin-top:6px;background:var(--teal);color:white;border:none;font-family:var(--font-body);font-size:12.5px;font-weight:600;padding:9px 20px;border-radius:8px;cursor:pointer;">Load Map Now</button>
-              </div>
-            </div>
-            <div id="mapPinCoordsDisplay" style="display:none;margin-top:10px;padding:9px 13px;background:var(--green-light);border:1px solid rgba(5,150,105,0.2);border-radius:8px;font-size:13px;color:var(--green);font-weight:500;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
-              <span id="mapPinCoordsText">Pin set</span>
-            </div>
           </div>
         </div>
 

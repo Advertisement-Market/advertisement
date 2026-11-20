@@ -422,12 +422,12 @@ export function MapPin() {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal-dark)' }}>
             {loaded
               ? 'Drag the pin to adjust the exact location'
-              : 'Map loads after you enter your billboard pincode (Step 3)'}
+              : 'Map loads after you enter your billboard pincode'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>
             {loaded
               ? 'Demo map — pin set at pincode centre'
-              : 'Enter pincode on the previous step to activate the map'}
+              : 'Enter billboard pincode above to activate the map'}
           </div>
           {!loaded && (
             <button
