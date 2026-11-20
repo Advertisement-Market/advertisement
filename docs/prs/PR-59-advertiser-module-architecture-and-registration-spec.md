@@ -1,6 +1,6 @@
 # Architecture Technical Document: Advertiser Module Architecture & Registration Specification
 
-- **PR Link / Ticket:** [PR #59](https://github.com/Advertisement-Market/advertisement/pull/59) (Resolves [#58](https://github.com/Advertisement-Market/advertisement/issues/58))
+- **PR Link / Ticket:** [PR #59](https://github.com/Advertisement-Market/advertisement/pull/59)
 - **Author:** @amjangde
 - **Date:** 2026-11-20
 - **Module / Package:** `docs/architecture/advertiser-module/`, `frontend/src/pages/AdvertiserRegister`, `backend/src/main/java/com/theadbasket/backend/advertiser`, `backend/src/main/java/com/theadbasket/backend/registration`
@@ -13,14 +13,13 @@
 Provide an authoritative architecture blueprint and comprehensive field specification for the **Advertiser Module** of The AdBasket, with immediate focus on streamlining the **Advertiser Registration & Onboarding Flow**.
 
 ### 1.2 User Impact
-- **Advertisers (Brands & Media Buyers):** Experience a streamlined, 6-step onboarding wizard combining project requirements with budget criteria, eliminating context fragmentation and unnecessary steps.
+- **Advertisers (Brands & Media Buyers):** Experience a guided, standard 7-step onboarding wizard maintaining clear separation between campaign creative scope and budget parameters.
 - **Platform Integrity:** Aligns the advertiser data pipeline with normalized database entities (`addresses`, `users`, `advertiser_profiles`, `campaign_briefs`), ensuring robust unique constraints, transaction isolation, and audit readiness.
 
 ### 1.3 Key Functional Decisions
-1. **Consolidated Step 4:** Requirement Overview and Budget/Quotation details are merged into a single step: **Step 4 ("Campaign & Budget Details")**.
-2. **Reduced Stepper Length:** Wizard stepper reduced from 7 steps to **6 steps**.
-3. **Single Mandatory Campaign at Registration:** Registration strictly captures **one initial campaign requirement** (mandatory). Multi-campaign creation is deferred to the authenticated dashboard (`/advertisers/dashboard` $\rightarrow$ `+ New Campaign`) to prevent onboarding fatigue.
-4. **Normalized Schema Alignment:** Grounded in database migrations `V1__init.sql` through `V10__create_billboard_availability_blocks.sql`, especially `V3__normalize_schema.sql` (standalone `addresses` table, standardized `created_ts`/`updated_ts`, `end_date`, and unique GST constraint).
+1. **Standard 7-Step Stepper Flow:** Retains the dedicated separation between campaign scoping (**Step 4: Project Details**) and financial/quotation requirements (**Step 5: Budget & Quotations**).
+2. **Single Mandatory Campaign at Registration:** Registration strictly captures **one initial campaign requirement** (mandatory). Multi-campaign creation is deferred to the authenticated dashboard (`/advertisers/dashboard` $\rightarrow$ `+ New Campaign`) to prevent onboarding fatigue.
+3. **Normalized Schema Alignment:** Grounded in database migrations `V1__init.sql` through `V10__create_billboard_availability_blocks.sql`, especially `V3__normalize_schema.sql` (standalone `addresses` table, standardized `created_ts`/`updated_ts`, `end_date`, and unique GST constraint).
 
 ---
 
@@ -39,7 +38,7 @@ sequenceDiagram
     database DB as PostgreSQL
     participant Auth as AuthService & CookieService
 
-    Advertiser->>UI: Fills 6-Step Registration Form & Accepts Terms
+    Advertiser->>UI: Fills 7-Step Registration Form & Accepts Terms
     UI->>Ctrl: POST /api/auth/register/advertiser (JSON Payload)
     activate Ctrl
     
@@ -78,16 +77,17 @@ sequenceDiagram
 
 ## 3. Stepper Inventory & Field Specifications
 
-### 3.1 Stepper Structure (6 Steps)
+### 3.1 Stepper Structure (7 Steps)
 
 | Step | Component | Title | Key Data Captured |
 | :---: | :--- | :--- | :--- |
 | **1** | `Step1` | **Login Setup** | `f_loginEmail`, `f_password` (anonymous) or verified session confirmation (`MEMBER`). |
 | **2** | `Step2` | **Business Information** | `f_companyName`, `f_businessType`, `f_website`, `selections.industries`, `LogoUpload`. |
 | **3** | `Step3` | **Contact Details** | `f_firstName`, `f_lastName`, `f_desig`, `f_email`, `f_phone`, `f_addressLine1`, `f_addressLine2`, `f_landmark`, `f_city`, `f_state`, `f_pincode`. |
-| **4** | `Step4` | **Campaign & Budget Details** | `f_projectTitle`, `f_projectDesc`, `f_targetAudience`, `f_targetLocation`, `f_startDate`, `f_endDate`, `f_duration`, `f_budgetMinValue`, `f_budgetMinUnit`, `f_budgetMaxValue`, `f_budgetMaxUnit`, `f_flexBudget`, `f_quoteCount`, `selections.agencyPref`. |
-| **5** | `Step5` | **Verification & Attachments** | `f_gst`, `f_pan`, and notice clarifying creative asset uploads occur post-registration per quote. |
-| **6** | `Step6` | **Review & Submit** | Consolidated review blocks, `f_termsAccept` (`@AssertTrue`), atomic submission. |
+| **4** | `Step4` | **Project Details** | `f_projectTitle`, `f_projectDesc`, `f_targetAudience`, `f_targetLocation`, `f_startDate`, `f_endDate`, `f_duration`. |
+| **5** | `Step5` | **Budget & Quotations** | `f_budgetMinValue`, `f_budgetMinUnit`, `f_budgetMaxValue`, `f_budgetMaxUnit`, `f_flexBudget`, `f_quoteCount`, `selections.agencyPref`. |
+| **6** | `Step6` | **Verification & Attachments** | `f_gst`, `f_pan`, and notice clarifying creative asset uploads occur post-registration per quote. |
+| **7** | `Step7` | **Review & Submit** | Consolidated review blocks, `f_termsAccept` (`@AssertTrue`), atomic submission. |
 | **Post** | `SuccessScreen` | **Success Confirmation** | 3-stage progress timeline + CTA redirect to `/advertisers/dashboard`. |
 
 ---

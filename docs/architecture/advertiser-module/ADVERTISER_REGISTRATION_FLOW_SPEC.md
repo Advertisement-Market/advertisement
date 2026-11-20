@@ -1,174 +1,69 @@
-# Advertiser Registration Flow — Comprehensive Architecture & Field Specification
+# Advertiser Registration Flow — Detailed Specification & Component Breakdown
 
 > **Project:** The AdBasket  
 > **Module:** Advertiser (Brand / Business Onboarding)  
-> **Branch:** `amjangde/advertiser-module-architecture`  
-> **Status:** Production-Ready Architectural & Field Specification  
-> **Grounding:** Aligned with Flyway Migrations `V1__init.sql`, `V2__registration_profiles.sql`, `V3__normalize_schema.sql`, `V5__create_notifications.sql`, Spring Boot JPA Entities, and React Frontend Components.
+> **Branch:** `master`  
+> **Status:** Production-Ready Architectural & Field Specification (Standard 7-Step Flow)  
+> **Target Files:**
+> - Frontend: `frontend/src/pages/AdvertiserRegister/AdvertiserRegister.jsx`, `steps.jsx`, `frontend/src/features/auth/registrationMappers.js`
+> - Backend: `AdvertiserRegistrationRequest.java`, `CampaignBriefRequest.java`, `AdvertiserProfile.java`, `CampaignBrief.java`, `Address.java`
+> - Database: `users`, `advertiser_profiles`, `advertiser_industries`, `campaign_briefs`, `campaign_brief_agency_prefs`, `addresses`
 
 ---
 
-## 1. System Architecture & End-to-End Registration Flow
+## 1. Executive Summary & Flow Architecture
 
-The Advertiser Registration flow provides a secure, transactional onboarding pipeline that transforms an anonymous visitor or a basic authenticated `MEMBER` into a verified marketplace `ADVERTISER`.
+The Advertiser Onboarding flow allows brand marketers, business owners, and campaign managers to onboard onto The AdBasket marketplace.
 
-### 1.1 Dual-State Entry Architecture
+### 1.1 Standard 7-Step Architecture
 
-The backend (`RegistrationController` and `AccountRegistrar`) and frontend (`RegisterProvider` and `Step1`) handle two distinct operational states:
-
-1. **Anonymous Registration (New Customer Pipeline):**
-   - Caller is unauthenticated (`principal == null`).
-   - Step 1 requires `f_loginEmail` and `f_password`.
-   - Backend creates a new `User` record with `role = Role.ADVERTISER` and `auth_provider = AuthProvider.LOCAL`.
-   - Password is validated for complexity (min 8 chars, uppercase, number, symbol) and hashed with BCrypt.
-2. **Authenticated Role Promotion (`MEMBER` $\rightarrow$ `ADVERTISER` Pipeline):**
-   - Caller is already authenticated via Google OneTap/FedCM or Quick Email Sign-up (`principal != null`, `role == Role.MEMBER`).
-   - Step 1 detects active session, displays `SignedInBanner`, pre-fills email/name, and makes password optional.
-   - Backend promotes the existing account to `Role.ADVERTISER` without creating a duplicate `User` record.
+The onboarding wizard follows the **standard 7-step layout** defined in `AdvertiserRegister.jsx`:
+1. **Separation of Concerns:** Project requirements are defined in **Step 4 (Project Details)** and spending parameters are defined in **Step 5 (Budget & Quotations)**.
+2. **Single Mandatory Initial Campaign:** Exactly **one campaign requirement** is captured during registration. This requirement is mandatory for onboarding.
+3. **Subsequent Campaigns via Dashboard:** To keep registration focused, multi-campaign creation is managed post-onboarding via the authenticated dashboard (`/advertisers/dashboard` $\rightarrow$ Campaigns tab $\rightarrow$ `+ New Campaign`).
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Advertiser as Brand Marketer / Advertiser
-    participant FE as React Wizard (RegisterShell)
-    participant RC as RegistrationController
-    participant ARS as AdvertiserRegistrationService
-    participant AR as AccountRegistrar
-    participant DB as PostgreSQL Database
-    participant AS as AuthService & CookieService
-
-    Advertiser->>FE: Fills 6-Step Registration Form
-    Note over FE: Validates per-step constraints & terms acceptance
-    FE->>RC: POST /api/auth/register/advertiser (JSON Payload)
+flowchart TD
+    Start([User arrives at /advertisers/register]) --> AuthCheck{Is User Signed In?}
     
-    activate RC
-    RC->>ARS: register(request, currentUserId)
-    activate ARS
+    AuthCheck -- No (Anonymous) --> Step1Anon[Step 1: Login Setup<br/>f_loginEmail + f_password required]
+    AuthCheck -- Yes (MEMBER) --> Step1Auth[Step 1: Login Setup<br/>Prefilled email, optional password]
     
-    ARS->>AR: attachOrCreate(currentUserId, firstName, lastName, email, password, phone, ADVERTISER)
-    activate AR
-    alt Anonymous User
-        AR->>DB: INSERT INTO users (role='ADVERTISER', auth_provider='LOCAL', ...)
-    else Signed-In MEMBER
-        AR->>DB: UPDATE users SET role='ADVERTISER' WHERE id = currentUserId
-    end
-    AR-->>ARS: User entity
-    deactivate AR
+    Step1Anon --> Step2[Step 2: Business Information<br/>Company, Type, Industry, Logo]
+    Step1Auth --> Step2
     
-    ARS->>DB: INSERT INTO addresses (line1, line2, landmark, city, state, pincode)
-    ARS->>DB: INSERT INTO advertiser_profiles (user_id, address_id, company_name, ...)
-    ARS->>DB: INSERT INTO advertiser_industries (profile_id, industry)
-    ARS->>DB: INSERT INTO campaign_briefs (user_id, title, description, start_date, end_date, ...)
-    ARS->>DB: INSERT INTO campaign_brief_agency_prefs (brief_id, preference)
+    Step2 --> Step3[Step 3: Contact Details<br/>Contact Person, Email, Mobile, Office Address]
     
-    ARS->>AS: issueTokensFor(user)
-    AS-->>ARS: AuthResponse (AccessToken, RefreshToken, UserDto)
-    ARS-->>RC: AuthResponse
-    deactivate ARS
+    Step3 --> Step4[Step 4: Project Details<br/>Title, Description, Target Audience, Location, Dates, Duration]
     
-    RC->>AS: createRefreshTokenCookie(refreshToken)
-    RC-->>FE: HTTP 201 Created + Set-Cookie (HttpOnly) + AuthResponse Body
-    deactivate RC
+    Step4 --> Step5[Step 5: Budget & Quotations<br/>Min/Max Budget, Units, Flexibility, Quote Count, Agency Prefs]
     
-    FE->>Advertiser: Render Success Screen -> Redirect /advertisers/dashboard
+    Step5 --> Step6[Step 6: Verification & Attachments<br/>GST, PAN, Verification Notices]
+    Step6 --> Step7[Step 7: Review & Submit<br/>Review Blocks for All Steps, Terms & Conditions]
+    
+    Step7 --> Submit[Submit POST /api/auth/register/advertiser]
+    Submit --> Success[Success Screen<br/>Timeline: Under Review -> Goes Live -> Receive Quotations]
+    Success --> Dashboard[/advertisers/dashboard<br/>Subsequent campaigns added here via + New Campaign]
 ```
 
 ---
 
-## 2. Complete Database Schema & Entity Relationships
+## 2. Standard 7-Step Stepper Inventory
 
-The registration process writes atomically across **6 database tables** defined across `V1__init.sql`, `V2__registration_profiles.sql`, and normalized in `V3__normalize_schema.sql`.
-
-```mermaid
-erDiagram
-    users ||--o| advertiser_profiles : "has profile (1:1)"
-    users ||--o{ campaign_briefs : "posts initial brief (1:N)"
-    users ||--o{ refresh_tokens : "owns"
-    users ||--o{ notifications : "receives"
-    
-    advertiser_profiles ||--|| addresses : "located at (1:1)"
-    advertiser_profiles ||--o{ advertiser_industries : "operates in (1:N)"
-    
-    campaign_briefs ||--o{ campaign_brief_agency_prefs : "prefers (1:N)"
-
-    users {
-        bigint id PK
-        varchar(80) first_name "NOT NULL"
-        varchar(80) last_name "NULL"
-        varchar(180) email "NOT NULL, UNIQUE"
-        varchar(100) password "NULL (BCrypt hash)"
-        varchar(20) phone "NULL"
-        varchar(20) role "NOT NULL (ADVERTISER)"
-        varchar(20) auth_provider "NOT NULL (LOCAL / GOOGLE)"
-        varchar(64) google_sub "NULL, INDEXED"
-        boolean is_enabled "NOT NULL, DEFAULT TRUE"
-        boolean is_email_verified "NOT NULL, DEFAULT FALSE"
-        timestamp created_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-        timestamp updated_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-    }
-
-    advertiser_profiles {
-        bigint id PK
-        bigint user_id FK "NOT NULL, UNIQUE"
-        bigint address_id FK "NOT NULL, INDEXED"
-        varchar(150) company_name "NOT NULL"
-        varchar(80) business_type "NOT NULL"
-        varchar(255) website "NULL"
-        varchar(15) gst_number "NULL, UNIQUE"
-        varchar(10) pan_number "NULL"
-        varchar(120) contact_designation "NOT NULL"
-        varchar(180) contact_email "NOT NULL"
-        timestamp created_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-        timestamp updated_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-    }
-
-    addresses {
-        bigint id PK
-        varchar(300) line1 "NOT NULL"
-        varchar(300) line2 "NULL"
-        varchar(200) landmark "NULL"
-        varchar(100) city "NOT NULL"
-        varchar(100) state "NOT NULL"
-        varchar(6) pincode "NOT NULL, INDEXED"
-        timestamp created_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-        timestamp updated_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-    }
-
-    advertiser_industries {
-        bigint profile_id FK "NOT NULL, INDEXED"
-        varchar(80) industry "NOT NULL"
-    }
-
-    campaign_briefs {
-        bigint id PK
-        bigint user_id FK "NOT NULL, INDEXED"
-        varchar(200) title "NOT NULL"
-        varchar(2000) description "NOT NULL"
-        varchar(500) target_audience "NOT NULL"
-        varchar(300) target_location "NOT NULL"
-        date start_date "NOT NULL"
-        date end_date "NOT NULL"
-        varchar(50) duration "NOT NULL"
-        numeric(14,2) budget_min_value "NULL"
-        varchar(20) budget_min_unit "NULL"
-        numeric(14,2) budget_max_value "NULL"
-        varchar(20) budget_max_unit "NULL"
-        boolean flexible_budget "NOT NULL, DEFAULT FALSE"
-        varchar(20) quotations_required "NULL"
-        timestamp created_ts "NOT NULL, DEFAULT CURRENT_TIMESTAMP"
-    }
-
-    campaign_brief_agency_prefs {
-        bigint brief_id FK "NOT NULL, INDEXED"
-        varchar(80) preference "NOT NULL"
-    }
-```
+| Step # | Step Title | Subtitle / Tagline | Key Responsibility |
+| :---: | :--- | :--- | :--- |
+| **1** | **Login Setup** | Credentials & Notifications | Email & password (anonymous) or verified session confirmation (`MEMBER`). |
+| **2** | **Business Information** | Company Identity & Industry | Company name, business entity type, industry verticals, company logo. |
+| **3** | **Contact Details** | Primary Contact & Office Address | Contact person first/last name, designation, email, mobile phone, physical address with PIN code auto-fill. |
+| **4** | **Project Details** | What you want to advertise | Scope of initial campaign: title, detailed description, target audience, location, start date, end date, duration. |
+| **5** | **Budget & Quotations** | Budget range, agency prefs | Min/max budget with unit, budget flexibility toggle, quotations required count, agency preferences. |
+| **6** | **Verification & Attachments** | Tax & Identity Verification | GSTIN, PAN, and notice clarifying creative file uploads occur post-registration. |
+| **7** | **Review & Submit** | Summary & Agreement | Consolidated review cards for company, contact, project, budget, verification, terms acceptance, and submission trigger. |
+| **Post** | **Success Screen** | Onboarding Confirmation | 3-stage timeline (*Under Review $\rightarrow$ Goes Live $\rightarrow$ Receive Quotations*) + redirect to `/advertisers/dashboard`. |
 
 ---
 
 ## 3. Comprehensive Step-by-Step Field Specifications
-
-The registration train consists of **6 cohesive steps**:
 
 ---
 
@@ -219,19 +114,28 @@ The registration train consists of **6 cohesive steps**:
 
 ---
 
-### Step 4: Campaign & Budget Details (`Step4` — Consolidated)
+### Step 4: Project Details (`Step4`)
 - **Frontend File:** `frontend/src/pages/AdvertiserRegister/steps.jsx`
-- **Purpose:** Captures the advertiser's initial mandatory campaign requirement and spending parameters in one unified form.
+- **Purpose:** Captures the core scope and timeline for the initial mandatory campaign.
 
 | Field Name | Form Key | UI Control | Frontend Constraints | DTO Field & Validation | Entity Field & DB Column | DB Type & Nullability | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Project Title** | `f_projectTitle` | Text Input | Required. Max 200 chars. | `project.title`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=200)` | `CampaignBrief.title`<br>`campaign_briefs.title` | `VARCHAR(200)`<br>**NOT NULL** | Name of advertising initiative. |
-| **Description** | `f_projectDesc` | Textarea (`rows={5}`) | Required. Max 2000 chars. | `project.description`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=200)` | `CampaignBrief.description`<br>`campaign_briefs.description` | `VARCHAR(2000)`<br>**NOT NULL** | Full campaign scope, media formats desired. |
-| **Target Audience** | `f_targetAudience` | Text Input | Required. Max 500 chars. | `project.targetAudience`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=500)` | `CampaignBrief.targetAudience`<br>`campaign_briefs.target_audience` | `VARCHAR(500)`<br>**NOT NULL** | Target demographics (e.g. *Youth 18-30*). |
-| **Target Location** | `f_targetLocation` | Text Input | Required. Max 300 chars. | `project.targetLocation`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=300)` | `CampaignBrief.targetLocation`<br>`campaign_briefs.target_location` | `VARCHAR(300)`<br>**NOT NULL** | Target cities/markets (e.g. *Mumbai, Pune*). |
-| **Start Date** | `f_startDate` | Date Input (`type="date"`) | Required. Valid ISO Date. | `project.startDate`<br>`@NotNull LocalDate` | `CampaignBrief.startDate`<br>`campaign_briefs.start_date` | `DATE`<br>**NOT NULL** | Desired campaign rollout date. |
-| **End Date** | `f_endDate` | Date Input (`type="date"`) | Required. End Date $\ge$ Start Date. | `project.endDate`<br>`@NotNull LocalDate`, `isValidDateRange()` | `CampaignBrief.endDate`<br>`campaign_briefs.end_date` | `DATE`<br>**NOT NULL** | Cross-field validation prevents inverted dates. |
-| **Duration** | `f_duration` | Select Dropdown | Required. Selected from list. | `project.duration`<br>`@NotBlank`, `@Size(max=50)` | `CampaignBrief.duration`<br>`campaign_briefs.duration` | `VARCHAR(50)`<br>**NOT NULL** | Options: *Less than 1 week, 1–2 weeks, 1 month, 1–3 months, 3–6 months, 6–12 months, Ongoing*. |
+| **Description** | `f_projectDesc` | Textarea (`rows={5}`) | Required. Max 2000 chars. | `project.description`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=2000)` | `CampaignBrief.description`<br>`campaign_briefs.description` | `VARCHAR(2000)`<br>**NOT NULL** | Detailed requirements & media types. |
+| **Target Audience** | `f_targetAudience` | Text Input | Required. Max 500 chars. | `project.targetAudience`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=500)` | `CampaignBrief.targetAudience`<br>`campaign_briefs.target_audience` | `VARCHAR(500)`<br>**NOT NULL** | Demographics & customer segments. |
+| **Target Location** | `f_targetLocation` | Text Input | Required. Max 300 chars. | `project.targetLocation`<br>`@NotBlank`, `@SanitizeText`, `@Size(max=300)` | `CampaignBrief.targetLocation`<br>`campaign_briefs.target_location` | `VARCHAR(300)`<br>**NOT NULL** | Target cities/markets. |
+| **Expected Start Date** | `f_startDate` | Date Input (`type="date"`) | Required. Valid ISO Date. | `project.startDate`<br>`@NotNull LocalDate` | `CampaignBrief.startDate`<br>`campaign_briefs.start_date` | `DATE`<br>**NOT NULL** | Planned start date. |
+| **Expected End Date** | `f_endDate` | Date Input (`type="date"`) | Required. End Date $\ge$ Start Date. | `project.endDate`<br>`@NotNull LocalDate`, `isValidDateRange()` | `CampaignBrief.endDate`<br>`campaign_briefs.end_date` | `DATE`<br>**NOT NULL** | Cross-field validation prevents inverted dates. |
+| **Project Duration** | `f_duration` | Select Dropdown | Required. Selected from list. | `project.duration`<br>`@NotBlank`, `@Size(max=50)` | `CampaignBrief.duration`<br>`campaign_briefs.duration` | `VARCHAR(50)`<br>**NOT NULL** | Options: *Less than 1 week, 1–2 weeks, 1 month, 1–3 months, 3–6 months, 6–12 months, Ongoing*. |
+
+---
+
+### Step 5: Budget & Quotations (`Step5`)
+- **Frontend File:** `frontend/src/pages/AdvertiserRegister/steps.jsx`
+- **Purpose:** Defines the spending parameters and agency matching preferences for the initial campaign.
+
+| Field Name | Form Key | UI Control | Frontend Constraints | DTO Field & Validation | Entity Field & DB Column | DB Type & Nullability | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Min Budget Value** | `f_budgetMinValue` | Number Input (`min="0"`) | Required. Numeric scalar $\ge 0$. | `project.budgetMinValue`<br>`@NotNull`, `@PositiveOrZero BigDecimal` | `CampaignBrief.budgetMinValue`<br>`campaign_briefs.budget_min_value` | `NUMERIC(14,2)`<br>NULLABLE (in DB) | Numerical unit multiplier (e.g. `50`). |
 | **Min Budget Unit** | `f_budgetMinUnit` | Select Dropdown | Optional. Default: `thousand`. | `project.budgetMinUnit`<br>`@Size(max=20)` | `CampaignBrief.budgetMinUnit`<br>`campaign_briefs.budget_min_unit` | `VARCHAR(20)`<br>NULLABLE | Options: *thousand, lakh, crore*. |
 | **Max Budget Value** | `f_budgetMaxValue` | Number Input (`min="0"`) | Required. Numeric scalar $\ge 0$. | `project.budgetMaxValue`<br>`@NotNull`, `@PositiveOrZero BigDecimal` | `CampaignBrief.budgetMaxValue`<br>`campaign_briefs.budget_max_value` | `NUMERIC(14,2)`<br>NULLABLE (in DB) | Numerical unit multiplier (e.g. `2`). |
@@ -242,7 +146,7 @@ The registration train consists of **6 cohesive steps**:
 
 ---
 
-### Step 5: Verification & Attachments (`Step5`)
+### Step 6: Verification & Attachments (`Step6`)
 - **Frontend File:** `frontend/src/pages/AdvertiserRegister/steps.jsx`
 - **Purpose:** Collects optional statutory tax credentials (GSTIN/PAN).
 
@@ -254,89 +158,202 @@ The registration train consists of **6 cohesive steps**:
 
 ---
 
-### Step 6: Review & Submit (`Step6`)
+### Step 7: Review & Submit (`Step7`)
 - **Frontend File:** `frontend/src/pages/AdvertiserRegister/steps.jsx`
 - **Purpose:** Full review of all entered details with step-jump edit capabilities, legal terms consent, and atomic submission.
 
 | Field Name | Form Key | UI Control | Frontend Constraints | DTO Field & Validation | Entity Field & DB Column | DB Type & Nullability | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Review Cards** | *N/A* | `ReviewBlock` & `ReviewRow` | Read-only | *N/A* | *N/A* | N/A | Displays consolidated summaries for Steps 1–5 with edit links. |
+| **Review Cards** | *N/A* | `ReviewBlock` & `ReviewRow` | Read-only | *N/A* | *N/A* | N/A | Displays consolidated summaries for Steps 1–6 with step-jump edit links. |
 | **Terms Acceptance** | `f_termsAccept` | Checkbox (`TermsRow`) | **Mandatory** (`true`). | `acceptedTerms`<br>`@AssertTrue` | *Validation constraint only* | N/A | Explicit consent to Terms & Conditions and Privacy Policy. |
-| **Submit Button** | *N/A* | `button.btn-submit` | Disabled while submitting | Triggers `POST /api/auth/register/advertiser` | Multiple tables | N/A | Shows loading spinner during network transit. |
+| **Submit Button** | *N/A* | `button.btn-submit` | Disabled while submitting | Triggers `POST /api/auth/register/advertiser` | Multiple tables | N/A | Submits all data in single atomic backend transaction. |
 
 ---
 
-## 4. Deep Architectural Comparison & Identified Deficiencies
+## 4. Backend DTO & Service Mapping
 
-A rigorous audit of the Advertiser backend code (`AdvertiserRegistrationService`, `AdvertiserProfile`, `CampaignBrief`) against the database and the mature `OwnerRegistrationService` reveals the following critical areas:
+### 4.1 Backend DTO: `AdvertiserRegistrationRequest.java`
 
-### 4.1 Missing Onboarding Welcome Notification
-- **Observation:** `OwnerRegistrationService` utilizes `notificationService.createNotification(...)` to send a welcome notification upon completion, which populates the user's dashboard notification bell.
-- **Deficiency:** `AdvertiserRegistrationService` does **not** call `NotificationService`. When an advertiser completes onboarding and arrives at `/advertisers/dashboard`, the notification dropdown is empty or renders mock data.
-- **Architectural Fix:** Inject `NotificationService` into `AdvertiserRegistrationService` and dispatch an onboarding notification:
-  ```java
-  notificationService.createNotification(
-          user,
-          "Welcome to The AdBasket!",
-          "Your advertiser account is registered and your campaign brief \"" + brief.getTitle() + "\" has been submitted for verification.",
-          NotificationCategory.ONBOARDING,
-          NotificationTone.TEAL,
-          "/advertisers/dashboard"
-  );
-  ```
+Captures the single mandatory campaign as `CampaignBriefRequest project`:
 
-### 4.2 Duplicate GST Unhandled 409 Conflict
-- **Observation:** In `V3__normalize_schema.sql`, a unique constraint was placed on `advertiser_profiles`:
-  ```sql
-  ALTER TABLE advertiser_profiles ADD CONSTRAINT uq_advertiser_profiles_gst UNIQUE (gst_number);
-  ```
-- **Deficiency:** If an advertiser inputs a GST number already registered by another user, `advertiserProfileRepository.save(profile)` will fail with a raw `DataIntegrityViolationException` (HTTP 500).
-- **Architectural Fix:** Add `existsByGstNumber(String gstNumber)` to `AdvertiserProfileRepository` and perform a pre-flight check in `AdvertiserRegistrationService`:
-  ```java
-  if (request.gstNumber() != null && !request.gstNumber().isBlank()) {
-      String cleanGst = request.gstNumber().trim().toUpperCase();
-      if (advertiserProfileRepository.existsByGstNumber(cleanGst)) {
-          throw new ConflictException(ErrorCode.GST_ALREADY_EXISTS, cleanGst);
-      }
-  }
-  ```
+```java
+package com.theadbasket.backend.registration.dto;
 
-### 4.3 Authenticated Role Promotion Profile Sync
-- **Observation:** In `AccountRegistrar.attachOrCreate(currentUserId, ...)`, when `currentUserId != null` (signed-in Google user becoming an Advertiser), the method only updates `role` and optional password.
-- **Deficiency:** If a user signed in via Google (where `phone` was blank, and name was split automatically), any contact phone or corrected name entered in Step 3 is **never written** to `users.phone` or `users.first_name`!
-- **Architectural Fix:** Replicate `OwnerRegistrationService.onboardMember` pattern where incoming contact phone and names safely backfill the user record:
-  ```java
-  if (user.getPhone() == null || user.getPhone().isBlank()) {
-      user.setPhone(request.contactPhone().trim());
-  }
-  ```
+import java.util.List;
+import com.theadbasket.backend.common.validation.SanitizeText;
+import com.theadbasket.backend.common.validation.ValidationPatterns;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
-### 4.4 Missing Lifecycle Status and `updated_ts` on Campaign Briefs
-- **Observation:**
-  - `campaign_briefs` has no `status` column in DB.
-  - `campaign_briefs` has `created_ts` but **no `updated_ts` column**!
-- **Deficiency:** When an advertiser or admin updates a campaign brief later, there is no audit timestamp. Additionally, the dashboard cannot distinguish between `PENDING_REVIEW`, `ACTIVE`, `IN_REVIEW`, or `COMPLETED`.
-- **Architectural Fix:** Add `status VARCHAR(20) NOT NULL DEFAULT 'PENDING_REVIEW'` and `updated_ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` via a clean migration.
+public record AdvertiserRegistrationRequest(
+        // Login credentials (required for anonymous, optional if authenticated)
+        @Email(message = "Enter a valid email address.")
+        @Size(max = 180)
+        String accountEmail,
 
-### 4.5 Budget Denormalization for Search Performance
-- **Observation:** Budgets are stored as separate scalars (`50`) and units (`thousand`).
-- **Deficiency:** Performing SQL range queries (`WHERE budget_amount BETWEEN 50000 AND 200000`) across campaigns cannot be executed with standard B-tree indexes.
-- **Architectural Fix:** Store normalized integer/numeric INR amounts (`budget_min_amount NUMERIC(14,2)`, `budget_max_amount NUMERIC(14,2)`) computed during ingestion.
+        @Size(max = 72, message = "Password must be at most 72 characters.")
+        String password,
+
+        // Company
+        @SanitizeText
+        @NotBlank(message = "Company name is required.")
+        @Size(max = 150)
+        String companyName,
+
+        @SanitizeText
+        @NotBlank(message = "Business type is required.")
+        @Size(max = 80)
+        String businessType,
+
+        @SanitizeText
+        @Size(max = 255)
+        String website,
+
+        @Pattern(regexp = ValidationPatterns.GST_OPTIONAL, message = "GST number must be 15 characters.")
+        String gstNumber,
+
+        @Pattern(regexp = ValidationPatterns.PAN_OPTIONAL, message = "PAN must be 10 characters.")
+        String panNumber,
+
+        @NotEmpty(message = "Select at least one industry.")
+        List<@NotBlank String> industries,
+
+        // Primary Contact
+        @SanitizeText
+        @NotBlank(message = "First name is required.")
+        @Size(max = 80)
+        String firstName,
+
+        @SanitizeText
+        @Size(max = 80)
+        String lastName,
+
+        @SanitizeText
+        @NotBlank(message = "Designation is required.")
+        @Size(max = 120)
+        String contactDesignation,
+
+        @NotBlank(message = "Contact email is required.")
+        @Email(message = "Enter a valid email address.")
+        @Size(max = 180)
+        String contactEmail,
+
+        @NotBlank(message = "Phone number is required.")
+        @Pattern(regexp = ValidationPatterns.PHONE, message = "Enter a valid phone number.")
+        String contactPhone,
+
+        // Office Address
+        @SanitizeText
+        @NotBlank(message = "Address line 1 is required.")
+        @Size(max = 300)
+        String addressLine1,
+
+        @SanitizeText
+        @Size(max = 300)
+        String addressLine2,
+
+        @SanitizeText
+        @Size(max = 200)
+        String landmark,
+
+        @SanitizeText
+        @NotBlank(message = "City is required.")
+        @Size(max = 100)
+        String city,
+
+        @SanitizeText
+        @NotBlank(message = "State is required.")
+        @Size(max = 100)
+        String state,
+
+        @SanitizeText
+        @NotBlank(message = "PIN code is required.")
+        @Pattern(regexp = ValidationPatterns.PINCODE, message = ValidationPatterns.PINCODE_MESSAGE)
+        String pincode,
+
+        // Single Mandatory Initial Campaign Brief
+        @NotNull(message = "Project details are required.")
+        @Valid
+        CampaignBriefRequest project,
+
+        @AssertTrue(message = "You must accept the Terms & Conditions.")
+        boolean acceptedTerms
+) {}
+```
 
 ---
 
-## 5. Implementation Action Plan
+### 4.2 Backend Service: `AdvertiserRegistrationService.java`
 
-1. **Frontend (`steps.jsx` & `AdvertiserRegister.jsx`):**
-   - Update `STEPS` array from 7 items to 6 items.
-   - Combine `Step4` and `Step5` into unified `Step4` component with sections: Requirement Overview, Audience & Location, Timeline, Budget & Quotations, Agency Preferences.
-   - Re-index Step 6 $\rightarrow$ Step 5 (Verification), Step 7 $\rightarrow$ Step 6 (Review & Submit).
-   - Ensure Contact Person First Name and Last Name are split cleanly.
-2. **Backend (`AdvertiserRegistrationService.java`):**
-   - Inject `NotificationService` and issue welcome notification.
-   - Check `existsByGstNumber` before entity persistence to return clear HTTP 409 on duplicate GST.
-   - Safe-sync `phone` to `users` for authenticated onboarding.
-3. **Database Migration (`V11__advertiser_campaign_lifecycle.sql`):**
-   - Add `status` and `updated_ts` to `campaign_briefs`.
-   - Add `budget_min_amount` and `budget_max_amount` to `campaign_briefs`.
-   - Add `logo_url` and `company_phone` to `advertiser_profiles`.
+Saves the single initial campaign brief atomically with the user and profile:
+
+```java
+@Transactional
+public AuthResponse register(AdvertiserRegistrationRequest request, Long currentUserId) {
+    if (!rolePolicyProperties.isEnabled(Role.ADVERTISER)) {
+        throw new BadRequestException(ErrorCode.ADVERTISER_REGISTRATION_UNAVAILABLE);
+    }
+
+    User user = accountRegistrar.attachOrCreate(currentUserId, request.firstName().trim(),
+            request.lastName(), request.accountEmail(), request.password(), request.contactPhone(),
+            Role.ADVERTISER);
+
+    Address address = Address.of(
+            request.addressLine1(),
+            request.addressLine2(),
+            request.landmark(),
+            request.city(),
+            request.state(),
+            request.pincode()
+    );
+
+    AdvertiserProfile profile = new AdvertiserProfile();
+    profile.setUser(user);
+    profile.setCompanyName(request.companyName().trim());
+    profile.setBusinessType(request.businessType());
+    profile.setWebsite(blankToNull(request.website()));
+    profile.setGstNumber(blankToNull(request.gstNumber()));
+    profile.setPanNumber(blankToNull(request.panNumber()));
+    profile.setContactDesignation(request.contactDesignation());
+    profile.setContactEmail(request.contactEmail().trim().toLowerCase());
+    profile.setAddress(address);
+    profile.setIndustries(new ArrayList<>(request.industries()));
+    advertiserProfileRepository.save(profile);
+
+    // Save initial mandatory campaign brief
+    campaignBriefRepository.save(toBrief(request.project(), user));
+
+    log.info("Advertiser registration complete for user id={}", user.getId());
+    return authService.issueTokensFor(user);
+}
+```
+
+---
+
+## 5. Architectural Findings & Action Plan
+
+1. **Duplicate GST Pre-Check:** Pre-check `existsByGstNumber()` in `AdvertiserRegistrationService` to emit an HTTP 409 `ConflictException` instead of letting PostgreSQL throw an unhandled 500 `DataIntegrityViolationException`.
+2. **Onboarding Welcome Notification:** Inject `NotificationService` into `AdvertiserRegistrationService` and generate a welcome notification (aligning with `OwnerRegistrationService` and `V5__create_notifications.sql`).
+3. **Contact Name Split:** Split `Contact Person Name` (`f_firstName`) in Step 3 into `First Name` (required) and `Last Name` (optional) to populate `users.first_name` and `users.last_name` accurately.
+4. **Campaign Lifecycle Tracking:** Add `status VARCHAR(20) NOT NULL DEFAULT 'PENDING_REVIEW'` and `updated_ts` to `campaign_briefs` via a migration.
+5. **Budget Query Normalization:** Compute and store normalized absolute INR amounts (`budget_min_amount NUMERIC(14,2)`) during ingestion for SQL range queries.
+
+---
+
+## 6. Multi-Campaign Lifecycle: Handled Post-Registration in Dashboard
+
+Since exactly 1 campaign is captured during onboarding, creating additional campaigns is handled inside the authenticated dashboard:
+
+1. **Dashboard Route:** `/advertisers/dashboard`
+2. **Action Trigger:** Click `+ New Campaign` button on:
+   - Top right of `Overview` page
+   - Header of `My Campaigns` page (`/advertisers/dashboard?tab=campaigns`)
+3. **Modal / Form View:** Opens a dedicated "Create Campaign Brief" dialog containing the fields from Step 4 and Step 5.
+4. **Endpoint:** `POST /api/advertiser/campaigns` (authenticated, role `ADVERTISER`).
+5. **Result:** Creates an additional `campaign_briefs` record linked to the user's ID without re-entering company or contact details.
