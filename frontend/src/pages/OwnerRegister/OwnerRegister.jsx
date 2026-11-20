@@ -8,7 +8,14 @@ import { AuthModalContext } from '@/context/AuthModalContext';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { mapOwner, mapOwnerOnboarding } from '@/features/auth/registrationMappers';
 import { apiErrorMessage } from '@/lib/apiClient';
-import { isOther, isBlank, isValidPincode } from '@/lib/validators';
+import {
+  isOther,
+  isBlank,
+  isValidPincode,
+  isValidCompanyReg,
+  isValidGst,
+  isValidCityOrState,
+} from '@/lib/validators';
 import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { normalizeUploadItem } from './widgets';
 import {
@@ -81,37 +88,65 @@ export function validate(step, { data, showToast, user }) {
     return false;
   };
   if (step === 1) {
-    if (!d('f_firstName') || !d('f_lastName')) return fail('Please enter your full name.');
     if (d('f_phone').replace(/\D/g, '').length !== 10)
       return fail('Please enter a valid 10-digit mobile number.');
+    if (!user) {
+      if (!data.f_phoneVerified)
+        return fail('Please verify your mobile number with OTP before continuing.');
+      if (!d('f_email').includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d('f_email')))
+        return fail('Please enter a valid email address.');
+      if (!data.f_emailVerified)
+        return fail('Please verify your email address with OTP before continuing.');
+    }
+    if (!d('f_firstName') || !d('f_lastName')) return fail('Please enter your full name.');
     const pw = data.f_password ?? '';
     const confirm = data.f_confirmPassword ?? '';
     if (!user) {
-      if (!d('f_email').includes('@')) return fail('Please enter a valid email address.');
-      if (pw.length < 8) return fail('Password must be at least 8 characters.');
-      if (pw !== confirm) return fail('Passwords do not match.');
+      if (!pw) return fail('Please set a password for your account.');
+      if (pw.length < 8) return fail('Password must be at least 8 characters long.');
+      if (!/[A-Z]/.test(pw)) return fail('Password must contain at least one uppercase letter.');
+      if (!/[0-9]/.test(pw)) return fail('Password must contain at least one number.');
+      if (!/[^A-Za-z0-9]/.test(pw))
+        return fail('Password must contain at least one special symbol.');
+      if (pw !== confirm)
+        return fail('Passwords do not match. Please re-enter your password to confirm.');
     }
   }
   if (step === 2) {
     if (!d('f_companyName')) return fail('Please enter your company name.');
+    if (d('f_companyReg') && !isValidCompanyReg(d('f_companyReg')))
+      return fail('Please enter a valid Company Registration / CIN number.');
+    if (d('f_gst') && !isValidGst(d('f_gst')))
+      return fail('Please enter a valid 15-character GSTIN.');
     if (!d('f_bizAddr1')) return fail('Please enter your address.');
-    if (!d('f_bizCity')) return fail('Please enter your city.');
-    if (!d('f_bizState')) return fail('Please enter your state.');
     if (!d('f_bizPin')) return fail('Please enter your office pincode.');
     if (!isValidPincode(d('f_bizPin')))
       return fail('Please enter a valid 6-digit office pincode (cannot start with 0).');
+    if (!d('f_bizCity')) return fail('Please enter your city.');
+    if (!isValidCityOrState(d('f_bizCity')))
+      return fail('Please enter a valid city name (letters and spaces only).');
+    if (!d('f_bizState')) return fail('Please enter your state.');
+    if (!isValidCityOrState(d('f_bizState')))
+      return fail('Please enter a valid state name (letters and spaces only).');
   }
   if (step === 3) {
     if (!d('f_bbName')) return fail('Please enter a billboard name.');
     if (!d('f_bbAddr')) return fail('Please enter the billboard address.');
-    if (!d('f_bbCity')) return fail('Please enter the billboard city.');
-    if (!d('f_bbState')) return fail('Please enter the billboard state.');
     if (!d('f_bbPin')) return fail('Please enter the billboard pincode.');
     if (!isValidPincode(d('f_bbPin')))
       return fail('Please enter a valid 6-digit billboard pincode (cannot start with 0).');
+    if (!d('f_bbCity')) return fail('Please enter the billboard city.');
+    if (!isValidCityOrState(d('f_bbCity')))
+      return fail('Please enter a valid billboard city name (letters and spaces only).');
+    if (!d('f_bbState')) return fail('Please enter the billboard state.');
+    if (!isValidCityOrState(d('f_bbState')))
+      return fail('Please enter a valid billboard state name (letters and spaces only).');
     if (!d('f_bbType')) return fail('Please select a billboard type.');
-    if (isOther(d('f_bbType')) && isBlank(d('f_bbTypeOther')))
-      return fail('Please describe the billboard type.');
+    if (isOther(d('f_bbType'))) {
+      if (isBlank(d('f_bbTypeOther'))) return fail('Please describe the billboard type.');
+      if (!/^[a-zA-Z\s]+$/.test(d('f_bbTypeOther')))
+        return fail('Billboard type must contain letters only.');
+    }
     if (!d('f_bbWidth') || !d('f_bbHeight')) return fail('Please enter the billboard dimensions.');
     if (!d('f_facing')) return fail('Please select a facing direction.');
     if (!d('f_trafficType')) return fail('Please select a traffic type.');
@@ -134,10 +169,38 @@ export function validate(step, { data, showToast, user }) {
   return true;
 }
 
-function validateSubmit({ data, showToast }) {
+function validateSubmit({ data, showToast, user }) {
   if (!data.f_termsAccept) {
     showToast('Please accept the Terms of Service to continue.', 'error');
     return false;
+  }
+  if (!user) {
+    const pw = data.f_password ?? '';
+    const confirm = data.f_confirmPassword ?? '';
+    if (!pw) {
+      showToast('Please set a password for your account in Step 1 before submitting.', 'error');
+      return false;
+    }
+    if (pw.length < 8) {
+      showToast('Password must be at least 8 characters long (set in Step 1).', 'error');
+      return false;
+    }
+    if (!/[A-Z]/.test(pw)) {
+      showToast('Password must contain at least one uppercase letter (set in Step 1).', 'error');
+      return false;
+    }
+    if (!/[0-9]/.test(pw)) {
+      showToast('Password must contain at least one number (set in Step 1).', 'error');
+      return false;
+    }
+    if (!/[^A-Za-z0-9]/.test(pw)) {
+      showToast('Password must contain at least one special symbol (set in Step 1).', 'error');
+      return false;
+    }
+    if (pw !== confirm) {
+      showToast('Passwords do not match. Please verify your password in Step 1.', 'error');
+      return false;
+    }
   }
   return true;
 }
@@ -449,7 +512,7 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
         totalSteps={7}
         initialStep={initialStep}
         validate={(step, ctx) => validate(step, { ...ctx, user })}
-        validateSubmit={validateSubmit}
+        validateSubmit={(ctx) => validateSubmit({ ...ctx, user })}
         initialData={prefill}
         onSubmit={onSubmit}
       >
