@@ -15,6 +15,9 @@ export const MSG = {
   pincode: 'Enter a valid 6-digit PIN code (cannot start with 0).',
   gst: 'Enter a valid 15-character GSTIN.',
   pan: 'Enter a valid PAN (e.g. AAAAA0000A).',
+  companyReg: 'Enter a valid Company Registration / CIN number (7–21 alphanumeric characters).',
+  city: 'Enter a valid city name (letters and spaces only).',
+  state: 'Enter a valid state name (letters and spaces only).',
 };
 
 const isEmpty = (v) => v == null || String(v).trim() === '';
@@ -59,10 +62,39 @@ export const pincode =
     isEmpty(v) || isValidPincode(v) ? null : msg;
 
 const GST_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+export function isValidGst(v) {
+  if (v == null) return false;
+  return GST_RE.test(String(v).trim().toUpperCase());
+}
 export const gst =
   (msg = MSG.gst) =>
   (v) =>
-    isEmpty(v) || GST_RE.test(String(v).trim().toUpperCase()) ? null : msg;
+    isEmpty(v) || isValidGst(v) ? null : msg;
+
+const COMPANY_REG_RE = /^[A-Za-z0-9-]{7,21}$/;
+export function isValidCompanyReg(v) {
+  if (v == null) return false;
+  return COMPANY_REG_RE.test(String(v).trim());
+}
+export const companyReg =
+  (msg = MSG.companyReg) =>
+  (v) =>
+    isEmpty(v) || isValidCompanyReg(v) ? null : msg;
+
+const CITY_STATE_RE = /^[A-Za-z\s.\-']{2,50}$/;
+export function isValidCityOrState(v) {
+  if (v == null) return false;
+  return CITY_STATE_RE.test(String(v).trim());
+}
+export const city =
+  (msg = MSG.city) =>
+  (v) =>
+    isEmpty(v) || isValidCityOrState(v) ? null : msg;
+
+export const state =
+  (msg = MSG.state) =>
+  (v) =>
+    isEmpty(v) || isValidCityOrState(v) ? null : msg;
 
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 export const pan =

@@ -7,6 +7,9 @@ import {
   pincode,
   isValidPincode,
   gst,
+  companyReg,
+  city,
+  state,
   minLength,
   runValidators,
   isOther,
@@ -291,6 +294,44 @@ describe('Frontend Field Validators', () => {
       expect(validators).toHaveLength(1);
       expect(validators[0]('15')).toBeNull();
       expect(validators[0]('15abc')).toBe('Enter a valid number.');
+    });
+  });
+
+  describe('GST, Company Registration, City, and State Validators', () => {
+    it('validates 15-character GST format', () => {
+      const vGst = gst();
+      expect(vGst('')).toBeNull();
+      expect(vGst(null)).toBeNull();
+      expect(vGst('27AAPFU0939F1Z5')).toBeNull();
+      expect(vGst('27aapfu0939f1z5')).toBeNull(); // case-insensitive check
+      expect(vGst('INVALIDGST')).toBe(MSG.gst);
+      expect(vGst('27AAPFU0939F1Z')).toBe(MSG.gst); // 14 chars
+    });
+
+    it('validates Indian Company Registration / CIN number format (7–21 alphanumeric characters)', () => {
+      const vReg = companyReg();
+      expect(vReg('')).toBeNull();
+      expect(vReg(null)).toBeNull();
+      expect(vReg('U74999MH2020PTC123456')).toBeNull(); // 21 char CIN
+      expect(vReg('AAA-1234')).toBeNull(); // 8 char LLPIN with hyphen
+      expect(vReg('123456')).toBe(MSG.companyReg); // < 7 chars
+      expect(vReg('U74999MH2020PTC1234567890')).toBe(MSG.companyReg); // > 21 chars
+      expect(vReg('U74999MH2020PTC1234@#')).toBe(MSG.companyReg); // special characters
+    });
+
+    it('validates city and state name format (letters, spaces, dots, hyphens only, 2-50 chars)', () => {
+      const vCity = city();
+      const vState = state();
+      expect(vCity('')).toBeNull();
+      expect(vState('')).toBeNull();
+      expect(vCity('Pune')).toBeNull();
+      expect(vCity('New Delhi')).toBeNull();
+      expect(vState('Maharashtra')).toBeNull();
+      expect(vState('Tamil Nadu')).toBeNull();
+      expect(vCity('P')).toBe(MSG.city); // < 2 chars
+      expect(vCity('Pune123')).toBe(MSG.city); // digits
+      expect(vCity('Pune@City')).toBe(MSG.city); // special chars
+      expect(vState('M123')).toBe(MSG.state);
     });
   });
 });
