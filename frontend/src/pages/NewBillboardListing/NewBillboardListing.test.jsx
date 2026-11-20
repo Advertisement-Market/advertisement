@@ -1260,7 +1260,7 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
     });
 
-    it('blocks wizard progression when f_bbGroundHeight has invalid text (15abc)', async () => {
+    it('blocks wizard progression when f_bbGroundHeight is out of range (> 300)', async () => {
       const stateListing = {
         id: 99,
         name: 'Andheri West Screen',
@@ -1303,20 +1303,26 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         expect(screen.getByText('Edit Billboard Listing')).toBeDefined();
       });
 
-      // Type 15abc into ground height input
+      // Ground height input has standard type="number" with min=0, max=300
       const groundInput = screen.getByPlaceholderText('30');
-      fireEvent.change(groundInput, { target: { value: '15abc' } });
+      expect(groundInput.getAttribute('type')).toBe('number');
+      expect(groundInput.getAttribute('min')).toBe('0');
+      expect(groundInput.getAttribute('max')).toBe('300');
+      expect(screen.getByText('Typical range: 0–300 ft')).toBeDefined();
+
+      // Type 350 into ground height input
+      fireEvent.change(groundInput, { target: { value: '350' } });
       fireEvent.blur(groundInput);
 
       // Verify inline error appears
-      expect(screen.getByText('Enter a valid number.')).toBeDefined();
+      expect(screen.getByText('Enter a value between 0 and 300.')).toBeDefined();
 
       // Attempt to click Continue
       fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
 
       // Wizard must be blocked on Step 1
       expect(screen.queryByRole('button', { name: /continue to media uploads/i })).toBeNull();
-      expect(screen.getByText('Enter a valid number.')).toBeDefined();
+      expect(screen.getByText('Enter a value between 0 and 300.')).toBeDefined();
     });
 
     it('allows wizard progression when f_bbGroundHeight has valid decimal formats (.5 and 15.)', async () => {
@@ -1368,11 +1374,14 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       fireEvent.blur(groundInput);
 
       // No error message
-      expect(screen.queryByText('Enter a valid number.')).toBeNull();
+      expect(screen.queryByText(/Enter a value between/i)).toBeNull();
+      expect(screen.queryByText(/Enter a valid number/i)).toBeNull();
 
       // Next test trailing dot decimal 15.
       fireEvent.change(groundInput, { target: { value: '15.' } });
       fireEvent.blur(groundInput);
+      expect(screen.queryByText(/Enter a value between/i)).toBeNull();
+      expect(screen.queryByText(/Enter a valid number/i)).toBeNull();
       expect(screen.queryByText('Enter a valid number.')).toBeNull();
 
       // Click Continue

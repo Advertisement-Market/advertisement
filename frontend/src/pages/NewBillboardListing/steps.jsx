@@ -175,8 +175,8 @@ function FootfallField() {
 /* ── STEP 1: BILLBOARD DETAILS ── */
 export function ListingStep1() {
   const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState', 'f_bbArea');
-  const cityErr = useFieldError('f_bbCity', [v.required()]);
-  const stateErr = useFieldError('f_bbState', [v.required()]);
+  const cityErr = useFieldError('f_bbCity', [v.required(), v.city()]);
+  const stateErr = useFieldError('f_bbState', [v.required(), v.state()]);
   const { field, setField } = useRegister();
 
   return (
@@ -201,58 +201,70 @@ export function ListingStep1() {
           required
           placeholder="Road / Street / Highway name"
         />
-        <FormRow>
-          <Field
-            name="f_bbLandmark"
-            label="Nearby Landmark"
-            optional
-            placeholder="e.g., Andheri Station flyover"
+        <Field
+          name="f_bbLandmark"
+          label="Nearby Landmark"
+          optional
+          placeholder="e.g., Andheri Station flyover"
+        />
+        <div className="form-group">
+          <label>
+            Billboard Pincode <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', bb.err.invalidClass)}
+            placeholder="400053"
+            maxLength={6}
+            value={bb.val}
+            onChange={(e) => bb.set(e.target.value)}
+            onBlur={bb.onBlur}
           />
+          <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
+          <FieldError show={bb.err.show} error={bb.err.error} />
+        </div>
+        <FormRow>
           <div className="form-group">
             <label>
               City <span className="req">*</span>
+              {bb.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
             </label>
             <input
               type="text"
-              className={cn('form-control', cityErr.invalidClass)}
+              className={cn('form-control', cityErr.invalidClass, bb.autoFilled && 'locked-field')}
               placeholder="Mumbai"
               value={field('f_bbCity')}
               onChange={(e) => setField('f_bbCity', e.target.value)}
               onBlur={cityErr.onBlur}
+              readOnly={bb.autoFilled}
+              aria-readonly={bb.autoFilled || undefined}
             />
             <FieldError show={cityErr.show} error={cityErr.error} />
           </div>
-        </FormRow>
-        <FormRow>
           <div className="form-group">
             <label>
               State <span className="req">*</span>
+              {bb.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
             </label>
             <input
               type="text"
-              className={cn('form-control', stateErr.invalidClass)}
+              className={cn('form-control', stateErr.invalidClass, bb.autoFilled && 'locked-field')}
               placeholder="Maharashtra"
               value={field('f_bbState')}
               onChange={(e) => setField('f_bbState', e.target.value)}
               onBlur={stateErr.onBlur}
+              readOnly={bb.autoFilled}
+              aria-readonly={bb.autoFilled || undefined}
             />
             <FieldError show={stateErr.show} error={stateErr.error} />
-          </div>
-          <div className="form-group">
-            <label>
-              Billboard Pincode <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              className={cn('form-control', bb.err.invalidClass)}
-              placeholder="400053"
-              maxLength={6}
-              value={bb.val}
-              onChange={(e) => bb.set(e.target.value)}
-              onBlur={bb.onBlur}
-            />
-            <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
-            <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
         </FormRow>
         {bb.areas.length > 0 && (
@@ -344,7 +356,9 @@ export function ListingStep1() {
               placeholder="e.g., Bridge Panel, Skywalk, Pillar"
               maxLength={120}
               value={field('f_bbTypeOther')}
-              onChange={(e) => setField('f_bbTypeOther', e.target.value)}
+              onChange={(e) =>
+                setField('f_bbTypeOther', e.target.value.replace(/[^a-zA-Z\s]/g, ''))
+              }
             />
           </div>
         )}
@@ -376,15 +390,13 @@ export function ListingStep1() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="text"
-            inputMode="decimal"
-            validateAs="decimal"
+            type="number"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min={0}
-            max={300}
-            hint="0–300 ft from ground level"
+            min="0"
+            max="300"
+            hint="Typical range: 0–300 ft"
           />
           <div className="form-group" />
         </FormRow>
@@ -457,8 +469,10 @@ export function ListingStep2() {
       <FormSection title="Availability Calendar">
         <div className="form-group">
           <div className="form-hint" style={{ marginBottom: 12 }}>
-            Click a start date then an end date to mark a range as blocked. Click a blocked date to
-            clear it. Your blocked dates are saved directly to your listing availability calendar.
+            Mark dates on which your billboard already has reservations or bookings scheduled in
+            advance. Click a start date then an end date to block a date range (click any blocked
+            date to unblock). Marking advance reservations keeps your availability accurate and
+            prevents conflicting bookings.
           </div>
         </div>
         <AvailabilityCalendar />
@@ -796,7 +810,7 @@ export function ListingStep3() {
           sectionTitle="Day Photos"
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
-          title="Drag & drop day photos here"
+          title="Drag & drop or click to browse"
           sub="JPG, PNG · Max 10MB each · Clear angle required"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="DAY_PHOTO"
@@ -819,7 +833,7 @@ export function ListingStep3() {
           sectionTitle="Night Photos"
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
-          title="Drag & drop night photos here"
+          title="Drag & drop or click to browse"
           sub="JPG, PNG · Must show actual illumination · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="NIGHT_PHOTO"
@@ -840,8 +854,8 @@ export function ListingStep3() {
           sectionTitle="Surrounding Area Photo"
           badge={<span className="badge-optional">Optional</span>}
           icon={GlobeIcon}
-          title="Shows billboard in its surroundings"
-          sub="Drag & drop or click to browse · JPG, PNG"
+          title="Shows billboard with its surroundings"
+          sub="Drag & drop or click to browse · JPG, PNG · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="SURROUNDING_PHOTO"
           maxCount={5}

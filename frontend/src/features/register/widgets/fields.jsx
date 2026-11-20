@@ -86,11 +86,15 @@ export function Field({
   rows,
   groupStyle,
   rules = [],
+  onChange: customOnChange,
   ...rest
 }) {
   const { field, setField } = useRegister();
   const value = field(name);
-  const onChange = (e) => setField(name, e.target.value);
+  const onChange = (e) => {
+    setField(name, e.target.value);
+    if (customOnChange) customOnChange(e);
+  };
 
   const validationType = validateAs || type;
   const validators = [
