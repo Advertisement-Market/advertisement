@@ -46,6 +46,25 @@ flowchart TD
     Success --> Dashboard[/advertisers/dashboard<br/>Subsequent campaigns added here via + New Campaign]
 ```
 
+### 1.2 Advertiser Authentication & Login Lifecycle
+
+The Advertiser authentication and session lifecycle spans both onboarding and returning user workflows:
+
+1. **Returning Advertiser Login (`POST /api/auth/login` & `POST /api/auth/google`):**
+   - **Local Credentials:** Validated against `users` table via `AuthenticationManager` with BCrypt password hashing; verifies account is enabled and extracts `Role.ADVERTISER`.
+   - **Google OneTap / FedCM:** Verifies Google ID token via `GoogleTokenVerifier`, linking `googleSubjectId` to the advertiser's profile.
+   - **Token Emission & Rotation:** Issues short-lived JWT Access Token (15 min) with `ROLE_ADVERTISER` authority and an HttpOnly, Secure, SameSite refresh token cookie (`refreshToken`).
+   - **Role-Aware Redirection:** Frontend routes authenticated users via `DASHBOARD_BY_ROLE['ADVERTISER'] = ROUTES.advertiserDashboard` (`/advertisers/dashboard`).
+   - **API Namespace Protection:** Spring `SecurityConfig` enforces `.requestMatchers("/api/advertiser/**").hasRole("ADVERTISER")`. Requests lacking valid advertiser JWT claims receive HTTP 401 (`AUTHENTICATION_REQUIRED`) or HTTP 403 (`ACCESS_DENIED`).
+
+2. **Step 1 Dual-State Onboarding Entry:**
+   - **Anonymous Visitor:** Step 1 requires `f_loginEmail` and `f_password` (min 8 chars, complexity checks). Backend creates a new `User` with `role = Role.ADVERTISER`.
+   - **Signed-in `MEMBER` Account:** Detected via `useAuth()`. Step 1 renders `SignedInBanner`, pre-populates name and email, and marks password optional. Backend elevates existing record from `MEMBER` to `ADVERTISER` via `AccountRegistrar.attachOrCreate(...)` without creating duplicate accounts.
+
+3. **Session Synchronization & Conflict Recovery:**
+   - **Cross-Tab Role Sync:** Listens to `storage` events on `ab_user` so background tabs update immediately to the promoted `ADVERTISER` role without waiting for token expiry.
+   - **Email Conflict (HTTP 409):** If an anonymous user enters an already registered email, backend emits `EMAIL_ALREADY_EXISTS`. Handled via sign-in prompt in `AuthModal` so users can authenticate and complete onboarding via role promotion.
+
 ---
 
 ## 2. Standard 7-Step Stepper Inventory
