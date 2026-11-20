@@ -181,16 +181,6 @@ export function AvailabilityCalendar() {
           </button>
         </div>
       </div>
-      {rangeStart && (
-        <div className="cal-selection-hint">
-          <span>
-            Start date selected: <strong>{rangeStart}</strong> — click an end date to block range
-          </span>
-          <button type="button" className="cal-inline-btn" onClick={() => setRangeStart(null)}>
-            Cancel
-          </button>
-        </div>
-      )}
       <div className="cal-grid">
         {DAY_NAMES.map((d) => (
           <div className="cal-day-name" key={d}>
@@ -277,12 +267,27 @@ export function AvailabilityCalendar() {
         </div>
       </div>
       <div className="cal-footer-bar">
-        <div className="cal-summary">{summary}</div>
-        {blockedCount > 0 && (
-          <button type="button" className="cal-inline-btn" onClick={handleClearAll}>
-            Clear blocked dates
-          </button>
-        )}
+        <div className="cal-summary">
+          {rangeStart ? (
+            <span>
+              Start date selected: <strong>{rangeStart}</strong> — click an end date to block range
+            </span>
+          ) : (
+            summary
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {rangeStart && (
+            <button type="button" className="cal-inline-btn" onClick={() => setRangeStart(null)}>
+              Cancel selection
+            </button>
+          )}
+          {blockedCount > 0 && !rangeStart && (
+            <button type="button" className="cal-inline-btn" onClick={handleClearAll}>
+              Clear blocked dates
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -291,89 +296,279 @@ export function AvailabilityCalendar() {
 /* ── Pricing table with auto-calculated base rate + discounts ── */
 const UNIT_DAYS = { days: 1, weeks: 7, months: 30, years: 365 };
 
-function PriceRow({ defaultNum, defaultUnit, notePlaceholder, base, isBase }) {
-  const [num, setNum] = useState(defaultNum);
-  const [unit, setUnit] = useState(defaultUnit);
-  const [rate, setRate] = useState('');
-  const [note, setNote] = useState('');
-
-  const autoRate = isBase && base ? Math.round(base) : null;
-  const effRate = rate !== '' ? Number(rate) : autoRate;
-
-  let discount = '—';
-  if (isBase) discount = 'Base rate';
-  else if (effRate && base && num) {
-    const expected = base * ((Number(num) * UNIT_DAYS[unit]) / 30);
-    if (expected > 0) {
-      const pct = Math.round((1 - effRate / expected) * 100);
-      if (pct > 0) discount = `${pct}% off`;
-    }
-  }
-
-  return (
-    <div className="pricing-table-row">
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <input
-          type="number"
-          className="price-input"
-          value={num}
-          min="1"
-          style={{ width: 54, textAlign: 'center' }}
-          onChange={(e) => setNum(e.target.value)}
-        />
-        <select
-          className="price-input"
-          style={{ padding: '6px 8px', cursor: 'pointer' }}
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-        >
-          <option value="days">Days</option>
-          <option value="weeks">Weeks</option>
-          <option value="months">Months</option>
-          <option value="years">Years</option>
-        </select>
-      </div>
-      <input
-        type="number"
-        className="price-input"
-        placeholder={isBase ? 'auto' : ''}
-        value={rate === '' && autoRate ? autoRate : rate}
-        onChange={(e) => setRate(e.target.value)}
-      />
-      <div
-        className="discount-badge"
-        style={{ fontSize: 11.5, color: isBase ? 'var(--ink-faint)' : undefined }}
-      >
-        {discount}
-      </div>
-      <input
-        type="text"
-        className="price-input"
-        placeholder={notePlaceholder}
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-      />
-    </div>
-  );
-}
+const DEFAULT_PACKAGES = [
+  {
+    id: 1,
+    num: '1',
+    unit: 'months',
+    rate: '',
+    note: '',
+    notePlaceholder: 'Standard',
+    isBase: true,
+  },
+  {
+    id: 2,
+    num: '1',
+    unit: 'months',
+    rate: '',
+    note: '',
+    notePlaceholder: '30% off',
+    isBase: false,
+  },
+  {
+    id: 3,
+    num: '1',
+    unit: 'months',
+    rate: '',
+    note: '',
+    notePlaceholder: 'Best value',
+    isBase: false,
+  },
+];
 
 export function PricingTable() {
-  const { field } = useRegister();
+  const { field, setField } = useRegister();
   const daily = Number(field('f_startPrice')) || 0;
-  const base = daily * 30;
+
+  const rawPackages = field('f_pricingPackages');
+  const packages = useMemo(() => {
+    if (Array.isArray(rawPackages) && rawPackages.length > 0) {
+      return rawPackages;
+    }
+    return DEFAULT_PACKAGES;
+  }, [rawPackages]);
+
+  // 1. Identify base package (Row 1)
+  const basePkg = packages.find((p) => p.isBase) || packages[0];
+  const baseNum = Number(basePkg?.num) || 1;
+  const baseUnit = basePkg?.unit || 'months';
+  const baseDays = baseNum * (UNIT_DAYS[baseUnit] || 30);
+
+  // Auto-calculated rate for base package: daily × baseDays
+  const baseAutoRate = daily > 0 && baseDays > 0 ? Math.round(daily * baseDays) : null;
+  // Effective rate of base package: custom rate if entered, else baseAutoRate
+  const baseEffectiveRate =
+    basePkg?.rate !== '' && basePkg?.rate != null ? Number(basePkg.rate) : baseAutoRate;
+  // Effective daily rate derived from the base package
+  const baseDailyRate = baseDays > 0 && baseEffectiveRate ? baseEffectiveRate / baseDays : daily;
+
+  const handleUpdate = (id, fieldName, value) => {
+    const next = packages.map((pkg) => {
+      if (pkg.id !== id) return pkg;
+      // When changing duration on base package, clear manual rate so it auto-recalculates for the new duration
+      if (pkg.isBase && (fieldName === 'num' || fieldName === 'unit')) {
+        return { ...pkg, [fieldName]: value, rate: '' };
+      }
+      return { ...pkg, [fieldName]: value };
+    });
+    setField('f_pricingPackages', next);
+  };
+
+  const handleAddPackage = () => {
+    const next = [
+      ...packages,
+      {
+        id: Date.now() + Math.random(),
+        num: '1',
+        unit: 'months',
+        rate: '',
+        note: '',
+        notePlaceholder: '',
+        isBase: false,
+      },
+    ];
+    setField('f_pricingPackages', next);
+  };
+
+  const handleRemovePackage = (id) => {
+    const next = packages.filter((p) => p.id !== id);
+    setField('f_pricingPackages', next);
+  };
+
   return (
-    <div className="pricing-table">
-      <div className="pricing-table-header">
-        <span>Duration</span>
-        <span>Rate (₹)</span>
-        <span>Discount vs Base</span>
-        <span>Notes</span>
+    <div>
+      <div className="pricing-table">
+        <div className="pricing-table-header">
+          <span>Duration</span>
+          <span>Rate (₹)</span>
+          <span>Discount vs Base</span>
+          <span>Notes</span>
+        </div>
+        {packages.map((pkg) => {
+          const isBase = pkg.isBase;
+          // Rate display: for base package, if rate is empty, show baseAutoRate
+          const displayRate =
+            pkg.rate !== '' ? pkg.rate : isBase && baseAutoRate != null ? String(baseAutoRate) : '';
+
+          // Calculate discount vs base package taking duration of both rows into account
+          // Only display positive discount percentage. If no discount or premium, leave blank.
+          let discount = '';
+          if (isBase) {
+            discount = 'Base rate';
+          } else {
+            const pkgNum = Number(pkg.num) || 0;
+            const pkgDays = pkgNum * (UNIT_DAYS[pkg.unit] || 30);
+            const effRate = pkg.rate !== '' ? Number(pkg.rate) : null;
+            const expected = baseDailyRate > 0 && pkgDays > 0 ? baseDailyRate * pkgDays : 0;
+
+            if (effRate != null && expected > 0) {
+              const pct = Math.round((1 - effRate / expected) * 100);
+              if (pct > 0) {
+                discount = `${pct}% off`;
+              }
+            }
+          }
+
+          return (
+            <div className="pricing-table-row" key={pkg.id}>
+              {/* 1. Duration */}
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%' }}>
+                <input
+                  type="number"
+                  className="price-input"
+                  value={pkg.num}
+                  min="1"
+                  style={{ width: 52, textAlign: 'center', padding: '8px 4px', flexShrink: 0 }}
+                  aria-label="Package duration value"
+                  onChange={(e) => handleUpdate(pkg.id, 'num', e.target.value)}
+                />
+                <select
+                  className="price-input"
+                  style={{ padding: '8px 10px', cursor: 'pointer', flex: 1, minWidth: 95 }}
+                  aria-label="Package duration unit"
+                  value={pkg.unit}
+                  onChange={(e) => handleUpdate(pkg.id, 'unit', e.target.value)}
+                >
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                  <option value="years">Years</option>
+                </select>
+              </div>
+
+              {/* 2. Rate */}
+              <input
+                type="number"
+                className="price-input"
+                placeholder={isBase ? 'auto' : ''}
+                aria-label="Package rate"
+                value={displayRate}
+                style={{ width: '100%' }}
+                onChange={(e) => handleUpdate(pkg.id, 'rate', e.target.value)}
+              />
+
+              {/* 3. Discount vs Base */}
+              <div
+                className="discount-badge"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: isBase ? 'var(--ink-faint)' : 'var(--teal)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {discount}
+              </div>
+
+              {/* 4. Notes & Action */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
+                <input
+                  type="text"
+                  className="price-input"
+                  placeholder={pkg.notePlaceholder}
+                  aria-label="Package notes"
+                  value={pkg.note}
+                  style={{ flex: 1, minWidth: 0, width: '100%' }}
+                  onChange={(e) => handleUpdate(pkg.id, 'note', e.target.value)}
+                />
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {!isBase && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePackage(pkg.id)}
+                      title="Remove package"
+                      aria-label="Remove package"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--ink-faint)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#dc2626';
+                        e.currentTarget.style.background = 'rgba(220, 38, 38, 0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--ink-faint)';
+                        e.currentTarget.style.background = 'none';
+                      }}
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <PriceRow defaultNum="1" defaultUnit="months" notePlaceholder="Standard" base={base} isBase />
-      <PriceRow defaultNum="3" defaultUnit="months" notePlaceholder="30% off" base={base} />
-      <PriceRow defaultNum="6" defaultUnit="months" notePlaceholder="Best value" base={base} />
-      <PriceRow defaultNum="9" defaultUnit="months" notePlaceholder="" base={base} />
-      <PriceRow defaultNum="12" defaultUnit="months" notePlaceholder="" base={base} />
+      <div style={{ marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={handleAddPackage}
+          className="cal-inline-btn"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '7px 14px',
+            fontSize: 12.5,
+            cursor: 'pointer',
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Add Package
+        </button>
+      </div>
     </div>
   );
 }
