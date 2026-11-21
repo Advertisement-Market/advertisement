@@ -56,6 +56,12 @@ Prior to this update, three key UX deficiencies existed in the onboarding and li
 - Ensure mobile number verification persists when navigating between registration steps (e.g. Step 1 -> Step 2 -> Step 1) without requiring users to re-verify.
 - Reposition the mobile number verification section as the primary focus on the First Registration screen (`Step 1`) ahead of Email Address, Your Name, and Password.
 - Fix the Company Phone field in Step 2 to ensure the greyed-out country code (`+91`) is displayed correctly via `.phone-wrap` and `.phone-prefix`, and is not subject to 10-digit mobile input restrictions (allowing landlines and varied formats).
+- Standardize all media and document dropzone upload boxes across both `OwnerRegister` and `NewBillboardListing` into a uniform 3-line layout:
+  - Line 1: Action prompt (`Drag & drop or click to browse`).
+  - Line 2: Specific instruction (`Clear angle required`, `Must show actual illumination`, `Shows billboard with its surroundings`, `Short walkthrough or footage of the billboard`, `Ownership deed or lease agreement`, `Approval certificate or NOC`).
+  - Line 3: Supported formats and size limit (`JPG, PNG, WEBP · Max 10MB each`, `JPG, PNG, WEBP · Max 10MB`, `MP4, MOV · Max 50MB`, `PDF, JPG, PNG · Max 20MB`).
+- Integrate the official `reference_guide.pdf` into `frontend/public/reference_guide.pdf` (automatically bundled to `dist/reference_guide.pdf`), and wire the "View Media Reference Guide (PDF)" banner across both `OwnerRegister` (Step 5) and `NewBillboardListing` (Step 3) to open `/reference_guide.pdf` in a new tab (`target="_blank"`, `rel="noopener noreferrer"`).
+- Remove the redundant 296-line duplicate test suite in `OwnerRegister.test.jsx`.
 - Add automated regression tests confirming correct step placement, copy consistency, dynamic package configuration, auto-locking, and input validations.
 
 ---
@@ -108,12 +114,13 @@ flowchart TD
   - Positioned Billboard Pincode (`f_bbPin`) above City and State, applying identical auto-detection, auto-filling, and locking (`bb.autoFilled`) to `f_bbCity` and `f_bbState`.
   - **Alphabet-Only Billboard Type:** Restricted custom billboard type input (`f_bbTypeOther`) to alphabetic characters and spaces only using regex sanitization on input (`replace(/[^a-zA-Z\s]/g, '')`).
   - **Consistent Height from Ground Input:** Standardized `f_bbGroundHeight` as a standard input field matching Width and Height above it (`type="number"`, `min="0"`, `max="300"`, `hint="Typical range: 0–300 ft"`).
-- **Step 5 (`Step5`):**
+- **Step 5 (`Step5`) & Step 6 (`Step6`):**
   - Removed the redundant `<FormSection title="Location Pin Verification">` block.
-  - Standardized Day Photos upload title to `"Drag & drop or click to browse"`.
-  - Standardized Night Photos upload title to `"Drag & drop or click to browse"`.
-  - Renamed Surrounding Area Photo upload title from `"Shows billboard in its surroundings"` to `"Shows billboard with its surroundings"`.
-  - Added `"Max 10MB"` to Surrounding Area Photo subtitle (`"Drag & drop or click to browse · JPG, PNG · Max 10MB"`).
+  - Standardized all media and document upload cards (`Day Photos`, `Night Photos`, `Surrounding Area Photo`, `Short Video`, `Ownership Document`, and `Approval Certificate`) into the uniform 3-line layout:
+    - Line 1: `Drag & drop or click to browse`
+    - Line 2: Specific instruction (e.g. `Clear angle required`, `Must show actual illumination`, `Shows billboard with its surroundings`, `Short walkthrough or footage of the billboard`, `Ownership deed or lease agreement`, `Approval certificate or NOC`)
+    - Line 3: File formats and limits (e.g. `JPG, PNG, WEBP · Max 10MB each`, `JPG, PNG, WEBP · Max 10MB`, `MP4, MOV · Max 50MB`, `PDF, JPG, PNG · Max 20MB`)
+  - Integrated the Reference Guide notice banner with `"View Media Reference Guide (PDF)"` linked directly to `/reference_guide.pdf` opening in a new tab.
 
 ### 3.2 Unified Billboard Listing Wizard (`NewBillboardListing/steps.jsx`)
 - **Listing Step 1 (`ListingStep1`):**
@@ -123,9 +130,8 @@ flowchart TD
   - Standardized `f_bbGroundHeight` as a standard input field matching Width and Height (`type="number"`, `min="0"`, `max="300"`, `hint="Typical range: 0–300 ft"`).
 - **Listing Step 3 (`ListingStep3`):**
   - Removed `<FormSection title="Location Pin Verification">` from the media upload step.
-  - Standardized Day Photos and Night Photos upload titles to `"Drag & drop or click to browse"`.
-  - Renamed Surrounding Area Photo upload title to `"Shows billboard with its surroundings"`.
-  - Added `"Max 10MB"` to Surrounding Area Photo subtitle (`"Drag & drop or click to browse · JPG, PNG · Max 10MB"`).
+  - Added the `"Please read the reference guide before uploading"` notice banner with `"View Media Reference Guide (PDF)"` linked directly to `/reference_guide.pdf`.
+  - Standardized Day Photos, Night Photos, Surrounding Area Photo, and Short Video into the identical uniform 3-line upload dropzone layout.
 
 ### 3.3 Dynamic Pricing Packages & Map Pin (`OwnerRegister/calendar.jsx`)
 - **Dynamic Pricing Packages (`PricingTable`):**
@@ -152,9 +158,9 @@ flowchart TD
 ### 3.4 HTML Prototype Template (`frontend/templates/owner-register.html`)
 - Relocated `#mapPinContainer` and coordinate display elements into `#step3` within the Location form section.
 - Removed the separate Location Pin Verification section from `#step5`.
-- Updated upload titles for Day Photos and Night Photos to `"Drag & drop or click to browse"`.
-- Renamed Surrounding Area Photo upload title to `"Shows billboard with its surroundings"`.
-- Added `"Max 10MB"` to Surrounding Area Photo subtitle (`"Drag & drop or click to browse · JPG, PNG · Max 10MB"`).
+- Standardized all media and document upload zones (`Day Photos`, `Night Photos`, `Surrounding Area Photo`, `Short Video`, `Ownership Document`, and `Government Approval Certificate`) into the uniform 3-line layout with `.upload-title`, `.upload-instruction`, and `.upload-sub`.
+- Connected the "View Media Reference Guide (PDF)" button directly to `/reference_guide.pdf` opening in a new tab.
+- Declared `async function autofillCity(...)` to eliminate linter warning regarding module-level await expressions.
 - Initialized `#pricingTable` with 3 rows defaulting to 1 Month duration, and implemented `addPricingPackage()` handler for dynamic row addition.
 - Synchronized `updatePriceAndDiscount()` and `updateDiscount()` to dynamically recalculate base rate, compute duration-aware discount, and leave non-discount/premium rows blank.
 - Updated calendar instructions for advance bookings and distributed `.cal-legend` items evenly across width.
@@ -168,6 +174,8 @@ flowchart TD
 | :--- | :--- | :--- | :--- |
 | **Component Placement Test** | `OwnerRegister.test.jsx` | **Passed** | Explicitly asserts `"Pin Your Billboard's Exact Location"` is rendered on Step 3 and NOT rendered on Step 5 |
 | **Copy & Uniformity Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts `"Shows billboard with its surroundings"` is rendered, old copy is absent, and `"Drag & drop or click to browse"` prompts appear consistently |
+| **Media Dropzone 3-Line Layout Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts title, instruction, and format/limit 3-line layout across media and document upload dropzones |
+| **Media Reference Guide PDF Link Test** | `OwnerRegister.test.jsx` & `NewBillboardListing.test.jsx` | **Passed** | Verifies reference guide link points to `/reference_guide.pdf` with `target="_blank"` across both wizards |
 | **Pricing Package Default & Edit Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts exactly 3 package rows render by default, each with 1 Month duration, and verifies editing duration values |
 | **Dynamic Package Add/Remove Test** | `OwnerRegister.test.jsx` | **Passed** | Verifies clicking `Add Package` adds a 4th package defaulting to 1 Month and removing a package decrements the row count |
 | **Base Recalculation & Blank Discount Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts base rate recalculates on duration edit, duration-aware discount computes, and discount badge is blank on premium / no discount |
@@ -186,7 +194,8 @@ flowchart TD
 | **Password Error Visibility Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts specific, user-friendly password validation errors in Step 1 and prominent Step 7 alert banner |
 | **Company Phone Prefix & Format Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts greyed-out `+91` prefix display and unrestricted landline/mobile format acceptance |
 | **AuthModal 401 Login Alert Test** | `OwnerRegister.test.jsx` | **Passed** | Asserts visible `.auth-error-alert` box inside login modal when authentication fails with 401 |
-| **Frontend Test Suite** | `cd frontend && npm test -- --run` | **Passed** | Complete Vitest suite across auth, registration, listing, calendar, and UI components |
+| **Duplicate Test Suite Elimination** | `OwnerRegister.test.jsx` | **Passed** | Removed 296 redundant lines (duplicate describe block), ensuring 251 unique test executions |
+| **Frontend Test Suite** | `cd frontend && npm test -- --run` | **Passed (251 tests)** | Complete Vitest suite across auth, registration, listing, calendar, and UI components |
 | **Code Formatting (Prettier)** | `cd frontend && npm run format:check` | **Passed** | Prettier code style verified across all modified files |
 | **Linter (ESLint)** | `cd frontend && npm run lint` | **Passed (0 errors, 0 warnings)** | Clean lint verification |
-| **Production Build** | `cd frontend && npm run build` | **Passed** | Vite production bundle generated without errors |
+| **Production Build** | `cd frontend && npm run build` | **Passed** | Vite production bundle generated without errors and bundled `reference_guide.pdf` |
