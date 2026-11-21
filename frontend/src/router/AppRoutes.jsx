@@ -14,6 +14,7 @@ import { OwnerDashboard } from '@/pages/OwnerDashboard/OwnerDashboard';
 import { NewBillboardListing } from '@/pages/NewBillboardListing/NewBillboardListing';
 import { AgencyDashboard } from '@/pages/AgencyDashboard/AgencyDashboard';
 import { ComingSoon } from '@/pages/_stubs/ComingSoon';
+import { ProtectedRoute } from './ProtectedRoute';
 
 /**
  * Application route table (clean paths).
@@ -34,9 +35,30 @@ export function AppRoutes() {
       <Route path={ROUTES.agencyRegister} element={<AgencyRegister />} />
 
       <Route path={ROUTES.advertiserDashboard} element={<AdvertiserDashboard />} />
-      <Route path={ROUTES.ownerDashboard} element={<OwnerDashboard />} />
-      <Route path={ROUTES.newBillboardListing} element={<NewBillboardListing />} />
-      <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+      <Route
+        path={ROUTES.ownerDashboard}
+        element={
+          <ProtectedRoute role="OWNER" redirectTo={ROUTES.owners}>
+            <OwnerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.newBillboardListing}
+        element={
+          <ProtectedRoute role="OWNER" redirectTo={ROUTES.owners}>
+            <NewBillboardListing />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.editBillboardListingPath}
+        element={
+          <ProtectedRoute role="OWNER" redirectTo={ROUTES.owners}>
+            <NewBillboardListing />
+          </ProtectedRoute>
+        }
+      />
       <Route path={ROUTES.agencyDashboard} element={<AgencyDashboard />} />
 
       <Route path={ROUTES.browse} element={<Browse />} />
