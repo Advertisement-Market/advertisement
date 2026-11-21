@@ -1537,11 +1537,14 @@
 
   .cal-legend {
     display: flex;
-    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--border);
     flex-wrap: wrap;
+    gap: 12px;
   }
 
   .cal-legend-item {

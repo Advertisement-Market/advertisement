@@ -207,7 +207,7 @@ const APPROVAL = [
 
 /* ── STEP 1 ── */
 export function Step1() {
-  const { field } = useRegister();
+  const { field, setField } = useRegister();
   const { isAuthenticated, user } = useAuth();
   const phoneLocked = isAuthenticated && Boolean(user?.phone && String(user.phone).trim());
   const phone = field('f_phone').replace(/\D/g, '');
@@ -226,48 +226,7 @@ export function Step1() {
         }
       />
       {isAuthenticated && <SignedInBanner user={user} />}
-      <FormSection title="Your Name">
-        <FormRow>
-          <Field name="f_firstName" label="First Name" required placeholder="Rajesh" />
-          <Field name="f_lastName" label="Last Name" required placeholder="Sharma" />
-        </FormRow>
-      </FormSection>
-
-      <FormSection title="Contact Details">
-        {!isAuthenticated ? (
-          <div className="form-group">
-            <Field
-              name="f_email"
-              type="email"
-              label="Email Address"
-              required
-              placeholder="rajesh@sharmaoutdoor.com"
-              hint="This will be your login ID"
-              groupStyle={{ marginBottom: 8 }}
-            />
-            <OtpBoxes channel="email" dest={() => field('f_email').trim() || 'your email'} />
-          </div>
-        ) : (
-          <div className="form-group">
-            <label>
-              Email Address <span className="req">*</span>
-            </label>
-            <input
-              type="email"
-              className="form-control"
-              value={user?.email || field('f_email')}
-              readOnly
-              aria-readonly="true"
-            />
-            <div className="form-hint" style={{ marginBottom: 8 }}>
-              Linked to your account — verify your email below.
-            </div>
-            <OtpBoxes
-              channel="email"
-              dest={() => user?.email || field('f_email').trim() || 'your email'}
-            />
-          </div>
-        )}
+      <FormSection title="Mobile Number Verification">
         <div className="form-group">
           <label>
             Mobile Number <span className="req">*</span>
@@ -294,6 +253,60 @@ export function Step1() {
             dest={() => `+91 ${phone || 'your number'}`}
           />
         </div>
+      </FormSection>
+
+      <FormSection title="Email Address">
+        {!isAuthenticated ? (
+          <div className="form-group">
+            <Field
+              name="f_email"
+              type="email"
+              label="Email Address"
+              required
+              placeholder="rajesh@sharmaoutdoor.com"
+              hint="This will be your login ID"
+              groupStyle={{ marginBottom: 8 }}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next !== field('f_email') && field('f_emailVerified')) {
+                  setField('f_emailVerified', false);
+                }
+              }}
+            />
+            <OtpBoxes
+              channel="email"
+              disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field('f_email').trim())}
+              dest={() => field('f_email').trim() || 'your email'}
+            />
+          </div>
+        ) : (
+          <div className="form-group">
+            <label>
+              Email Address <span className="req">*</span>
+            </label>
+            <input
+              type="email"
+              className="form-control"
+              value={user?.email || field('f_email')}
+              readOnly
+              aria-readonly="true"
+            />
+            <div className="form-hint" style={{ marginBottom: 8 }}>
+              Linked to your account — verify your email below.
+            </div>
+            <OtpBoxes
+              channel="email"
+              dest={() => user?.email || field('f_email').trim() || 'your email'}
+            />
+          </div>
+        )}
+      </FormSection>
+
+      <FormSection title="Your Name">
+        <FormRow>
+          <Field name="f_firstName" label="First Name" required placeholder="Rajesh" />
+          <Field name="f_lastName" label="Last Name" required placeholder="Sharma" />
+        </FormRow>
       </FormSection>
 
       {!isAuthenticated && (
@@ -330,7 +343,13 @@ function PhoneInput({ invalidClass, onBlur, readOnly = false }) {
         value={field('f_phone')}
         onChange={(e) => {
           if (readOnly) return;
-          setField('f_phone', e.target.value.replace(/\D/g, '').slice(0, 10));
+          const next = e.target.value.replace(/\D/g, '').slice(0, 10);
+          if (next !== field('f_phone')) {
+            setField('f_phone', next);
+            if (field('f_phoneVerified')) {
+              setField('f_phoneVerified', false);
+            }
+          }
         }}
         onBlur={onBlur}
       />
@@ -341,8 +360,8 @@ function PhoneInput({ invalidClass, onBlur, readOnly = false }) {
 /* ── STEP 2 ── */
 export function Step2() {
   const biz = usePincode('f_bizPin', 'f_bizCity', 'f_bizState');
-  const cityErr = useFieldError('f_bizCity', [v.required()]);
-  const stateErr = useFieldError('f_bizState', [v.required()]);
+  const cityErr = useFieldError('f_bizCity', [v.required(), v.city()]);
+  const stateErr = useFieldError('f_bizState', [v.required(), v.state()]);
   const { field, setField } = useRegister();
 
   return (
@@ -366,17 +385,27 @@ export function Step2() {
             name="f_companyReg"
             label="Company Registration Number"
             optional
+            rules={[v.companyReg()]}
             placeholder="U74999MH2020PTC123456"
           />
-          <Field
-            name="f_companyPhone"
-            type="tel"
-            validateAs="text"
-            rules={[v.telephone()]}
-            label="Company Phone"
-            optional
-            placeholder="+91 20 2222 3333"
-          />
+          <div className="form-group">
+            <label htmlFor="f_companyPhone">
+              Company Phone <span className="opt">(optional)</span>
+            </label>
+            <div className="phone-wrap">
+              <span className="phone-prefix">+91</span>
+              <input
+                id="f_companyPhone"
+                type="text"
+                name="f_companyPhone"
+                className="form-control"
+                placeholder="20 2222 3333 or 98765 43210"
+                value={field('f_companyPhone')}
+                onChange={(e) => setField('f_companyPhone', e.target.value)}
+              />
+            </div>
+            <div className="form-hint">Landline or mobile phone number</div>
+          </div>
         </FormRow>
         <Field
           name="f_gst"
@@ -387,6 +416,8 @@ export function Step2() {
           }
           placeholder="27AAPFU0939F1Z5"
           hint="Format: 27XXXXXXXXXX1Z5 (15 characters)"
+          rules={[v.gst()]}
+          onChange={(e) => setField('f_gst', e.target.value.toUpperCase())}
         />
       </FormSection>
 
@@ -403,39 +434,9 @@ export function Step2() {
           optional
           placeholder="Street, Area, Colony"
         />
-        <FormRow>
-          <div className="form-group">
-            <label>
-              City <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              className={cn('form-control', cityErr.invalidClass)}
-              placeholder="Pune"
-              value={field('f_bizCity')}
-              onChange={(e) => setField('f_bizCity', e.target.value)}
-              onBlur={cityErr.onBlur}
-            />
-            <FieldError show={cityErr.show} error={cityErr.error} />
-          </div>
-          <div className="form-group">
-            <label>
-              State <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              className={cn('form-control', stateErr.invalidClass)}
-              placeholder="Maharashtra"
-              value={field('f_bizState')}
-              onChange={(e) => setField('f_bizState', e.target.value)}
-              onBlur={stateErr.onBlur}
-            />
-            <FieldError show={stateErr.show} error={stateErr.error} />
-          </div>
-        </FormRow>
         <div className="form-group">
           <label>
-            Office Pincode <span className="req">*</span>
+            Pincode <span className="req">*</span>
           </label>
           <input
             type="text"
@@ -449,6 +450,54 @@ export function Step2() {
           <div className={cn('pincode-autofill', biz.status && 'show')}>{biz.status}</div>
           <FieldError show={biz.err.show} error={biz.err.error} />
         </div>
+        <FormRow>
+          <div className="form-group">
+            <label>
+              City <span className="req">*</span>
+              {biz.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
+            </label>
+            <input
+              type="text"
+              className={cn('form-control', cityErr.invalidClass, biz.autoFilled && 'locked-field')}
+              placeholder="Pune"
+              value={field('f_bizCity')}
+              onChange={(e) => setField('f_bizCity', e.target.value)}
+              onBlur={cityErr.onBlur}
+              readOnly={biz.autoFilled}
+              aria-readonly={biz.autoFilled || undefined}
+            />
+            <FieldError show={cityErr.show} error={cityErr.error} />
+          </div>
+          <div className="form-group">
+            <label>
+              State <span className="req">*</span>
+              {biz.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
+            </label>
+            <input
+              type="text"
+              className={cn(
+                'form-control',
+                stateErr.invalidClass,
+                biz.autoFilled && 'locked-field',
+              )}
+              placeholder="Maharashtra"
+              value={field('f_bizState')}
+              onChange={(e) => setField('f_bizState', e.target.value)}
+              onBlur={stateErr.onBlur}
+              readOnly={biz.autoFilled}
+              aria-readonly={biz.autoFilled || undefined}
+            />
+            <FieldError show={stateErr.show} error={stateErr.error} />
+          </div>
+        </FormRow>
       </FormSection>
 
       <RegNav nextLabel="Continue to Billboard Details" />
@@ -458,8 +507,8 @@ export function Step2() {
 /* ── STEP 3 ── */
 export function Step3() {
   const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState', 'f_bbArea');
-  const cityErr = useFieldError('f_bbCity', [v.required()]);
-  const stateErr = useFieldError('f_bbState', [v.required()]);
+  const cityErr = useFieldError('f_bbCity', [v.required(), v.city()]);
+  const stateErr = useFieldError('f_bbState', [v.required(), v.state()]);
   const { field, setField } = useRegister();
 
   return (
@@ -484,58 +533,70 @@ export function Step3() {
           required
           placeholder="Road / Street / Highway name"
         />
-        <FormRow>
-          <Field
-            name="f_bbLandmark"
-            label="Nearby Landmark"
-            optional
-            placeholder="e.g., Andheri Station flyover"
+        <Field
+          name="f_bbLandmark"
+          label="Nearby Landmark"
+          optional
+          placeholder="e.g., Andheri Station flyover"
+        />
+        <div className="form-group">
+          <label>
+            Billboard Pincode <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', bb.err.invalidClass)}
+            placeholder="400053"
+            maxLength={6}
+            value={bb.val}
+            onChange={(e) => bb.set(e.target.value)}
+            onBlur={bb.onBlur}
           />
+          <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
+          <FieldError show={bb.err.show} error={bb.err.error} />
+        </div>
+        <FormRow>
           <div className="form-group">
             <label>
               City <span className="req">*</span>
+              {bb.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
             </label>
             <input
               type="text"
-              className={cn('form-control', cityErr.invalidClass)}
+              className={cn('form-control', cityErr.invalidClass, bb.autoFilled && 'locked-field')}
               placeholder="Mumbai"
               value={field('f_bbCity')}
               onChange={(e) => setField('f_bbCity', e.target.value)}
               onBlur={cityErr.onBlur}
+              readOnly={bb.autoFilled}
+              aria-readonly={bb.autoFilled || undefined}
             />
             <FieldError show={cityErr.show} error={cityErr.error} />
           </div>
-        </FormRow>
-        <FormRow>
           <div className="form-group">
             <label>
               State <span className="req">*</span>
+              {bb.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
             </label>
             <input
               type="text"
-              className={cn('form-control', stateErr.invalidClass)}
+              className={cn('form-control', stateErr.invalidClass, bb.autoFilled && 'locked-field')}
               placeholder="Maharashtra"
               value={field('f_bbState')}
               onChange={(e) => setField('f_bbState', e.target.value)}
               onBlur={stateErr.onBlur}
+              readOnly={bb.autoFilled}
+              aria-readonly={bb.autoFilled || undefined}
             />
             <FieldError show={stateErr.show} error={stateErr.error} />
-          </div>
-          <div className="form-group">
-            <label>
-              Billboard Pincode <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              className={cn('form-control', bb.err.invalidClass)}
-              placeholder="400053"
-              maxLength={6}
-              value={bb.val}
-              onChange={(e) => bb.set(e.target.value)}
-              onBlur={bb.onBlur}
-            />
-            <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
-            <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
         </FormRow>
         {bb.areas.length > 0 && (
@@ -563,6 +624,50 @@ export function Step3() {
             <div className="form-group" />
           </FormRow>
         )}
+        <div
+          style={{
+            background: 'var(--cream-warm)',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 12,
+            padding: '16px 18px',
+            marginTop: 14,
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--ink)',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Pin Your Billboard&apos;s Exact Location
+          </div>
+          <div
+            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
+          >
+            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
+            the map to mark the exact location of your billboard.
+          </div>
+          <MapPin />
+        </div>
       </FormSection>
 
       <FormSection title="Structure Type">
@@ -583,7 +688,9 @@ export function Step3() {
               placeholder="e.g., Bridge Panel, Skywalk, Pillar"
               maxLength={120}
               value={field('f_bbTypeOther')}
-              onChange={(e) => setField('f_bbTypeOther', e.target.value)}
+              onChange={(e) =>
+                setField('f_bbTypeOther', e.target.value.replace(/[^a-zA-Z\s]/g, ''))
+              }
             />
           </div>
         )}
@@ -615,15 +722,13 @@ export function Step3() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="text"
-            inputMode="decimal"
-            validateAs="decimal"
+            type="number"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min={0}
-            max={300}
-            hint="0–300 ft from ground level"
+            min="0"
+            max="300"
+            hint="Typical range: 0–300 ft"
           />
           <div className="form-group" />
         </FormRow>
@@ -714,8 +819,10 @@ export function Step4() {
       <FormSection title="Availability Calendar">
         <div className="form-group">
           <div className="form-hint" style={{ marginBottom: 12 }}>
-            Click a start date then an end date to mark a range as blocked. Click a blocked date to
-            clear it. Your blocked dates will be saved to your listing availability calendar.
+            Mark dates on which your billboard already has reservations or bookings scheduled in
+            advance. Click a start date then an end date to block a date range (click any blocked
+            date to unblock). Marking advance reservations keeps your availability accurate and
+            prevents conflicting bookings.
           </div>
         </div>
         <AvailabilityCalendar />
@@ -915,7 +1022,9 @@ export function Step5() {
             we expect from you. Following it ensures your listing gets approved faster.
           </div>
           <a
-            href="#"
+            href="/reference_guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -948,59 +1057,14 @@ export function Step5() {
         </div>
       </div>
 
-      <FormSection title="Location Pin Verification">
-        <div
-          style={{
-            background: 'var(--cream-warm)',
-            border: '1.5px solid var(--border-strong)',
-            borderRadius: 12,
-            padding: '16px 18px',
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              marginBottom: 6,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-            }}
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--teal)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            Pin Your Billboard&apos;s Exact Location
-          </div>
-          <div
-            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
-          >
-            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
-            the map to mark the exact location of your billboard.
-          </div>
-          <MapPin />
-        </div>
-      </FormSection>
-
       <FormSection title="Day Photos">
         <UploadZone
           sectionTitle="Day Photos"
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
-          title="Drag & drop day photos here"
-          sub="JPG, PNG, WEBP · Max 10MB each · Clear angle required"
+          title="Drag & drop or click to browse"
+          instruction="Clear angle required"
+          formatHint="JPG, PNG, WEBP · Max 10MB each"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="DAY_PHOTO"
           maxCount={10}
@@ -1017,8 +1081,9 @@ export function Step5() {
           sectionTitle="Night Photos"
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
-          title="Drag & drop night photos here"
-          sub="JPG, PNG, WEBP · Must show actual illumination · Max 10MB"
+          title="Drag & drop or click to browse"
+          instruction="Must show actual illumination"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="NIGHT_PHOTO"
           maxCount={5}
@@ -1033,8 +1098,9 @@ export function Step5() {
           sectionTitle="Surrounding Area Photo"
           badge={<span className="badge-optional">Optional</span>}
           icon={GlobeIcon}
-          title="Shows billboard in its surroundings"
-          sub="Drag & drop or click to browse · JPG, PNG"
+          title="Drag & drop or click to browse"
+          instruction="Shows billboard with its surroundings"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="SURROUNDING_PHOTO"
           maxCount={5}
@@ -1049,7 +1115,8 @@ export function Step5() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub={MAX_VIDEO_LABEL}
+          instruction="Short walkthrough or footage of the billboard"
+          formatHint={MAX_VIDEO_LABEL}
           accept={VIDEO_ACCEPT_TYPES}
           category="VIDEO"
           multiple={false}
@@ -1163,8 +1230,9 @@ export function Step6() {
           sectionTitle="Ownership / Lease Document"
           badge={<span className="badge-optional">Optional</span>}
           icon={DocIcon}
-          title="Ownership deed or lease agreement"
-          sub="PDF, JPG, PNG · Max 20MB"
+          title="Drag & drop or click to browse"
+          instruction="Ownership deed or lease agreement"
+          formatHint="PDF, JPG, PNG · Max 20MB"
           accept=".pdf,image/*"
           multiple={false}
           single
@@ -1174,8 +1242,9 @@ export function Step6() {
           sectionTitle="Government Approval Certificate"
           badge={<span className="badge-optional">Optional</span>}
           icon={CertIcon}
-          title="Approval certificate"
-          sub="PDF, JPG, PNG · Max 20MB"
+          title="Drag & drop or click to browse"
+          instruction="Approval certificate or NOC"
+          formatHint="PDF, JPG, PNG · Max 20MB"
           accept=".pdf,image/*"
           multiple={false}
           single
@@ -1208,7 +1277,8 @@ function ReviewSection({ title, editStep, body }) {
 }
 
 export function Step7() {
-  const { field, submit, submitting } = useRegister();
+  const { field, submit, submitting, goToStep } = useRegister();
+  const { isAuthenticated } = useAuth();
   const v = (n) => String(field(n)).trim();
   const join = (arr) => arr.filter(Boolean).join(' · ');
 
@@ -1293,6 +1363,65 @@ export function Step7() {
           ])}
         />
       </div>
+
+      {!isAuthenticated && !field('f_password') && (
+        <div
+          className="password-missing-alert"
+          role="alert"
+          style={{
+            background: '#fef2f2',
+            border: '1.5px solid #fecaca',
+            borderRadius: 10,
+            padding: '12px 16px',
+            color: '#991b1b',
+            fontSize: 13.5,
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#dc2626"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>
+              <strong>Password required:</strong> Please set an account password in Step 1 before
+              submitting.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => goToStep(1)}
+            style={{
+              background: '#dc2626',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              padding: '6px 12px',
+              fontSize: 12.5,
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Set Password →
+          </button>
+        </div>
+      )}
 
       <div style={{ marginBottom: 20 }}>
         <TermsRow name="f_termsAccept">

@@ -15,11 +15,13 @@ export const OWNER_DRAFT_TTL_MS = 30 * 60 * 1000;
 export const OWNER_DRAFT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 export const OWNER_DRAFT_ALLOWLIST = Object.freeze([
-  // Step 1 (non-secret identity)
+  // Step 1 (non-secret identity & verification)
   'f_firstName',
   'f_lastName',
   'f_email',
   'f_phone',
+  'f_emailVerified',
+  'f_phoneVerified',
   // Step 2 (business info)
   'f_companyName',
   'f_companyPhone',
@@ -56,6 +58,7 @@ export const OWNER_DRAFT_ALLOWLIST = Object.freeze([
   'f_minBookingUnit',
   'f_discountNote',
   'f_blockedDates',
+  'f_pricingPackages',
   // Step 6 (legal)
   'f_licenseNo',
   'f_ownership',
@@ -73,6 +76,7 @@ function pickAllowlisted(data, { excludeEmail = false } = {}) {
     if (excludeEmail && key === 'f_email') continue;
     const val = data[key];
     if (val === undefined || val === null || val === '') continue;
+    if (Array.isArray(val) && val.length === 0) continue;
     picked[key] = val;
   }
   return picked;
