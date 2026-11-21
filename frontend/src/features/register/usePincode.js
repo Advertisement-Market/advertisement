@@ -29,6 +29,9 @@ export function usePincode(name, cityField, stateField, areaField) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [areas, setAreas] = useState([]);
+  const [autoFilled, setAutoFilled] = useState(
+    () => sanitizePincode(val).length === 6 && Boolean(field(cityField) && field(stateField)),
+  );
   const abortRef = useRef(null);
   const lastPinRef = useRef(null);
 
@@ -38,6 +41,7 @@ export function usePincode(name, cityField, stateField, areaField) {
     setLoading(false);
     setStatus('');
     setAreas([]);
+    setAutoFilled(false);
     if (areaField && field(areaField)) setField(areaField, '');
   };
 
@@ -56,7 +60,7 @@ export function usePincode(name, cityField, stateField, areaField) {
       const controller = new AbortController();
       abortRef.current = controller;
       setLoading(true);
-      setStatus('Looking up…');
+      setStatus('Getting your location…');
       const r = await fetchPincode(pin, { signal: controller.signal });
       if (controller.signal.aborted) return;
       setLoading(false);
@@ -64,14 +68,16 @@ export function usePincode(name, cityField, stateField, areaField) {
         lastPinRef.current = pin;
         setAreas(r.areas);
         setStatus([r.city, r.state].filter(Boolean).join(', '));
-        if (cityField && !field(cityField).trim() && r.city) setField(cityField, r.city);
-        if (stateField && !field(stateField).trim() && r.state) setField(stateField, r.state);
+        if (cityField && r.city) setField(cityField, r.city);
+        if (stateField && r.state) setField(stateField, r.state);
+        setAutoFilled(Boolean(r.city || r.state));
         // Drop a previously selected locality that this PIN no longer offers.
         if (areaField && field(areaField) && !r.areas.includes(field(areaField))) {
           setField(areaField, '');
         }
       } else {
         setAreas([]);
+        setAutoFilled(false);
         setStatus('PIN not found — enter details manually.');
       }
     },
@@ -98,5 +104,5 @@ export function usePincode(name, cityField, stateField, areaField) {
     else resetLookup();
   };
 
-  return { val, status, loading, areas, err, set, onBlur };
+  return { val, status, loading, areas, err, set, onBlur, autoFilled };
 }

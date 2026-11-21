@@ -130,7 +130,7 @@ function TabBar({ active, onSwitch }) {
   );
 }
 
-function LoginView({ onSwitch, onSubmit, onGoogle, submitClass, submitting }) {
+function LoginView({ onSwitch, onSubmit, onGoogle, submitClass, submitting, error }) {
   return (
     <>
       <h3>Welcome back</h3>
@@ -138,6 +138,41 @@ function LoginView({ onSwitch, onSubmit, onGoogle, submitClass, submitting }) {
       <TabBar active="login" onSwitch={onSwitch} />
       <GoogleButton onCredential={onGoogle} text="signin_with" />
       <OrDivider />
+      {error && (
+        <div
+          className="auth-error-alert"
+          role="alert"
+          style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 8,
+            padding: '10px 14px',
+            color: '#991b1b',
+            fontSize: 13,
+            marginBottom: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -211,7 +246,7 @@ function LoginView({ onSwitch, onSubmit, onGoogle, submitClass, submitting }) {
   );
 }
 
-function RegisterView({ onSwitch, onSubmit, onGoogle, submitClass, submitting }) {
+function RegisterView({ onSwitch, onSubmit, onGoogle, submitClass, submitting, error }) {
   return (
     <>
       <h3>Create your account</h3>
@@ -219,6 +254,41 @@ function RegisterView({ onSwitch, onSubmit, onGoogle, submitClass, submitting })
       <TabBar active="register" onSwitch={onSwitch} />
       <GoogleButton onCredential={onGoogle} text="signup_with" />
       <OrDivider label="or sign up with email" />
+      {error && (
+        <div
+          className="auth-error-alert"
+          role="alert"
+          style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 8,
+            padding: '10px 14px',
+            color: '#991b1b',
+            fontSize: 13,
+            marginBottom: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -482,6 +552,8 @@ export function AuthModal({ submitVariant = 'amber' }) {
   const { showToast } = useToast();
   const { login, loginWithGoogle, registerBasic } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState(null);
+  const [registerError, setRegisterError] = useState(null);
   const open = view !== null;
   const submitClass = submitVariant === 'primary' ? 'btn-primary' : 'btn-amber';
 
@@ -494,14 +566,40 @@ export function AuthModal({ submitVariant = 'amber' }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [open, close]);
 
+  const handleSwitch = (newView) => {
+    setLoginError(null);
+    setRegisterError(null);
+    setView(newView);
+  };
+
+  const handleClose = () => {
+    setLoginError(null);
+    setRegisterError(null);
+    close();
+  };
+
   const handleLogin = async (formData) => {
     setSubmitting(true);
+    setLoginError(null);
     try {
       await login(formData.get('email'), formData.get('password'));
       showToast("You're signed in.");
-      close();
+      handleClose();
     } catch (err) {
-      showToast(apiErrorMessage(err), 'error');
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || '';
+      let userFriendlyMsg = apiErrorMessage(err);
+      if (
+        status === 401 ||
+        msg.toLowerCase().includes('bad credentials') ||
+        msg.toLowerCase().includes('unauthorized') ||
+        msg.toLowerCase().includes('invalid email or password')
+      ) {
+        userFriendlyMsg =
+          'Incorrect email or password. Please double-check your credentials and try again.';
+      }
+      setLoginError(userFriendlyMsg);
+      showToast(userFriendlyMsg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -509,12 +607,17 @@ export function AuthModal({ submitVariant = 'amber' }) {
 
   const handleGoogle = async (idToken) => {
     setSubmitting(true);
+    setLoginError(null);
+    setRegisterError(null);
     try {
       await loginWithGoogle(idToken);
       showToast("You're signed in with Google.");
-      close();
+      handleClose();
     } catch (err) {
-      showToast(apiErrorMessage(err), 'error');
+      const msg = apiErrorMessage(err);
+      if (view === 'login') setLoginError(msg);
+      else setRegisterError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -522,6 +625,7 @@ export function AuthModal({ submitVariant = 'amber' }) {
 
   const handleRegister = async (formData) => {
     setSubmitting(true);
+    setRegisterError(null);
     try {
       const code = formData.get('phoneCode') || '+91';
       const digits = String(formData.get('phoneNumber') || '').replace(/\D/g, '');
@@ -534,7 +638,9 @@ export function AuthModal({ submitVariant = 'amber' }) {
       });
       setView('success');
     } catch (err) {
-      showToast(apiErrorMessage(err), 'error');
+      const msg = apiErrorMessage(err);
+      setRegisterError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -543,30 +649,36 @@ export function AuthModal({ submitVariant = 'amber' }) {
   return (
     <div className={cn('modal-overlay auth-modal', open && 'open')} aria-hidden={!open}>
       <div className="modal" role="dialog" aria-modal="true">
-        <button className="modal-close" onClick={close} aria-label="Close">
+        <button className="modal-close" onClick={handleClose} aria-label="Close">
           &times;
         </button>
         <div>
           {view === 'login' && (
             <LoginView
-              onSwitch={setView}
+              onSwitch={handleSwitch}
               onSubmit={handleLogin}
               onGoogle={handleGoogle}
               submitClass={submitClass}
               submitting={submitting}
+              error={loginError}
             />
           )}
           {view === 'register' && (
             <RegisterView
-              onSwitch={setView}
+              onSwitch={handleSwitch}
               onSubmit={handleRegister}
               onGoogle={handleGoogle}
               submitClass={submitClass}
               submitting={submitting}
+              error={registerError}
             />
           )}
-          {view === 'success' && <SuccessView onBrowse={close} submitVariant={submitVariant} />}
-          {view === 'gate' && <GateView onSignIn={() => setView('login')} onRegister={close} />}
+          {view === 'success' && (
+            <SuccessView onBrowse={handleClose} submitVariant={submitVariant} />
+          )}
+          {view === 'gate' && (
+            <GateView onSignIn={() => handleSwitch('login')} onRegister={handleClose} />
+          )}
         </div>
       </div>
     </div>

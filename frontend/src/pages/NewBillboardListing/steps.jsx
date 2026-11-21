@@ -175,8 +175,8 @@ function FootfallField() {
 /* ── STEP 1: BILLBOARD DETAILS ── */
 export function ListingStep1() {
   const bb = usePincode('f_bbPin', 'f_bbCity', 'f_bbState', 'f_bbArea');
-  const cityErr = useFieldError('f_bbCity', [v.required()]);
-  const stateErr = useFieldError('f_bbState', [v.required()]);
+  const cityErr = useFieldError('f_bbCity', [v.required(), v.city()]);
+  const stateErr = useFieldError('f_bbState', [v.required(), v.state()]);
   const { field, setField } = useRegister();
 
   return (
@@ -201,58 +201,70 @@ export function ListingStep1() {
           required
           placeholder="Road / Street / Highway name"
         />
-        <FormRow>
-          <Field
-            name="f_bbLandmark"
-            label="Nearby Landmark"
-            optional
-            placeholder="e.g., Andheri Station flyover"
+        <Field
+          name="f_bbLandmark"
+          label="Nearby Landmark"
+          optional
+          placeholder="e.g., Andheri Station flyover"
+        />
+        <div className="form-group">
+          <label>
+            Billboard Pincode <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            className={cn('form-control', bb.err.invalidClass)}
+            placeholder="400053"
+            maxLength={6}
+            value={bb.val}
+            onChange={(e) => bb.set(e.target.value)}
+            onBlur={bb.onBlur}
           />
+          <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
+          <FieldError show={bb.err.show} error={bb.err.error} />
+        </div>
+        <FormRow>
           <div className="form-group">
             <label>
               City <span className="req">*</span>
+              {bb.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
             </label>
             <input
               type="text"
-              className={cn('form-control', cityErr.invalidClass)}
+              className={cn('form-control', cityErr.invalidClass, bb.autoFilled && 'locked-field')}
               placeholder="Mumbai"
               value={field('f_bbCity')}
               onChange={(e) => setField('f_bbCity', e.target.value)}
               onBlur={cityErr.onBlur}
+              readOnly={bb.autoFilled}
+              aria-readonly={bb.autoFilled || undefined}
             />
             <FieldError show={cityErr.show} error={cityErr.error} />
           </div>
-        </FormRow>
-        <FormRow>
           <div className="form-group">
             <label>
               State <span className="req">*</span>
+              {bb.autoFilled && (
+                <span className="opt" style={{ marginLeft: 6, color: 'var(--teal)' }}>
+                  (Auto-filled)
+                </span>
+              )}
             </label>
             <input
               type="text"
-              className={cn('form-control', stateErr.invalidClass)}
+              className={cn('form-control', stateErr.invalidClass, bb.autoFilled && 'locked-field')}
               placeholder="Maharashtra"
               value={field('f_bbState')}
               onChange={(e) => setField('f_bbState', e.target.value)}
               onBlur={stateErr.onBlur}
+              readOnly={bb.autoFilled}
+              aria-readonly={bb.autoFilled || undefined}
             />
             <FieldError show={stateErr.show} error={stateErr.error} />
-          </div>
-          <div className="form-group">
-            <label>
-              Billboard Pincode <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              className={cn('form-control', bb.err.invalidClass)}
-              placeholder="400053"
-              maxLength={6}
-              value={bb.val}
-              onChange={(e) => bb.set(e.target.value)}
-              onBlur={bb.onBlur}
-            />
-            <div className={cn('pincode-autofill', bb.status && 'show')}>{bb.status}</div>
-            <FieldError show={bb.err.show} error={bb.err.error} />
           </div>
         </FormRow>
         {bb.areas.length > 0 && (
@@ -280,6 +292,50 @@ export function ListingStep1() {
             <div className="form-group" />
           </FormRow>
         )}
+        <div
+          style={{
+            background: 'var(--cream-warm)',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 12,
+            padding: '16px 18px',
+            marginTop: 14,
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--ink)',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Pin Your Billboard&apos;s Exact Location
+          </div>
+          <div
+            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
+          >
+            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
+            the map to mark the exact location of your billboard.
+          </div>
+          <MapPin />
+        </div>
       </FormSection>
 
       <FormSection title="Structure Type">
@@ -300,7 +356,9 @@ export function ListingStep1() {
               placeholder="e.g., Bridge Panel, Skywalk, Pillar"
               maxLength={120}
               value={field('f_bbTypeOther')}
-              onChange={(e) => setField('f_bbTypeOther', e.target.value)}
+              onChange={(e) =>
+                setField('f_bbTypeOther', e.target.value.replace(/[^a-zA-Z\s]/g, ''))
+              }
             />
           </div>
         )}
@@ -332,15 +390,13 @@ export function ListingStep1() {
         <FormRow>
           <Field
             name="f_bbGroundHeight"
-            type="text"
-            inputMode="decimal"
-            validateAs="decimal"
+            type="number"
             label="Height from Ground (ft)"
             optional
             placeholder="30"
-            min={0}
-            max={300}
-            hint="0–300 ft from ground level"
+            min="0"
+            max="300"
+            hint="Typical range: 0–300 ft"
           />
           <div className="form-group" />
         </FormRow>
@@ -413,8 +469,10 @@ export function ListingStep2() {
       <FormSection title="Availability Calendar">
         <div className="form-group">
           <div className="form-hint" style={{ marginBottom: 12 }}>
-            Click a start date then an end date to mark a range as blocked. Click a blocked date to
-            clear it. Your blocked dates are saved directly to your listing availability calendar.
+            Mark dates on which your billboard already has reservations or bookings scheduled in
+            advance. Click a start date then an end date to block a date range (click any blocked
+            date to unblock). Marking advance reservations keeps your availability accurate and
+            prevents conflicting bookings.
           </div>
         </div>
         <AvailabilityCalendar />
@@ -747,59 +805,104 @@ export function ListingStep3() {
         </div>
       )}
 
-      <FormSection title="Location Pin Verification">
+      {/* Reference file notice */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg,var(--teal-light),var(--cream-warm))',
+          border: '1.5px solid rgba(8,145,178,0.25)',
+          borderRadius: 14,
+          padding: '18px 20px',
+          marginBottom: 28,
+          display: 'flex',
+          gap: 14,
+          alignItems: 'flex-start',
+        }}
+      >
         <div
           style={{
-            background: 'var(--cream-warm)',
-            border: '1.5px solid var(--border-strong)',
-            borderRadius: 12,
-            padding: '16px 18px',
-            marginBottom: 8,
+            flexShrink: 0,
+            width: 38,
+            height: 38,
+            background: 'var(--teal)',
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+        </div>
+        <div>
           <div
+            style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal-dark)', marginBottom: 5 }}
+          >
+            📋 Please read the reference guide before uploading
+          </div>
+          <div
+            style={{ fontSize: 13, color: 'var(--ink-muted)', fontWeight: 400, lineHeight: 1.6 }}
+          >
+            This guide explains the exact photo angles, shot types, video requirements, and examples
+            we expect from you. Following it ensures your listing gets approved faster.
+          </div>
+          <a
+            href="/reference_guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              marginBottom: 6,
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: 7,
+              gap: 6,
+              marginTop: 10,
+              background: 'var(--teal)',
+              color: 'white',
+              textDecoration: 'none',
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '8px 16px',
+              borderRadius: 8,
+              transition: 'opacity 0.2s',
             }}
           >
             <svg
-              width="15"
-              height="15"
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="var(--teal)"
-              strokeWidth="2"
+              stroke="currentColor"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
             </svg>
-            Pin Your Billboard&apos;s Exact Location
-          </div>
-          <div
-            style={{ fontSize: 12.5, color: 'var(--ink-muted)', marginBottom: 12, lineHeight: 1.6 }}
-          >
-            The map below is pre-zoomed to your billboard&apos;s pincode. Drag the pin or click on
-            the map to mark the exact location of your billboard.
-          </div>
-          <MapPin />
+            View Media Reference Guide (PDF)
+          </a>
         </div>
-      </FormSection>
+      </div>
 
       <FormSection title="Day Photos">
         <UploadZone
           sectionTitle="Day Photos"
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
-          title="Drag & drop day photos here"
-          sub="JPG, PNG · Max 10MB each · Clear angle required"
+          title="Drag & drop or click to browse"
+          instruction="Clear angle required"
+          formatHint="JPG, PNG, WEBP · Max 10MB each"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="DAY_PHOTO"
           maxCount={10}
@@ -821,8 +924,9 @@ export function ListingStep3() {
           sectionTitle="Night Photos"
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
-          title="Drag & drop night photos here"
-          sub="JPG, PNG · Must show actual illumination · Max 10MB"
+          title="Drag & drop or click to browse"
+          instruction="Must show actual illumination"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="NIGHT_PHOTO"
           maxCount={5}
@@ -842,8 +946,9 @@ export function ListingStep3() {
           sectionTitle="Surrounding Area Photo"
           badge={<span className="badge-optional">Optional</span>}
           icon={GlobeIcon}
-          title="Shows billboard in its surroundings"
-          sub="Drag & drop or click to browse · JPG, PNG"
+          title="Drag & drop or click to browse"
+          instruction="Shows billboard with its surroundings"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="SURROUNDING_PHOTO"
           maxCount={5}
@@ -862,7 +967,8 @@ export function ListingStep3() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub={MAX_VIDEO_LABEL}
+          instruction="Short walkthrough or footage of the billboard"
+          formatHint={MAX_VIDEO_LABEL}
           accept={VIDEO_ACCEPT_TYPES}
           category="VIDEO"
           multiple={false}

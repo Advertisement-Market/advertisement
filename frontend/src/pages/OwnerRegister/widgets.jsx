@@ -7,8 +7,11 @@ import { MAX_VIDEO_BYTES, MAX_VIDEO_LABEL, VIDEO_ACCEPT_TYPES } from '@/lib/conf
 
 /* ── 6-box OTP ── */
 export function OtpBoxes({ channel, dest, disabled }) {
-  const { showToast } = useRegister();
-  const [stage, setStage] = useState('idle'); // idle | sent | verified
+  const { field, setField, showToast } = useRegister();
+  const verifiedFieldName = channel === 'email' ? 'f_emailVerified' : 'f_phoneVerified';
+  const isVerified = Boolean(field(verifiedFieldName));
+  const [internalStage, setInternalStage] = useState('idle'); // idle | sent
+  const stage = isVerified ? 'verified' : internalStage;
   const [countdown, setCountdown] = useState(0);
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const refs = useRef([]);
@@ -17,7 +20,7 @@ export function OtpBoxes({ channel, dest, disabled }) {
 
   const send = () => {
     if (countdown > 0) return;
-    setStage('sent');
+    setInternalStage('sent');
     showToast(`OTP sent to ${dest?.() || 'you'}. (Demo: use 123456)`, 'success');
     setCountdown(30);
     clearInterval(timer.current);
@@ -47,7 +50,8 @@ export function OtpBoxes({ channel, dest, disabled }) {
 
   const verify = () => {
     if (digits.join('') === '123456') {
-      setStage('verified');
+      setField(verifiedFieldName, true);
+      setInternalStage('idle');
       clearInterval(timer.current);
       showToast(
         `${channel === 'email' ? 'Email' : 'Mobile number'} verified successfully.`,
@@ -206,7 +210,7 @@ export function PasswordRulesField({ name, placeholder }) {
         invalidClass={err.invalidClass}
         onBlur={err.onBlur}
       />
-      {err.show && !val && <FieldError show={err.show} error={err.error} />}
+      {err.show && <FieldError show={err.show} error={err.error} />}
       <div className="pw-rules-grid">
         {rules.map((r) => (
           <div key={r.key} className={cn('pw-rule', r.ok && 'met')}>
@@ -654,8 +658,10 @@ export function ThumbnailCard({
 /* ── Photo / file upload zone with thumbnail previews & delete handling ── */
 export function UploadZone({
   icon,
-  title,
+  title = 'Drag & drop or click to browse',
   sub,
+  instruction,
+  formatHint,
   accept,
   multiple = true,
   sectionTitle,
@@ -795,9 +801,12 @@ export function UploadZone({
       >
         <div className="upload-icon">{icon}</div>
         <div className="upload-title">{title}</div>
-        <div className="upload-sub">
-          {sub || (category === 'VIDEO' ? MAX_VIDEO_LABEL : undefined)}
-        </div>
+        {instruction && <div className="upload-instruction">{instruction}</div>}
+        {(formatHint || sub || category === 'VIDEO') && (
+          <div className="upload-sub">
+            {formatHint || sub || (category === 'VIDEO' ? MAX_VIDEO_LABEL : undefined)}
+          </div>
+        )}
       </div>
       <input
         type="file"

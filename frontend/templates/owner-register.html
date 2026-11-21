@@ -233,6 +233,10 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
   border-radius:8px;padding:9px 13px;font-size:13px;color:var(--green);
   font-weight:500;display:none;margin-top:6px;
   animation:slideIn 0.2s ease both;}
+.locked-field{background:var(--cream-warm)!important;cursor:not-allowed;opacity:0.85;}
+.cal-legend{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:12px;padding:0 4px;}
+.cal-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-muted);}
+.password-missing-alert{background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:12px 16px;color:#991b1b;font-size:13.5px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .pincode-autofill.show{display:block;}
 .spin{animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -342,8 +346,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
 .upload-zone.dragover{border-style:solid;}
 .upload-icon{display:flex;justify-content:center;margin-bottom:10px;color:var(--ink-faint);}
 .upload-zone:hover .upload-icon,.upload-zone.dragover .upload-icon{color:var(--teal);}
-.upload-title{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px;}
-.upload-sub{font-size:12.5px;color:var(--ink-faint);font-weight:300;}
+.upload-title{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:3px;}
+.upload-instruction{font-size:13px;color:var(--ink-muted);font-weight:400;margin-bottom:3px;}
+.upload-sub{font-size:12px;color:var(--ink-faint);font-weight:300;}
 .upload-actions{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
 .upload-btn{
   font-family:var(--font-body);font-size:12.5px;font-weight:500;
@@ -733,40 +738,7 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
         </div>
 
         <div class="form-section">
-          <div class="form-section-title">Your Name</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>First Name <span class="req">*</span></label>
-              <input type="text" id="f_firstName" class="form-control" placeholder="Rajesh"/>
-            </div>
-            <div class="form-group">
-              <label>Last Name <span class="req">*</span></label>
-              <input type="text" id="f_lastName" class="form-control" placeholder="Sharma"/>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Contact Details</div>
-          <div class="form-group">
-            <label>Email Address <span class="req">*</span></label>
-            <input type="email" id="f_email" class="form-control" placeholder="rajesh@sharmaoutdoor.com" oninput="resetVerification('email')"/>
-            <div class="form-hint">This will be your login ID</div>
-            <div class="otp-row" id="emailOtpRow">
-              <button type="button" class="otp-send-btn" id="emailSendBtn" onclick="sendOTP('email')">Send OTP to verify email</button>
-            </div>
-            <div class="otp-input-group" id="emailOtpGroup">
-              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
-              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
-              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
-              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
-              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
-              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
-              <button type="button" class="otp-verify-btn" onclick="verifyOTP('email')">Verify</button>
-              <button type="button" class="otp-resend" id="emailResendBtn" onclick="sendOTP('email')" disabled>Resend in 30s</button>
-            </div>
-            <div id="emailVerifiedBadge"></div>
-          </div>
+          <div class="form-section-title">Mobile Number Verification</div>
           <div class="form-group">
             <label>Mobile Number <span class="req">*</span></label>
             <div class="phone-wrap">
@@ -788,6 +760,43 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <button type="button" class="otp-resend" id="phoneResendBtn" onclick="sendOTP('phone')" disabled>Resend in 30s</button>
             </div>
             <div id="phoneVerifiedBadge"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Email Address</div>
+          <div class="form-group">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" id="f_email" class="form-control" placeholder="rajesh@sharmaoutdoor.com" oninput="resetVerification('email'); handleEmailInput(this)"/>
+            <div class="form-hint">This will be your login ID</div>
+            <div class="otp-row" id="emailOtpRow">
+              <button type="button" class="otp-send-btn" id="emailSendBtn" onclick="sendOTP('email')" disabled>Send OTP to verify email</button>
+            </div>
+            <div class="otp-input-group" id="emailOtpGroup">
+              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
+              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
+              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
+              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
+              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
+              <input type="text" class="otp-box" maxlength="1" inputmode="numeric" oninput="otpBoxInput(this,'email')" onkeydown="otpBoxKeydown(event,this)"/>
+              <button type="button" class="otp-verify-btn" onclick="verifyOTP('email')">Verify</button>
+              <button type="button" class="otp-resend" id="emailResendBtn" onclick="sendOTP('email')" disabled>Resend in 30s</button>
+            </div>
+            <div id="emailVerifiedBadge"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Your Name</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name <span class="req">*</span></label>
+              <input type="text" id="f_firstName" class="form-control" placeholder="Rajesh"/>
+            </div>
+            <div class="form-group">
+              <label>Last Name <span class="req">*</span></label>
+              <input type="text" id="f_lastName" class="form-control" placeholder="Sharma"/>
+            </div>
           </div>
         </div>
 
@@ -861,7 +870,10 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
             </div>
             <div class="form-group">
               <label>Company Phone <span class="opt">(optional)</span></label>
-              <input type="tel" id="f_companyPhone" class="form-control" placeholder="+91 20 2222 3333"/>
+              <div class="phone-wrap">
+                <span class="phone-prefix">+91</span>
+                <input type="tel" id="f_companyPhone" class="form-control" placeholder="20 2222 3333"/>
+              </div>
             </div>
           </div>
           <div class="form-group">
@@ -874,17 +886,17 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
         <div class="form-section">
           <div class="form-section-title">Office Address</div>
           <div class="form-group">
-            <label>Office Pincode <span class="req">*</span></label>
-            <input type="text" id="f_bizPin" class="form-control" placeholder="411001" maxlength="6" oninput="autofillCity(this,'biz')"/>
-            <div class="pincode-autofill" id="bizCityFill"></div>
-          </div>
-          <div class="form-group">
             <label>Address Line 1 <span class="req">*</span></label>
             <input type="text" id="f_bizAddr1" class="form-control" placeholder="Office / Shop No., Building Name"/>
           </div>
           <div class="form-group">
             <label>Address Line 2 <span class="opt">(optional)</span></label>
             <input type="text" id="f_bizAddr2" class="form-control" placeholder="Street, Area, Colony"/>
+          </div>
+          <div class="form-group">
+            <label>Pincode <span class="req">*</span></label>
+            <input type="text" id="f_bizPin" class="form-control" placeholder="411001" maxlength="6" oninput="autofillCity(this,'biz')"/>
+            <div class="pincode-autofill" id="bizCityFill"></div>
           </div>
         </div>
 
@@ -926,6 +938,25 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
             <label>Address / Street Name <span class="req">*</span></label>
             <input type="text" id="f_bbAddr" class="form-control" placeholder="Road / Street / Highway name"/>
           </div>
+          <div style="background:var(--cream-warm);border:1.5px solid var(--border-strong);border-radius:12px;padding:16px 18px;margin-top:14px;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:7px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Pin Your Billboard's Exact Location
+            </div>
+            <div style="font-size:12.5px;color:var(--ink-muted);margin-bottom:12px;line-height:1.6;">The map below is pre-zoomed to your billboard's pincode. Drag the pin or click on the map to mark the exact location of your billboard.</div>
+            <div id="mapPinContainer" style="width:100%;height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border-strong);background:#e8f0e0;position:relative;">
+              <div id="mapPinPlaceholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 100%);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <div style="font-size:13px;font-weight:600;color:var(--teal-dark);">Map loads after you enter your billboard pincode</div>
+                <div style="font-size:12px;color:var(--ink-faint);">Enter billboard pincode above to activate the map</div>
+                <button type="button" onclick="initMapPin()" style="margin-top:6px;background:var(--teal);color:white;border:none;font-family:var(--font-body);font-size:12.5px;font-weight:600;padding:9px 20px;border-radius:8px;cursor:pointer;">Load Map Now</button>
+              </div>
+            </div>
+            <div id="mapPinCoordsDisplay" style="display:none;margin-top:10px;padding:9px 13px;background:var(--green-light);border:1px solid rgba(5,150,105,0.2);border-radius:8px;font-size:13px;color:var(--green);font-weight:500;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="mapPinCoordsText">Pin set</span>
+            </div>
+          </div>
         </div>
 
         <div class="form-section">
@@ -965,6 +996,10 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="type-option-label">Other</div>
             </div>
           </div>
+          <div id="bbTypeOtherWrap" style="display:none;margin-top:12px;" class="form-group">
+            <label>Specify Billboard Type <span class="req">*</span></label>
+            <input type="text" id="f_bbTypeOther" class="form-control" placeholder="e.g., Bridge Panel, Skywalk, Pillar" maxlength="120" oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')"/>
+          </div>
         </div>
 
         <div class="form-section">
@@ -985,7 +1020,7 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
             <div class="form-group">
               <label>Height from Ground (ft) <span class="opt">(optional)</span></label>
               <input type="number" id="f_bbGroundHeight" class="form-control" placeholder="30" min="0" max="300"/>
-              <div class="form-hint">0–300 ft from ground level</div>
+              <div class="form-hint">Typical range: 0–300 ft</div>
             </div>
             <div class="form-group"></div>
           </div>
@@ -1095,15 +1130,15 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
           <div class="form-group"><label>Pricing Packages</label>
             <div class="form-hint" style="margin-bottom:10px;">The 1-month base rate is auto-calculated from your daily rate above. All rates are editable.</div>
           </div>
-          <div class="pricing-table">
+          <div class="pricing-table" id="pricingTable">
             <div class="pricing-table-header">
               <span>Duration</span><span>Rate (₹)</span><span>Discount vs Base</span><span>Notes</span>
             </div>
             <!-- Row 1: 1 Month – auto-calc from daily price -->
             <div class="pricing-table-row">
               <div style="display:flex;gap:6px;align-items:center;">
-                <input type="number" id="dur1Num" class="price-input" value="1" min="1" style="width:54px;text-align:center;" oninput="updatePriceAndDiscount()"/>
-                <select id="dur1Unit" class="price-input" style="padding:6px 8px;cursor:pointer;" onchange="updatePriceAndDiscount()">
+                <input type="number" id="dur1Num" class="price-input" value="1" min="1" style="width:52px;text-align:center;padding:8px 4px;flex-shrink:0;" oninput="price1ManuallyEdited=false;updatePriceAndDiscount();"/>
+                <select id="dur1Unit" class="price-input" style="padding:8px 10px;cursor:pointer;flex:1;min-width:95px;" onchange="price1ManuallyEdited=false;updatePriceAndDiscount();">
                   <option value="days">Days</option>
                   <option value="weeks">Weeks</option>
                   <option value="months" selected>Months</option>
@@ -1111,76 +1146,62 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
                 </select>
               </div>
               <input type="number" class="price-input" id="price1" placeholder="auto" oninput="updateDiscount()"/>
-              <div class="discount-badge" id="disc1" style="color:var(--ink-faint);font-size:11.5px;">Base rate</div>
-              <input type="text" class="price-input" placeholder="Standard"/>
+              <div class="discount-badge" id="disc1" style="color:var(--ink-faint);font-size:12px;font-weight:600;">Base rate</div>
+              <div style="display:flex;gap:8px;align-items:center;width:100%;">
+                <input type="text" class="price-input" placeholder="Standard" style="flex:1;min-width:0;width:100%;"/>
+                <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+              </div>
             </div>
-            <!-- Row 2 -->
+            <!-- Row 2: 1 Month default -->
             <div class="pricing-table-row">
               <div style="display:flex;gap:6px;align-items:center;">
-                <input type="number" id="dur2Num" class="price-input" value="3" min="1" style="width:54px;text-align:center;" oninput="updatePriceAndDiscount()"/>
-                <select id="dur2Unit" class="price-input" style="padding:6px 8px;cursor:pointer;" onchange="updatePriceAndDiscount()">
+                <input type="number" id="dur2Num" class="price-input" value="1" min="1" style="width:52px;text-align:center;padding:8px 4px;flex-shrink:0;" oninput="updateDiscount()"/>
+                <select id="dur2Unit" class="price-input" style="padding:8px 10px;cursor:pointer;flex:1;min-width:95px;" onchange="updateDiscount()">
                   <option value="days">Days</option>
                   <option value="weeks">Weeks</option>
                   <option value="months" selected>Months</option>
                   <option value="years">Years</option>
                 </select>
               </div>
-              <input type="number" class="price-input" id="price3" placeholder="780000" oninput="updateDiscount()"/>
-              <div class="discount-badge" id="disc3" style="font-size:11.5px;">—</div>
-              <input type="text" class="price-input" placeholder="30% off"/>
+              <input type="number" class="price-input" id="price2" placeholder="" oninput="updateDiscount()"/>
+              <div class="discount-badge" id="disc2" style="font-size:12px;font-weight:600;"></div>
+              <div style="display:flex;gap:8px;align-items:center;width:100%;">
+                <input type="text" class="price-input" placeholder="30% off" style="flex:1;min-width:0;width:100%;"/>
+                <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <button type="button" onclick="this.closest('.pricing-table-row').remove(); updateDiscount();" style="background:none;border:none;color:var(--ink-faint);cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;">×</button>
+                </div>
+              </div>
             </div>
-            <!-- Row 3 -->
+            <!-- Row 3: 1 Month default -->
             <div class="pricing-table-row">
               <div style="display:flex;gap:6px;align-items:center;">
-                <input type="number" id="dur3Num" class="price-input" value="6" min="1" style="width:54px;text-align:center;" oninput="updatePriceAndDiscount()"/>
-                <select id="dur3Unit" class="price-input" style="padding:6px 8px;cursor:pointer;" onchange="updatePriceAndDiscount()">
+                <input type="number" id="dur3Num" class="price-input" value="1" min="1" style="width:52px;text-align:center;padding:8px 4px;flex-shrink:0;" oninput="updateDiscount()"/>
+                <select id="dur3Unit" class="price-input" style="padding:8px 10px;cursor:pointer;flex:1;min-width:95px;" onchange="updateDiscount()">
                   <option value="days">Days</option>
                   <option value="weeks">Weeks</option>
                   <option value="months" selected>Months</option>
                   <option value="years">Years</option>
                 </select>
               </div>
-              <input type="number" class="price-input" id="price6" placeholder="1400000" oninput="updateDiscount()"/>
-              <div class="discount-badge" id="disc6" style="font-size:11.5px;">—</div>
-              <input type="text" class="price-input" placeholder="Best value"/>
-            </div>
-            <!-- Row 4 custom -->
-            <div class="pricing-table-row">
-              <div style="display:flex;gap:6px;align-items:center;">
-                <input type="number" id="dur4Num" class="price-input" placeholder="9" min="1" style="width:54px;text-align:center;" oninput="updatePriceAndDiscount()"/>
-                <select id="dur4Unit" class="price-input" style="padding:6px 8px;cursor:pointer;" onchange="updatePriceAndDiscount()">
-                  <option value="days">Days</option>
-                  <option value="weeks">Weeks</option>
-                  <option value="months" selected>Months</option>
-                  <option value="years">Years</option>
-                </select>
+              <input type="number" class="price-input" id="price3" placeholder="" oninput="updateDiscount()"/>
+              <div class="discount-badge" id="disc3" style="font-size:12px;font-weight:600;"></div>
+              <div style="display:flex;gap:8px;align-items:center;width:100%;">
+                <input type="text" class="price-input" placeholder="Best value" style="flex:1;min-width:0;width:100%;"/>
+                <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <button type="button" onclick="this.closest('.pricing-table-row').remove(); updateDiscount();" style="background:none;border:none;color:var(--ink-faint);cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;">×</button>
+                </div>
               </div>
-              <input type="number" class="price-input" id="price4" placeholder="" oninput="updateDiscount()"/>
-              <div class="discount-badge" id="disc4" style="font-size:11.5px;">—</div>
-              <input type="text" class="price-input" placeholder=""/>
             </div>
-            <!-- Row 5 custom -->
-            <div class="pricing-table-row">
-              <div style="display:flex;gap:6px;align-items:center;">
-                <input type="number" id="dur5Num" class="price-input" placeholder="12" min="1" style="width:54px;text-align:center;" oninput="updatePriceAndDiscount()"/>
-                <select id="dur5Unit" class="price-input" style="padding:6px 8px;cursor:pointer;" onchange="updatePriceAndDiscount()">
-                  <option value="days">Days</option>
-                  <option value="weeks">Weeks</option>
-                  <option value="months" selected>Months</option>
-                  <option value="years">Years</option>
-                </select>
-              </div>
-              <input type="number" class="price-input" id="price5" placeholder="" oninput="updateDiscount()"/>
-              <div class="discount-badge" id="disc5" style="font-size:11.5px;">—</div>
-              <input type="text" class="price-input" placeholder=""/>
-            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" onclick="addPricingPackage()" style="background:transparent;border:1.5px dashed var(--border-strong);border-radius:8px;padding:8px 16px;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;">+ Add Package</button>
           </div>
         </div>
 
         <div class="form-section">
           <div class="form-section-title">Availability Calendar</div>
           <div class="form-group">
-            <div class="form-hint" style="margin-bottom:12px;">Click a start date then an end date to mark a range as booked. Click a booked date to clear it.</div>
+            <div class="form-hint" style="margin-bottom:12px;">Mark dates on which your billboard already has reservations or bookings scheduled in advance. Click a start date then an end date to block a date range (click any blocked date to unblock). Marking advance reservations keeps your availability accurate and prevents conflicting bookings.</div>
           </div>
           <div class="calendar-preview">
             <div class="cal-header">
@@ -1191,11 +1212,12 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               </div>
             </div>
             <div class="cal-grid" id="calGrid"></div>
-            <div class="cal-legend">
-              <div class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--cream-warm);border:1px solid var(--border-medium);"></span>Available</div>
-              <div class="cal-legend-item"><span class="cal-legend-dot" style="background:rgba(8,145,178,0.15);border:1px solid rgba(8,145,178,0.3);"></span>Booked</div>
-              <div class="cal-legend-item"><span class="cal-legend-dot" style="background:rgba(156,163,175,0.15);"></span>Past</div>
-            </div>
+          <div class="cal-legend">
+            <div class="cal-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--cream-warm);border:1px solid var(--border);display:inline-block;"></span>Available</div>
+            <div class="cal-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#fef2f2;border:1px solid #fecaca;display:inline-block;"></span>Advance Reservation / Booked</div>
+            <div class="cal-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--teal);display:inline-block;"></span>Selection Start</div>
+            <div class="cal-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--teal-light);border:1px solid var(--teal);display:inline-block;"></span>Selected Range</div>
+          </div>
             <div class="cal-summary" id="calSummary"></div>
           </div>
           <div class="form-group" style="margin-top:16px;">
@@ -1229,33 +1251,10 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
           <div>
             <div style="font-size:13.5px;font-weight:700;color:var(--teal-dark);margin-bottom:5px;">📋 Please read the reference guide before uploading</div>
             <div style="font-size:13px;color:var(--ink-muted);font-weight:400;line-height:1.6;">This guide explains the exact photo angles, shot types, video requirements, and examples we expect from you. Following it ensures your listing gets approved faster.</div>
-            <a href="media-reference-guide.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--teal);color:white;text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <a href="/reference_guide.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--teal);color:white;text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               View Media Reference Guide (PDF)
             </a>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Location Pin Verification</div>
-          <div style="background:var(--cream-warm);border:1.5px solid var(--border-strong);border-radius:12px;padding:16px 18px;margin-bottom:8px;">
-            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:7px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              Pin Your Billboard's Exact Location
-            </div>
-            <div style="font-size:12.5px;color:var(--ink-muted);margin-bottom:12px;line-height:1.6;">The map below is pre-zoomed to your billboard's pincode. Drag the pin or click on the map to mark the exact location of your billboard.</div>
-            <div id="mapPinContainer" style="width:100%;height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border-strong);background:#e8f0e0;position:relative;">
-              <div id="mapPinPlaceholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 100%);">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <div style="font-size:13px;font-weight:600;color:var(--teal-dark);">Map loads after you enter your billboard pincode (Step 3)</div>
-                <div style="font-size:12px;color:var(--ink-faint);">Enter pincode on the previous step to activate the map</div>
-                <button type="button" onclick="initMapPin()" style="margin-top:6px;background:var(--teal);color:white;border:none;font-family:var(--font-body);font-size:12.5px;font-weight:600;padding:9px 20px;border-radius:8px;cursor:pointer;">Load Map Now</button>
-              </div>
-            </div>
-            <div id="mapPinCoordsDisplay" style="display:none;margin-top:10px;padding:9px 13px;background:var(--green-light);border:1px solid rgba(5,150,105,0.2);border-radius:8px;font-size:13px;color:var(--green);font-weight:500;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
-              <span id="mapPinCoordsText">Pin set</span>
-            </div>
           </div>
         </div>
 
@@ -1271,8 +1270,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
               </div>
-              <div class="upload-title">Drag &amp; drop day photos here</div>
-              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB each · Clear angle required</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Clear angle required</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB each</div>
               <div class="upload-actions" onclick="event.stopPropagation()">
                 <button class="upload-btn primary" onclick="triggerFileInput('dayFileInput')">Browse Files</button>
               </div>
@@ -1295,8 +1295,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               </div>
-              <div class="upload-title">Drag &amp; drop night photos here</div>
-              <div class="upload-sub">JPG, PNG, WEBP · Must show actual illumination · Max 10MB</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Must show actual illumination</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB</div>
               <div class="upload-actions" onclick="event.stopPropagation()">
                 <button class="upload-btn primary" onclick="triggerFileInput('nightFileInput')">Browse Files</button>
               </div>
@@ -1319,8 +1320,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Shows billboard in its surroundings</div>
-              <div class="upload-sub">Drag &amp; drop or click to browse · JPG, PNG</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Shows billboard with its surroundings</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB</div>
             </div>
             <input type="file" id="areaFileInput" accept="image/*" multiple style="display:none" onchange="handleFileInput(event,'area')"/>
             <div class="upload-preview" id="areaPreview"></div>
@@ -1337,8 +1339,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Drag &amp; drop or click to browse</div>
-              <div class="upload-sub">MP4, MOV · Max 100MB</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Short walkthrough or footage of the billboard</div>
+              <div class="upload-sub">MP4, MOV · Max 50MB</div>
             </div>
             <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="handleFileInput(event,'video')"/>
             <div class="upload-preview" id="videoPreview"></div>
@@ -1407,7 +1410,8 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Ownership deed or lease agreement</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Ownership deed or lease agreement</div>
               <div class="upload-sub">PDF, JPG, PNG · Max 20MB</div>
             </div>
             <input type="file" id="docFileInput" accept=".pdf,image/*" style="display:none" onchange="handleFileInput(event,'doc')"/>
@@ -1426,7 +1430,8 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Approval certificate</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Approval certificate or NOC</div>
               <div class="upload-sub">PDF, JPG, PNG · Max 20MB</div>
             </div>
             <input type="file" id="approvalDocFileInput" accept=".pdf,image/*" style="display:none" onchange="handleFileInput(event,'approvalDoc')"/>
@@ -1465,6 +1470,14 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
           <div class="review-section-body" id="review_pricing">—</div>
           <div class="review-section-head" style="border-top:1px solid var(--border);"><span>Legal Data</span><button class="review-edit-btn" onclick="goToStep(6)">Edit →</button></div>
           <div class="review-section-body" id="review_legal">—</div>
+        </div>
+
+        <div class="password-missing-alert" id="step7PasswordMissingAlert" style="display:none;" role="alert">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+            <span><strong>Password required:</strong> Please set an account password in Step 1 before submitting.</span>
+          </div>
+          <button type="button" onclick="goToStep(1)" style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;">Set Password →</button>
         </div>
 
         <div class="terms-row" style="margin-bottom:20px;">
@@ -1667,6 +1680,15 @@ function validateStep(step) {
     return true;
   }
   if (step === 7) {
+    const pw = (document.getElementById('f_password')?.value || '').trim();
+    const alertEl = document.getElementById('step7PasswordMissingAlert');
+    if (!pw) {
+      if (alertEl) { alertEl.style.display = 'flex'; alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+      showToast('⚠️ Please set an account password in Step 1 before submitting', 'error');
+      return false;
+    } else {
+      if (alertEl) alertEl.style.display = 'none';
+    }
     if (!document.getElementById('termsCheck').checked) {
       showToast('⚠️ Please accept the Terms & Privacy Policy');
       return false;
@@ -1688,6 +1710,9 @@ function submitRegistration() {
 function selectType(el) {
   document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
+  const isOther = el.querySelector('.type-option-label')?.textContent.trim() === 'Other';
+  const otherWrap = document.getElementById('bbTypeOtherWrap');
+  if (otherWrap) otherWrap.style.display = isOther ? 'block' : 'none';
 }
 function selectFacing(el) {
   document.querySelectorAll('.facing-option').forEach(o => o.classList.remove('selected'));
@@ -1761,6 +1786,13 @@ function togglePw(fieldId, btn) {
 
 // ─── PINCODE AUTOFILL (India Post API) ──────────────────────────────────
 const pincodeCache = {};
+function handleEmailInput(el) {
+  const v = el.value.trim();
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const btn = document.getElementById('emailSendBtn');
+  if (btn) btn.disabled = !valid;
+}
+
 async function autofillCity(input, prefix) {
   input.value = input.value.replace(/\D/g, '');
   const v = input.value.trim();
@@ -2204,40 +2236,70 @@ function updateMinBookingLabel() {
 function updateDiscount() {
   const base1Days = getDurationInDays('dur1Num', 'dur1Unit');
   const price1Val = parseFloat(document.getElementById('price1')?.value) || 0;
-  // Per-day rate from row 1 (the baseline)
-  const baseDailyRate = (base1Days > 0 && price1Val > 0) ? price1Val / base1Days : 0;
+  const baseDailyRate = (base1Days > 0 && price1Val > 0) ? price1Val / base1Days : (dailyRate || 0);
 
-  const rows = [
-    { priceId: 'price3', discId: 'disc3', durNum: 'dur2Num', durUnit: 'dur2Unit' },
-    { priceId: 'price6', discId: 'disc6', durNum: 'dur3Num', durUnit: 'dur3Unit' },
-    { priceId: 'price4', discId: 'disc4', durNum: 'dur4Num', durUnit: 'dur4Unit' },
-    { priceId: 'price5', discId: 'disc5', durNum: 'dur5Num', durUnit: 'dur5Unit' },
-  ];
+  const rows = document.querySelectorAll('#pricingTable .pricing-table-row');
+  rows.forEach((row, idx) => {
+    if (idx === 0) return; // skip base row
+    const durNumInput = row.querySelector('input[type="number"]');
+    const durUnitSelect = row.querySelector('select');
+    const priceInput = row.querySelectorAll('input[type="number"]')[1];
+    const discEl = row.querySelector('.discount-badge');
+    if (!durNumInput || !durUnitSelect || !priceInput || !discEl) return;
 
-  rows.forEach(r => {
-    const priceEl = document.getElementById(r.priceId);
-    const discEl = document.getElementById(r.discId);
-    if (!priceEl || !discEl) return;
-    const price = parseFloat(priceEl.value) || 0;
-    const days = getDurationInDays(r.durNum, r.durUnit);
+    const num = parseFloat(durNumInput.value) || 0;
+    const unit = durUnitSelect.value;
+    const UNIT_DAYS_MAP = { days: 1, weeks: 7, months: 30, years: 365 };
+    const days = num * (UNIT_DAYS_MAP[unit] || 30);
+    const price = parseFloat(priceInput.value) || 0;
+
     if (baseDailyRate > 0 && price > 0 && days > 0) {
       const fullPrice = baseDailyRate * days;
       const pct = Math.round((1 - price / fullPrice) * 100);
       if (pct > 0) {
         discEl.style.color = 'var(--teal)';
         discEl.innerHTML = '<strong>' + pct + '% off</strong>';
-      } else if (pct < 0) {
-        discEl.style.color = 'var(--amber-mid)';
-        discEl.innerHTML = '+' + Math.abs(pct) + '% over';
       } else {
-        discEl.style.color = 'var(--ink-faint)';
-        discEl.textContent = 'No discount';
+        discEl.textContent = '';
       }
     } else {
-      discEl.textContent = '—';
-      discEl.style.color = 'var(--ink-faint)';
+      discEl.textContent = '';
     }
   });
+}
+
+let packageCounter = 3;
+function addPricingPackage() {
+  packageCounter++;
+  const table = document.getElementById('pricingTable');
+  if (!table) return;
+  const row = document.createElement('div');
+  row.className = 'pricing-table-row';
+  const pId = 'price' + packageCounter;
+  const dId = 'disc' + packageCounter;
+  const dnId = 'dur' + packageCounter + 'Num';
+  const duId = 'dur' + packageCounter + 'Unit';
+  row.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input type="number" id="${dnId}" class="price-input" value="1" min="1" style="width:52px;text-align:center;padding:8px 4px;flex-shrink:0;" oninput="updateDiscount()" />
+      <select id="${duId}" class="price-input" style="padding:8px 10px;cursor:pointer;flex:1;min-width:95px;" onchange="updateDiscount()">
+        <option value="days">Days</option>
+        <option value="weeks">Weeks</option>
+        <option value="months" selected>Months</option>
+        <option value="years">Years</option>
+      </select>
+    </div>
+    <input type="number" class="price-input" id="${pId}" placeholder="" oninput="updateDiscount()" />
+    <div class="discount-badge" id="${dId}" style="font-size:12px;font-weight:600;"></div>
+    <div style="display:flex;gap:8px;align-items:center;width:100%;">
+      <input type="text" class="price-input" placeholder="" style="flex:1;min-width:0;width:100%;" />
+      <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <button type="button" onclick="this.closest('.pricing-table-row').remove(); updateDiscount();" style="background:none;border:none;color:var(--ink-faint);cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;">×</button>
+      </div>
+    </div>
+  `;
+  table.appendChild(row);
+  updateDiscount();
 }
 
 // ─── CALENDAR (range selection) ───────────────────────────────────────────
@@ -2469,3 +2531,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+}
