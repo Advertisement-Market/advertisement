@@ -86,8 +86,8 @@ spaces stays within the 20-character limit.
 | :--- | :--- | :--- |
 | Backend phone pattern (new) | `cd backend; mvn -o test -Dtest=PhoneValidationTest` | 7 / 7 passed |
 | Backend DTO validation (regression) | `cd backend; mvn -o test -Dtest=AddressValidationTest` | 20 / 20 passed |
-| Frontend validators + mappers | `cd frontend; npx vitest run src/lib/validators.test.js src/features/auth/registrationMappers.test.js` | 48 / 48 passed |
-| Frontend full suite | `cd frontend; npx vitest run` | 17 files, 228 / 228 passed |
+| Frontend validators + mappers | `cd frontend; npx vitest run src/lib/validators.test.js src/features/auth/registrationMappers.test.js` | 52 / 52 passed |
+| Frontend full suite | `cd frontend; npx vitest run` | 17 files, 232 / 232 passed |
 | Lint | `cd frontend; npm run lint` | 0 errors, 0 warnings |
 | Production build | `cd frontend; npx vite build` | Built cleanly |
 
