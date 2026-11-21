@@ -7,6 +7,7 @@ import {
   UploadZone,
   ThumbnailCard,
   normalizeUploadItem,
+  MinBookingInput,
 } from './widgets';
 import { AvailabilityCalendar } from './calendar';
 import { formatDateKey, addDays } from '@/features/availability/availabilityUtils';
@@ -533,6 +534,42 @@ describe('OwnerRegister and Wizard Widgets', () => {
       fireEvent.click(bookedCell);
       fireEvent.click(holdCell);
       expect(JSON.parse(screen.getByTestId('blocked-json').textContent)).toEqual({});
+    });
+  });
+
+  describe('MinBookingInput validation (Issue #49)', () => {
+    it('enforces integer validation and range bounds (1-1000) on blur', () => {
+      render(
+        <RegisterProvider initialData={{ f_minBookingValue: 1, f_minBookingUnit: 'MONTHS' }}>
+          <MinBookingInput />
+        </RegisterProvider>,
+      );
+
+      const input = screen.getByPlaceholderText('1');
+      expect(input.getAttribute('min')).toBe('1');
+      expect(input.getAttribute('max')).toBe('1000');
+      expect(input.getAttribute('step')).toBe('1');
+
+      // MB-05: Upper bound > 1000 displays range error on blur
+      fireEvent.change(input, { target: { value: '1001' } });
+      fireEvent.blur(input);
+      expect(screen.getByText('Must be between 1 and 1000.')).toBeDefined();
+
+      // MB-06: Decimal value displays whole number error on blur
+      fireEvent.change(input, { target: { value: '1.5' } });
+      fireEvent.blur(input);
+      expect(screen.getByText('Must be a whole number.')).toBeDefined();
+
+      // Value <= 0 displays range error on blur
+      fireEvent.change(input, { target: { value: '0' } });
+      fireEvent.blur(input);
+      expect(screen.getByText('Must be between 1 and 1000.')).toBeDefined();
+
+      // Valid integer clears error
+      fireEvent.change(input, { target: { value: '15' } });
+      fireEvent.blur(input);
+      expect(screen.queryByText('Must be between 1 and 1000.')).toBeNull();
+      expect(screen.queryByText('Must be a whole number.')).toBeNull();
     });
   });
 });

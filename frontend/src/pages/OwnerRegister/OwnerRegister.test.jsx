@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { OwnerRegister } from './OwnerRegister';
+import { OwnerRegister, validate } from './OwnerRegister';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModalContext } from '@/context/AuthModalContext';
@@ -809,6 +809,56 @@ describe('ownerDraftStorage allowlist, TTL & handoff', () => {
     });
   });
 
+  describe('Minimum Booking Duration Validation (Issue #49 - MB-05, MB-06)', () => {
+    it('rejects values greater than 1000 with specific upper-bound error in Step 4 validation', () => {
+      const showToast = vi.fn();
+      const result = validate(4, {
+        data: { f_startPrice: '5000', f_minBookingValue: '1001', f_minBookingUnit: 'MONTHS' },
+        showToast,
+      });
+      expect(result).toBe(false);
+      expect(showToast).toHaveBeenCalledWith(
+        'Minimum booking duration cannot exceed 1000.',
+        'error',
+      );
+    });
+
+    it('rejects decimal values with whole number error in Step 4 validation', () => {
+      const showToast = vi.fn();
+      const result = validate(4, {
+        data: { f_startPrice: '5000', f_minBookingValue: '1.5', f_minBookingUnit: 'MONTHS' },
+        showToast,
+      });
+      expect(result).toBe(false);
+      expect(showToast).toHaveBeenCalledWith(
+        'Minimum booking duration must be a whole number.',
+        'error',
+      );
+    });
+
+    it('rejects non-positive and zero values in Step 4 validation', () => {
+      const showToast = vi.fn();
+      const result = validate(4, {
+        data: { f_startPrice: '5000', f_minBookingValue: '0', f_minBookingUnit: 'MONTHS' },
+        showToast,
+      });
+      expect(result).toBe(false);
+      expect(showToast).toHaveBeenCalledWith(
+        'Please enter a valid minimum booking duration.',
+        'error',
+      );
+    });
+
+    it('accepts valid integer minimum booking duration within 1-1000', () => {
+      const showToast = vi.fn();
+      const result = validate(4, {
+        data: { f_startPrice: '5000', f_minBookingValue: '1000', f_minBookingUnit: 'MONTHS' },
+        showToast,
+      });
+      expect(result).toBe(true);
+      expect(showToast).not.toHaveBeenCalled();
+    });
+  });
   it('persists f_pricingPackages in draft and restores all rows, durations, rates, and notes on page refresh', () => {
     const savedPackages = [
       { id: 1, num: '2', unit: 'months', rate: '50000', note: 'Standard base', isBase: true },

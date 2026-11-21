@@ -895,7 +895,8 @@ export function MinBookingInput() {
   const unit = field('f_minBookingUnit') || 'MONTHS';
   const { error, show, invalidClass, onBlur } = useFieldError('f_minBookingValue', [
     v.required('Please enter a minimum booking duration.'),
-    v.range(1, 1000, 'Must be at least 1.'),
+    v.integer('Must be a whole number.'),
+    v.range(1, 1000, 'Must be between 1 and 1000.'),
   ]);
 
   return (
@@ -905,6 +906,7 @@ export function MinBookingInput() {
         <input
           type="number"
           min="1"
+          max="1000"
           step="1"
           className={cn('form-control', invalidClass)}
           style={{ flex: 1, minWidth: 0 }}

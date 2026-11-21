@@ -17,6 +17,7 @@ export const MSG = {
   pincode: 'Enter a valid 6-digit PIN code (cannot start with 0).',
   gst: 'Enter a valid 15-character GSTIN.',
   pan: 'Enter a valid PAN (e.g. AAAAA0000A).',
+  integer: 'Must be a whole number.',
   companyReg: 'Enter a valid Company Registration / CIN number (7–21 alphanumeric characters).',
   city: 'Enter a valid city name (letters and spaces only).',
   state: 'Enter a valid state name (letters and spaces only).',
@@ -131,6 +132,14 @@ export const range = (min, max, msg) => {
       : msg || `Enter a value between ${numMin} and ${numMax}.`;
   };
 };
+
+export const integer =
+  (msg = MSG.integer) =>
+  (v) => {
+    if (isEmpty(v)) return null;
+    const n = Number(v);
+    return Number.isInteger(n) && !String(v).includes('.') ? null : msg;
+  };
 
 export class FieldFormatError extends TypeError {
   constructor(field, message, userMessage) {
