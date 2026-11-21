@@ -4,7 +4,7 @@ package com.theadbasket.backend.common.validation;
 public final class ValidationPatterns {
 
     // Allows up to 20 chars so formatted numbers with a country code and spaces
-    // (e.g. "+91 20 2222 3333") pass. Keep in sync with frontend MSG.phoneLoose / telephone().
+    // (e.g. "+91 20 2222 3333") pass. Keep in sync with the frontend telephone() validator.
     public static final String PHONE = "^[0-9+\\-\\s]{10,20}$";
     public static final String PHONE_OPTIONAL = "^$|^[0-9+\\-\\s]{10,20}$";
     // Matches a well-formed 6-digit Indian PIN code: a first digit of 1-9 followed by five digits (0-9)
