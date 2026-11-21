@@ -28,8 +28,8 @@ const trimOrNull = (v) => {
 
 // Normalizes a phone number: trims and collapses internal whitespace runs to a
 // single space, so a formatted value like "+91  20   2222 3333" stays within the
-// backend's 20-char limit (ValidationPatterns.PHONE_OPTIONAL).
-const phoneOrNull = (v) => {
+// backend's 20-char limit (ValidationPatterns.PHONE_OPTIONAL). Exported for tests.
+export const phoneOrNull = (v) => {
   const s = trimOrNull(v);
   return s == null ? null : s.replace(/\s+/g, ' ');
 };
