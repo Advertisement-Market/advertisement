@@ -132,10 +132,6 @@ export function validate(step, { data, showToast }) {
     if (!Number.isInteger(numMin) || String(minVal).includes('.'))
       return fail('Minimum booking duration must be a whole number.');
     if (numMin > 1000) return fail('Minimum booking duration cannot exceed 1000.');
-    if (!Number.isInteger(numMin) || String(minVal).includes('.'))
-      return fail('Minimum booking duration must be a whole number.');
-    if (numMin > 1000)
-      return fail('Minimum booking duration cannot exceed 1000.');
     const minUnit = d('f_minBookingUnit') || 'MONTHS';
     if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
       return fail('Please select a valid booking duration unit.');
