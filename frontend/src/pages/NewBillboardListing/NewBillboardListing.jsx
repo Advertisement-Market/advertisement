@@ -126,8 +126,16 @@ export function validate(step, { data, showToast }) {
     if (!d('f_startPrice') || Number(d('f_startPrice')) <= 0)
       return fail('Please enter a starting price.');
     const minVal = d('f_minBookingValue') ?? (d('f_minBooking') ? 1 : null);
-    if (!minVal || Number(minVal) <= 0)
+    const numMin = Number(minVal);
+    if (!minVal || Number.isNaN(numMin) || numMin <= 0)
       return fail('Please enter a valid minimum booking duration.');
+    if (!Number.isInteger(numMin) || String(minVal).includes('.'))
+      return fail('Minimum booking duration must be a whole number.');
+    if (numMin > 1000) return fail('Minimum booking duration cannot exceed 1000.');
+    if (!Number.isInteger(numMin) || String(minVal).includes('.'))
+      return fail('Minimum booking duration must be a whole number.');
+    if (numMin > 1000)
+      return fail('Minimum booking duration cannot exceed 1000.');
     const minUnit = d('f_minBookingUnit') || 'MONTHS';
     if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
       return fail('Please select a valid booking duration unit.');

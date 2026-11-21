@@ -18,6 +18,7 @@ import {
   sanitizeText,
   number,
   range,
+  integer,
   FieldFormatError,
   decimal,
   decimalRange,
@@ -304,6 +305,38 @@ describe('Frontend Field Validators', () => {
       expect(validators).toHaveLength(1);
       expect(validators[0]('15')).toBeNull();
       expect(validators[0]('15abc')).toBe('Enter a valid number.');
+    });
+  });
+
+  describe('integer validator', () => {
+    it('accepts valid integers and whole numeric strings', () => {
+      const validate = integer();
+      expect(validate('1')).toBeNull();
+      expect(validate('1000')).toBeNull();
+      expect(validate(15)).toBeNull();
+      expect(validate('0')).toBeNull();
+      expect(validate(0)).toBeNull();
+    });
+
+    it('treats empty, null, and undefined as valid optional blanks', () => {
+      const validate = integer();
+      expect(validate('')).toBeNull();
+      expect(validate(null)).toBeNull();
+      expect(validate(undefined)).toBeNull();
+      expect(validate('   ')).toBeNull();
+    });
+
+    it('rejects decimals, non-numbers, and invalid formats with default and custom message', () => {
+      const validate = integer();
+      expect(validate('1.5')).toBe('Must be a whole number.');
+      expect(validate('0.1')).toBe('Must be a whole number.');
+      expect(validate('1.0')).toBe('Must be a whole number.');
+      expect(validate('.5')).toBe('Must be a whole number.');
+      expect(validate('1001.25')).toBe('Must be a whole number.');
+      expect(validate('abc')).toBe('Must be a whole number.');
+
+      const customValidate = integer('Custom whole number error');
+      expect(customValidate('2.5')).toBe('Custom whole number error');
     });
   });
 });

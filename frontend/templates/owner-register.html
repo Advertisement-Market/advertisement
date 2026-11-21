@@ -1079,7 +1079,7 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               </select>
               <div id="f_minBookingCustomWrap" style="display:none;margin-top:10px;">
                 <div style="display:flex;gap:10px;align-items:center;">
-                  <input type="number" id="f_minBookingNum" class="form-control" placeholder="e.g. 10" min="1" max="365" style="max-width:110px;" oninput="updateMinBookingLabel()"/>
+                  <input type="number" id="f_minBookingNum" class="form-control" placeholder="e.g. 10" min="1" max="1000" style="max-width:110px;" oninput="updateMinBookingLabel()"/>
                   <select id="f_minBookingUnit" class="form-control" onchange="updateMinBookingLabel()">
                     <option value="days">Days</option>
                     <option value="weeks">Weeks</option>
@@ -1650,6 +1650,15 @@ function validateStep(step) {
   if (step === 4) {
     const sp = document.getElementById('f_startPrice').value.trim();
     if (!sp || parseFloat(sp) <= 0) { showFieldError('f_startPrice', 'Please enter a starting price'); return false; }
+    const mbSel = document.getElementById('f_minBooking');
+    if (mbSel && mbSel.value === 'other') {
+      const numEl = document.getElementById('f_minBookingNum');
+      const numVal = numEl ? numEl.value.trim() : '';
+      const num = Number(numVal);
+      if (!numVal || Number.isNaN(num) || num <= 0) { showFieldError('f_minBookingNum', 'Please enter a valid minimum booking duration'); return false; }
+      if (!Number.isInteger(num) || numVal.includes('.')) { showFieldError('f_minBookingNum', 'Minimum booking duration must be a whole number.'); return false; }
+      if (num > 1000) { showFieldError('f_minBookingNum', 'Minimum booking duration cannot exceed 1000.'); return false; }
+    }
     return true;
   }
   if (step === 5) {
