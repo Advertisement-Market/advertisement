@@ -58,9 +58,9 @@ export function FormRow({ children }) {
   return <div className="form-row">{children}</div>;
 }
 
-export function FieldLabel({ label, required, optional }) {
+export function FieldLabel({ htmlFor, label, required, optional }) {
   return (
-    <label>
+    <label htmlFor={htmlFor}>
       {label} {required && <span className="req">*</span>}
       {optional && <span className="opt">(optional)</span>}
     </label>
@@ -100,11 +100,16 @@ export function Field({
   ];
   const { error, show, invalidClass, onBlur } = useFieldError(name, validators);
   const controlClass = cn('form-control', invalidClass);
+  // Forward name + id to the native control so labels, autofill and password
+  // managers can associate with the field (WCAG 1.3.1 / 4.1.2).
+  const fieldId = rest.id ?? name;
 
   let control;
   if (type === 'textarea') {
     control = (
       <textarea
+        name={name}
+        id={fieldId}
         className={controlClass}
         rows={rows}
         placeholder={placeholder}
@@ -116,7 +121,15 @@ export function Field({
     );
   } else if (type === 'select') {
     control = (
-      <select className={controlClass} value={value} onChange={onChange} onBlur={onBlur} {...rest}>
+      <select
+        name={name}
+        id={fieldId}
+        className={controlClass}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        {...rest}
+      >
         {options.map((o) =>
           typeof o === 'string' ? (
             <option key={o}>{o}</option>
@@ -135,6 +148,8 @@ export function Field({
     control = (
       <input
         type={type}
+        name={name}
+        id={fieldId}
         className={controlClass}
         placeholder={placeholder}
         value={value}
@@ -147,7 +162,9 @@ export function Field({
 
   return (
     <div className="form-group" style={groupStyle}>
-      {label && <FieldLabel label={label} required={required} optional={optional} />}
+      {label && (
+        <FieldLabel htmlFor={fieldId} label={label} required={required} optional={optional} />
+      )}
       {control}
       {show ? (
         <FieldError show={show} error={error} />
@@ -229,10 +246,12 @@ export function PasswordField({ name, label, required, placeholder, showReqs }) 
 
   return (
     <div className="form-group">
-      {label && <FieldLabel label={label} required={required} />}
+      {label && <FieldLabel htmlFor={name} label={label} required={required} />}
       <div style={{ position: 'relative' }}>
         <input
           type={visible ? 'text' : 'password'}
+          name={name}
+          id={name}
           className={cn('form-control', invalidClass)}
           placeholder={placeholder}
           value={value}
@@ -316,10 +335,12 @@ export function ConfirmPasswordField({ name, against, label, required, placehold
 
   return (
     <div className="form-group">
-      {label && <FieldLabel label={label} required={required} />}
+      {label && <FieldLabel htmlFor={name} label={label} required={required} />}
       <div style={{ position: 'relative' }}>
         <input
           type={visible ? 'text' : 'password'}
+          name={name}
+          id={name}
           className={cn('form-control', !matches && invalidClass)}
           placeholder={placeholder}
           value={value}
