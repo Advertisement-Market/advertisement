@@ -1457,6 +1457,21 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       // Must surface the normal fallback message, NOT a ground-height error!
       await expect(handler({ data: {} })).rejects.toThrow('Failed to update billboard listing.');
     });
+
+    it('propagates 401/403 auth errors instead of faking success (issue #43)', async () => {
+      const authError = Object.assign(new Error('Unauthorized'), {
+        response: { status: 401 },
+      });
+      const handler = createSubmitHandler({
+        isEdit: false,
+        mapPayload: vi.fn().mockReturnValue({ name: 'Valid Board' }),
+        apiClient: { createListing: vi.fn().mockRejectedValue(authError) },
+      });
+
+      // Even in dev the handler must reject so the wizard never shows a false
+      // SuccessScreen while the listing was never persisted.
+      await expect(handler({ data: {} })).rejects.toThrow('Failed to create billboard listing.');
+    });
   });
 
   describe('Step 2 Availability Calendar Persistence in Create and Edit Modes', () => {

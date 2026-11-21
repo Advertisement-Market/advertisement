@@ -228,13 +228,7 @@ function WizardBody({ isEdit, listingId, initialStatus }) {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function createSubmitHandler({
-  isEdit,
-  id,
-  apiClient = ownerListingApi,
-  env = import.meta.env,
-  mapPayload,
-} = {}) {
+export function createSubmitHandler({ isEdit, id, apiClient = ownerListingApi, mapPayload } = {}) {
   return async ({ data }) => {
     let payload;
     try {
@@ -257,10 +251,6 @@ export function createSubmitHandler({
         await apiClient.createListing(payload);
       }
     } catch (err) {
-      if (env?.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
-        console.warn('[DEV] Auth error suppressed on edit submit.');
-        return;
-      }
       const fallback = isEdit
         ? 'Failed to update billboard listing.'
         : 'Failed to create billboard listing.';
@@ -494,10 +484,6 @@ export function NewBillboardListing() {
       }
       if (err instanceof FieldFormatError) {
         throw new Error(err.userMessage, { cause: err });
-      }
-      if (import.meta.env.DEV && (err?.response?.status === 401 || err?.response?.status === 403)) {
-        console.warn('[DEV] Auth error suppressed on edit submit.');
-        return;
       }
       const fallback = isEdit
         ? 'Failed to update billboard listing.'

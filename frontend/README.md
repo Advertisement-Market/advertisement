@@ -29,6 +29,7 @@ in `src/styles/tokens.css`; there is no CSS utility framework.
 src/
   main.jsx / App.jsx           # entry + Router and global providers (Auth, Toast, AuthModal, One Tap)
   router/AppRoutes.jsx         # clean-path route table
+  router/ProtectedRoute.jsx    # auth + role guard for owner dashboard / listing routes
   lib/                         # apiClient (Axios), authStorage, config, cn(), ROUTES + withQuery()
   styles/                      # tokens.css (design tokens), base.css (reset), index.css (entry)
   hooks/                       # useScrolled, useInView, useCountUp, useToggle, useClickOutside

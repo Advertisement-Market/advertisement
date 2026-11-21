@@ -6,6 +6,7 @@ import {
   mapBillboardListing,
   mapListingToFormData,
   mapFormDataToPatchPayload,
+  phoneOrNull,
 } from './registrationMappers';
 import { FieldFormatError } from '@/lib/validators';
 
@@ -163,6 +164,8 @@ describe('registrationMappers - Address and Payload Structure', () => {
       expect(result.city).toBe('Ahmedabad');
       expect(result.state).toBe('Gujarat');
       expect(result.pincode).toBe('380015');
+      // Company phone is trimmed/whitespace-normalized before submission.
+      expect(result.companyPhone).toBe('079-12345678');
 
       // Billboard Address
       expect(result.billboard).toMatchObject({
@@ -890,6 +893,59 @@ describe('registrationMappers - Address and Payload Structure', () => {
         f_blockedDates: {},
       });
       expect(payload).not.toHaveProperty('blockedRanges');
+    });
+  });
+
+  describe('phoneOrNull', () => {
+    it('collapses internal whitespace runs to a single space and trims', () => {
+      expect(phoneOrNull('+91  20   2222 3333')).toBe('+91 20 2222 3333');
+      expect(phoneOrNull('  079-12345678  ')).toBe('079-12345678');
+      expect(phoneOrNull('\t+91 98765\n43210 ')).toBe('+91 98765 43210');
+    });
+
+    it('leaves an already-clean number unchanged', () => {
+      expect(phoneOrNull('+91 20 2222 3333')).toBe('+91 20 2222 3333');
+      expect(phoneOrNull('9876543210')).toBe('9876543210');
+    });
+
+    it('maps empty, whitespace-only, null and undefined to null', () => {
+      expect(phoneOrNull('')).toBeNull();
+      expect(phoneOrNull('   ')).toBeNull();
+      expect(phoneOrNull(null)).toBeNull();
+      expect(phoneOrNull(undefined)).toBeNull();
+    });
+  });
+
+  describe('mapOwner companyPhone normalization', () => {
+    it('collapses multi-space company phone and maps blank to null', () => {
+      const base = {
+        f_firstName: 'Amit',
+        f_lastName: 'Patel',
+        f_email: 'amit@example.com',
+        f_phone: '+91 98765 43210',
+        f_password: 'Passw0rd!',
+        f_companyName: 'Gujarat Outdoor Media',
+        f_bizAddr1: '100 Ring Road',
+        f_bizCity: 'Ahmedabad',
+        f_bizState: 'Gujarat',
+        f_bizPin: '380015',
+        f_bbName: 'Prime Unipole',
+        f_bbAddr: 'Plot 45',
+        f_bbCity: 'Ahmedabad',
+        f_bbState: 'Gujarat',
+        f_bbPin: '380015',
+        f_bbType: 'Unipole',
+        f_bbWidth: '40',
+        f_bbHeight: '20',
+        f_startPrice: '150000',
+        f_termsAccept: true,
+      };
+
+      expect(mapOwner({ ...base, f_companyPhone: '+91  20   2222 3333' }).companyPhone).toBe(
+        '+91 20 2222 3333',
+      );
+      expect(mapOwner({ ...base, f_companyPhone: '   ' }).companyPhone).toBeNull();
+      expect(mapOwner({ ...base }).companyPhone).toBeNull();
     });
   });
 });

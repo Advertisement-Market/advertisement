@@ -389,12 +389,13 @@ export function Step2() {
             placeholder="U74999MH2020PTC123456"
           />
           <div className="form-group">
-            <label>
+            <label htmlFor="f_companyPhone">
               Company Phone <span className="opt">(optional)</span>
             </label>
             <div className="phone-wrap">
               <span className="phone-prefix">+91</span>
               <input
+                id="f_companyPhone"
                 type="text"
                 name="f_companyPhone"
                 className="form-control"
