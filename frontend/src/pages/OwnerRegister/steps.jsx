@@ -371,6 +371,8 @@ export function Step2() {
           <Field
             name="f_companyPhone"
             type="tel"
+            validateAs="text"
+            rules={[v.telephone()]}
             label="Company Phone"
             optional
             placeholder="+91 20 2222 3333"

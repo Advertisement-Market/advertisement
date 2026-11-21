@@ -4,6 +4,7 @@ import {
   required,
   email,
   phone,
+  telephone,
   pincode,
   isValidPincode,
   gst,
@@ -43,6 +44,18 @@ describe('Frontend Field Validators', () => {
     const validate = phone();
     expect(validate('98765')).toBe('Enter a valid 10-digit mobile number.');
     expect(validate('9876543210')).toBeNull();
+  });
+
+  it('validates general/office phone numbers (telephone)', () => {
+    const validate = telephone();
+    // Accepts formatted landline/office numbers up to 20 chars (matches backend PHONE).
+    expect(validate('+91 20 2222 3333')).toBeNull();
+    expect(validate('9876543210')).toBeNull();
+    expect(validate('')).toBeNull(); // optional-friendly
+    // Rejects too-short, too-long, and illegal characters.
+    expect(validate('12345')).toBe(MSG.telephone);
+    expect(validate('123456789012345678901')).toBe(MSG.telephone); // 21 chars
+    expect(validate('98765abcde')).toBe(MSG.telephone);
   });
 
   it('validates PIN code and GST', () => {
