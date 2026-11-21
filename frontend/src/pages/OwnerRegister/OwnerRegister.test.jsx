@@ -552,7 +552,12 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
     expect(dragDropPrompts.length).toBeGreaterThanOrEqual(3);
 
     // Surrounding area photo includes 10MB size limit
-    expect(screen.getByText(/Drag & drop or click to browse · JPG, PNG · Max 10MB/i)).toBeDefined();
+    expect(screen.getAllByText(/JPG, PNG, WEBP · Max 10MB/i).length).toBeGreaterThanOrEqual(1);
+
+    // Media reference guide link
+    const refGuideLink = screen.getByRole('link', { name: /View Media Reference Guide \(PDF\)/i });
+    expect(refGuideLink.getAttribute('href')).toBe('/reference_guide.pdf');
+    expect(refGuideLink.getAttribute('target')).toBe('_blank');
   });
 
   it('displays only three Pricing Package rows by default with 1 month duration each on Step 4', () => {

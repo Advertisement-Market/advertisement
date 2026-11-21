@@ -1023,6 +1023,13 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       });
       expect(screen.queryByText(/Live Listing Notice:/i)).toBeNull();
 
+      // Verify Reference Guide link is present and points to /reference_guide.pdf
+      const refGuideLink = screen.getByRole('link', {
+        name: /View Media Reference Guide \(PDF\)/i,
+      });
+      expect(refGuideLink.getAttribute('href')).toBe('/reference_guide.pdf');
+      expect(refGuideLink.getAttribute('target')).toBe('_blank');
+
       // Stage a removal of an existing photo
       const removeButtons = screen.getAllByRole('button', { name: /remove photo/i });
       expect(removeButtons.length).toBeGreaterThan(0);

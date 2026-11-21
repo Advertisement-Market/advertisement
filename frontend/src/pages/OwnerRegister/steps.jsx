@@ -1021,7 +1021,9 @@ export function Step5() {
             we expect from you. Following it ensures your listing gets approved faster.
           </div>
           <a
-            href="#"
+            href="/reference_guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1060,7 +1062,8 @@ export function Step5() {
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
           title="Drag & drop or click to browse"
-          sub="JPG, PNG, WEBP · Max 10MB each · Clear angle required"
+          instruction="Clear angle required"
+          formatHint="JPG, PNG, WEBP · Max 10MB each"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="DAY_PHOTO"
           maxCount={10}
@@ -1078,7 +1081,8 @@ export function Step5() {
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
           title="Drag & drop or click to browse"
-          sub="JPG, PNG, WEBP · Must show actual illumination · Max 10MB"
+          instruction="Must show actual illumination"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="NIGHT_PHOTO"
           maxCount={5}
@@ -1093,8 +1097,9 @@ export function Step5() {
           sectionTitle="Surrounding Area Photo"
           badge={<span className="badge-optional">Optional</span>}
           icon={GlobeIcon}
-          title="Shows billboard with its surroundings"
-          sub="Drag & drop or click to browse · JPG, PNG · Max 10MB"
+          title="Drag & drop or click to browse"
+          instruction="Shows billboard with its surroundings"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="SURROUNDING_PHOTO"
           maxCount={5}
@@ -1109,7 +1114,8 @@ export function Step5() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub={MAX_VIDEO_LABEL}
+          instruction="Short walkthrough or footage of the billboard"
+          formatHint={MAX_VIDEO_LABEL}
           accept={VIDEO_ACCEPT_TYPES}
           category="VIDEO"
           multiple={false}
@@ -1223,8 +1229,9 @@ export function Step6() {
           sectionTitle="Ownership / Lease Document"
           badge={<span className="badge-optional">Optional</span>}
           icon={DocIcon}
-          title="Ownership deed or lease agreement"
-          sub="PDF, JPG, PNG · Max 20MB"
+          title="Drag & drop or click to browse"
+          instruction="Ownership deed or lease agreement"
+          formatHint="PDF, JPG, PNG · Max 20MB"
           accept=".pdf,image/*"
           multiple={false}
           single
@@ -1234,8 +1241,9 @@ export function Step6() {
           sectionTitle="Government Approval Certificate"
           badge={<span className="badge-optional">Optional</span>}
           icon={CertIcon}
-          title="Approval certificate"
-          sub="PDF, JPG, PNG · Max 20MB"
+          title="Drag & drop or click to browse"
+          instruction="Approval certificate or NOC"
+          formatHint="PDF, JPG, PNG · Max 20MB"
           accept=".pdf,image/*"
           multiple={false}
           single

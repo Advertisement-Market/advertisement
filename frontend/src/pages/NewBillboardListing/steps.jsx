@@ -805,13 +805,104 @@ export function ListingStep3() {
         </div>
       )}
 
+      {/* Reference file notice */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg,var(--teal-light),var(--cream-warm))',
+          border: '1.5px solid rgba(8,145,178,0.25)',
+          borderRadius: 14,
+          padding: '18px 20px',
+          marginBottom: 28,
+          display: 'flex',
+          gap: 14,
+          alignItems: 'flex-start',
+        }}
+      >
+        <div
+          style={{
+            flexShrink: 0,
+            width: 38,
+            height: 38,
+            background: 'var(--teal)',
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+        </div>
+        <div>
+          <div
+            style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--teal-dark)', marginBottom: 5 }}
+          >
+            📋 Please read the reference guide before uploading
+          </div>
+          <div
+            style={{ fontSize: 13, color: 'var(--ink-muted)', fontWeight: 400, lineHeight: 1.6 }}
+          >
+            This guide explains the exact photo angles, shot types, video requirements, and examples
+            we expect from you. Following it ensures your listing gets approved faster.
+          </div>
+          <a
+            href="/reference_guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 10,
+              background: 'var(--teal)',
+              color: 'white',
+              textDecoration: 'none',
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '8px 16px',
+              borderRadius: 8,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            View Media Reference Guide (PDF)
+          </a>
+        </div>
+      </div>
+
       <FormSection title="Day Photos">
         <UploadZone
           sectionTitle="Day Photos"
           badge={<span className="badge-mandatory">Mandatory · Min 2</span>}
           icon={SunIcon}
           title="Drag & drop or click to browse"
-          sub="JPG, PNG · Max 10MB each · Clear angle required"
+          instruction="Clear angle required"
+          formatHint="JPG, PNG, WEBP · Max 10MB each"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="DAY_PHOTO"
           maxCount={10}
@@ -834,7 +925,8 @@ export function ListingStep3() {
           badge={<span className="badge-optional">Optional</span>}
           icon={MoonIcon}
           title="Drag & drop or click to browse"
-          sub="JPG, PNG · Must show actual illumination · Max 10MB"
+          instruction="Must show actual illumination"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="NIGHT_PHOTO"
           maxCount={5}
@@ -854,8 +946,9 @@ export function ListingStep3() {
           sectionTitle="Surrounding Area Photo"
           badge={<span className="badge-optional">Optional</span>}
           icon={GlobeIcon}
-          title="Shows billboard with its surroundings"
-          sub="Drag & drop or click to browse · JPG, PNG · Max 10MB"
+          title="Drag & drop or click to browse"
+          instruction="Shows billboard with its surroundings"
+          formatHint="JPG, PNG, WEBP · Max 10MB"
           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           category="SURROUNDING_PHOTO"
           maxCount={5}
@@ -874,7 +967,8 @@ export function ListingStep3() {
           badge={<span className="badge-optional">Optional</span>}
           icon={VideoIcon}
           title="Drag & drop or click to browse"
-          sub={MAX_VIDEO_LABEL}
+          instruction="Short walkthrough or footage of the billboard"
+          formatHint={MAX_VIDEO_LABEL}
           accept={VIDEO_ACCEPT_TYPES}
           category="VIDEO"
           multiple={false}

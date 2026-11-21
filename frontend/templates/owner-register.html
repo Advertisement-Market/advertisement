@@ -346,8 +346,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
 .upload-zone.dragover{border-style:solid;}
 .upload-icon{display:flex;justify-content:center;margin-bottom:10px;color:var(--ink-faint);}
 .upload-zone:hover .upload-icon,.upload-zone.dragover .upload-icon{color:var(--teal);}
-.upload-title{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px;}
-.upload-sub{font-size:12.5px;color:var(--ink-faint);font-weight:300;}
+.upload-title{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:3px;}
+.upload-instruction{font-size:13px;color:var(--ink-muted);font-weight:400;margin-bottom:3px;}
+.upload-sub{font-size:12px;color:var(--ink-faint);font-weight:300;}
 .upload-actions{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
 .upload-btn{
   font-family:var(--font-body);font-size:12.5px;font-weight:500;
@@ -1250,7 +1251,7 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
           <div>
             <div style="font-size:13.5px;font-weight:700;color:var(--teal-dark);margin-bottom:5px;">📋 Please read the reference guide before uploading</div>
             <div style="font-size:13px;color:var(--ink-muted);font-weight:400;line-height:1.6;">This guide explains the exact photo angles, shot types, video requirements, and examples we expect from you. Following it ensures your listing gets approved faster.</div>
-            <a href="media-reference-guide.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--teal);color:white;text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <a href="/reference_guide.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--teal);color:white;text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               View Media Reference Guide (PDF)
             </a>
@@ -1270,7 +1271,8 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
               </div>
               <div class="upload-title">Drag &amp; drop or click to browse</div>
-              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB each · Clear angle required</div>
+              <div class="upload-instruction">Clear angle required</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB each</div>
               <div class="upload-actions" onclick="event.stopPropagation()">
                 <button class="upload-btn primary" onclick="triggerFileInput('dayFileInput')">Browse Files</button>
               </div>
@@ -1294,7 +1296,8 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               </div>
               <div class="upload-title">Drag &amp; drop or click to browse</div>
-              <div class="upload-sub">JPG, PNG, WEBP · Must show actual illumination · Max 10MB</div>
+              <div class="upload-instruction">Must show actual illumination</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB</div>
               <div class="upload-actions" onclick="event.stopPropagation()">
                 <button class="upload-btn primary" onclick="triggerFileInput('nightFileInput')">Browse Files</button>
               </div>
@@ -1317,8 +1320,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Shows billboard with its surroundings</div>
-              <div class="upload-sub">Drag &amp; drop or click to browse · JPG, PNG · Max 10MB</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Shows billboard with its surroundings</div>
+              <div class="upload-sub">JPG, PNG, WEBP · Max 10MB</div>
             </div>
             <input type="file" id="areaFileInput" accept="image/*" multiple style="display:none" onchange="handleFileInput(event,'area')"/>
             <div class="upload-preview" id="areaPreview"></div>
@@ -1335,8 +1339,9 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Drag &amp; drop or click to browse</div>
-              <div class="upload-sub">MP4, MOV · Max 100MB</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Short walkthrough or footage of the billboard</div>
+              <div class="upload-sub">MP4, MOV · Max 50MB</div>
             </div>
             <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="handleFileInput(event,'video')"/>
             <div class="upload-preview" id="videoPreview"></div>
@@ -1405,7 +1410,8 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Ownership deed or lease agreement</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Ownership deed or lease agreement</div>
               <div class="upload-sub">PDF, JPG, PNG · Max 20MB</div>
             </div>
             <input type="file" id="docFileInput" accept=".pdf,image/*" style="display:none" onchange="handleFileInput(event,'doc')"/>
@@ -1424,7 +1430,8 @@ textarea.form-control{resize:vertical;min-height:90px;line-height:1.65;}
               <div class="upload-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
               </div>
-              <div class="upload-title" style="font-size:13px;">Approval certificate</div>
+              <div class="upload-title">Drag &amp; drop or click to browse</div>
+              <div class="upload-instruction">Approval certificate or NOC</div>
               <div class="upload-sub">PDF, JPG, PNG · Max 20MB</div>
             </div>
             <input type="file" id="approvalDocFileInput" accept=".pdf,image/*" style="display:none" onchange="handleFileInput(event,'approvalDoc')"/>
@@ -1779,14 +1786,14 @@ function togglePw(fieldId, btn) {
 
 // ─── PINCODE AUTOFILL (India Post API) ──────────────────────────────────
 const pincodeCache = {};
-async function handleEmailInput(el) {
+function handleEmailInput(el) {
   const v = el.value.trim();
   const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
   const btn = document.getElementById('emailSendBtn');
   if (btn) btn.disabled = !valid;
 }
 
-function autofillCity(input, prefix) {
+async function autofillCity(input, prefix) {
   input.value = input.value.replace(/\D/g, '');
   const v = input.value.trim();
   const fillEl = document.getElementById(prefix === 'biz' ? 'bizCityFill' : 'bbCityFill');
@@ -2524,3 +2531,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+}

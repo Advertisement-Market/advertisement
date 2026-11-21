@@ -658,8 +658,10 @@ export function ThumbnailCard({
 /* ── Photo / file upload zone with thumbnail previews & delete handling ── */
 export function UploadZone({
   icon,
-  title,
+  title = 'Drag & drop or click to browse',
   sub,
+  instruction,
+  formatHint,
   accept,
   multiple = true,
   sectionTitle,
@@ -799,9 +801,12 @@ export function UploadZone({
       >
         <div className="upload-icon">{icon}</div>
         <div className="upload-title">{title}</div>
-        <div className="upload-sub">
-          {sub || (category === 'VIDEO' ? MAX_VIDEO_LABEL : undefined)}
-        </div>
+        {instruction && <div className="upload-instruction">{instruction}</div>}
+        {(formatHint || sub || category === 'VIDEO') && (
+          <div className="upload-sub">
+            {formatHint || sub || (category === 'VIDEO' ? MAX_VIDEO_LABEL : undefined)}
+          </div>
+        )}
       </div>
       <input
         type="file"
