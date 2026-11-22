@@ -9,10 +9,10 @@ package com.theadbasket.backend.lov;
  */
 public enum BookingDurationUnit {
 
-    DAYS("Days", 1, 365),
-    WEEKS("Weeks", 7, 52),
-    MONTHS("Months", 30, 60),
-    YEARS("Years", 365, 10);
+    DAYS("Days", 1, 1000),
+    WEEKS("Weeks", 7, 1000),
+    MONTHS("Months", 30, 1000),
+    YEARS("Years", 365, 100);
 
     /** Maximum allowed minimum-booking value across the application for backward-compatible @Max validation. */
     public static final int MAX_VALUE = 1000;

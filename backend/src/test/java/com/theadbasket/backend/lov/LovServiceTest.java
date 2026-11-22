@@ -103,7 +103,8 @@ class LovServiceTest {
                 .containsExactly(
                         new LovOption("DAYS", "Days"),
                         new LovOption("WEEKS", "Weeks"),
-                        new LovOption("MONTHS", "Months"));
+                        new LovOption("MONTHS", "Months"),
+                        new LovOption("YEARS", "Years"));
     }
 
     @Test

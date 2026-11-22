@@ -28,25 +28,25 @@ class BookingDurationUnitTest {
     @Test
     @DisplayName("isValidDurationValue enforces per-unit maximum caps")
     void isValidDurationValue_enforcesCaps() {
-        // DAYS: max 365
+        // DAYS: max 1000
         assertThat(BookingDurationUnit.DAYS.isValidDurationValue(1)).isTrue();
-        assertThat(BookingDurationUnit.DAYS.isValidDurationValue(365)).isTrue();
-        assertThat(BookingDurationUnit.DAYS.isValidDurationValue(366)).isFalse();
+        assertThat(BookingDurationUnit.DAYS.isValidDurationValue(1000)).isTrue();
+        assertThat(BookingDurationUnit.DAYS.isValidDurationValue(1001)).isFalse();
 
-        // WEEKS: max 52
+        // WEEKS: max 1000
         assertThat(BookingDurationUnit.WEEKS.isValidDurationValue(1)).isTrue();
-        assertThat(BookingDurationUnit.WEEKS.isValidDurationValue(52)).isTrue();
-        assertThat(BookingDurationUnit.WEEKS.isValidDurationValue(53)).isFalse();
+        assertThat(BookingDurationUnit.WEEKS.isValidDurationValue(1000)).isTrue();
+        assertThat(BookingDurationUnit.WEEKS.isValidDurationValue(1001)).isFalse();
 
-        // MONTHS: max 60
+        // MONTHS: max 1000
         assertThat(BookingDurationUnit.MONTHS.isValidDurationValue(1)).isTrue();
-        assertThat(BookingDurationUnit.MONTHS.isValidDurationValue(60)).isTrue();
-        assertThat(BookingDurationUnit.MONTHS.isValidDurationValue(61)).isFalse();
+        assertThat(BookingDurationUnit.MONTHS.isValidDurationValue(1000)).isTrue();
+        assertThat(BookingDurationUnit.MONTHS.isValidDurationValue(1001)).isFalse();
 
-        // YEARS: max 10
+        // YEARS: max 100
         assertThat(BookingDurationUnit.YEARS.isValidDurationValue(1)).isTrue();
-        assertThat(BookingDurationUnit.YEARS.isValidDurationValue(10)).isTrue();
-        assertThat(BookingDurationUnit.YEARS.isValidDurationValue(11)).isFalse();
+        assertThat(BookingDurationUnit.YEARS.isValidDurationValue(100)).isTrue();
+        assertThat(BookingDurationUnit.YEARS.isValidDurationValue(101)).isFalse();
 
         // Zero and negative are invalid
         assertThat(BookingDurationUnit.DAYS.isValidDurationValue(0)).isFalse();

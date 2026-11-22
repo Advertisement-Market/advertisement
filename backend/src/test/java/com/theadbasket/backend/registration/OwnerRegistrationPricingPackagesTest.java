@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -207,7 +208,7 @@ class OwnerRegistrationPricingPackagesTest {
                     "city":"Ahmedabad","state":"Gujarat","pincode":"380015",
                     "type":"Unipole","widthFt":40,"heightFt":20,"groundHeightFt":10,"facing":"North",
                     "trafficType":"City / Urban","audienceType":"Commuters","footfall":"60000","startPrice":1000,
-                    "minBookingValue":53,"minBookingUnit":"WEEKS","discountNote":""
+                    "minBookingValue":1001,"minBookingUnit":"WEEKS","discountNote":""
                   },
                   "acceptedTerms":true
                 }""";
@@ -216,6 +217,14 @@ class OwnerRegistrationPricingPackagesTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(badUnitPayload))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.minBookingValue").exists());
+                .andExpect(jsonPath("$.fieldErrors['billboard.minBookingValue']").exists());
+    }
+
+    @AfterEach
+    void tearDown() {
+        billboardListingRepository.deleteAll();
+        ownerProfileRepository.deleteAll();
+        addressRepository.deleteAll();
+        userRepository.deleteAll();
     }
 }

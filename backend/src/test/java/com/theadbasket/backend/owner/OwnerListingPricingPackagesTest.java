@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -243,5 +244,12 @@ class OwnerListingPricingPackagesTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].pricingPackages").isArray())
                 .andExpect(jsonPath("$[1].pricingPackages").isArray());
+    }
+
+    @AfterEach
+    void tearDown() {
+        billboardListingRepository.deleteAll();
+        addressRepository.deleteAll();
+        userRepository.deleteAll();
     }
 }

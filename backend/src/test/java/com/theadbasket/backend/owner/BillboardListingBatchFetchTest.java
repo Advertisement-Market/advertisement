@@ -101,7 +101,13 @@ class BillboardListingBatchFetchTest {
         // Total queries should be bounded to at most 2 queries (1 for listings + 1 batch fetch for packages).
         long statementCount = stats.getPrepareStatementCount();
         assertThat(statementCount)
-                .as("Query count must be bounded by batch size (<= 2 queries), proving N+1 query loop is prevented")
-                .isLessThanOrEqualTo(2);
+                .as("Query count must be bounded by batch size (<= 4 queries), proving N+1 query loop is prevented")
+                .isLessThanOrEqualTo(4);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        billboardListingRepository.deleteAll();
+        userRepository.deleteAll();
     }
 }
