@@ -33,6 +33,13 @@ public interface FileStorageService {
     StoredFile storeVideo(String subDirectory, MultipartFile file, String preferredFilename);
 
     /**
+     * Validates the MIME type (PDF, JPEG or PNG) and size from the content bytes, then streams
+     * the document to disk as-is (no image re-encoding, resizing or EXIF processing). Intended
+     * for private legal/verification documents up to 20MB.
+     */
+    StoredFile storeDocument(String subDirectory, MultipartFile file, String preferredFilename);
+
+    /**
      * Deletes the file at storageKey, throwing if deletion fails.
      */
     void delete(String storageKey);

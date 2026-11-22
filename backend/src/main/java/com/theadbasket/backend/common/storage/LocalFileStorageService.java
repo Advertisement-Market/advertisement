@@ -53,6 +53,7 @@ public class LocalFileStorageService implements FileStorageService {
     private static final int TARGET_MAX_EDGE = 2560;
     private static final float JPEG_QUALITY = 0.85f;
     private static final long MAX_IMAGE_BYTES = 10 * 1024 * 1024L; // 10 MB
+    private static final long MAX_DOCUMENT_BYTES = 20 * 1024 * 1024L; // 20 MB
 
     private final Path uploadRoot;
     private final long maxVideoBytes;
@@ -354,6 +355,67 @@ public class LocalFileStorageService implements FileStorageService {
         } catch (IOException e) {
             deleteQuietly(storageKey);
             throw new IllegalStateException("Failed to write video to disk", e);
+        }
+    }
+
+    @Override
+    public StoredFile storeDocument(String subDirectory, MultipartFile file, String preferredFilename) {
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException(ErrorCode.INVALID_FILE, "Document file cannot be empty");
+        }
+        if (file.getSize() > MAX_DOCUMENT_BYTES) {
+            throw new BadRequestException(ErrorCode.FILE_TOO_LARGE, "Document file exceeds maximum allowed size of 20MB");
+        }
+
+        byte[] headerBytes = new byte[8192];
+        int bytesRead;
+        try (InputStream is = file.getInputStream()) {
+            bytesRead = is.read(headerBytes);
+            if (bytesRead < 4) {
+                throw new BadRequestException(ErrorCode.INVALID_FILE, "File is too small to be a valid document");
+            }
+        } catch (IOException e) {
+            throw new BadRequestException(ErrorCode.INVALID_FILE, "Failed to read document header");
+        }
+
+        // Detect MIME strictly from content bytes — do NOT trust the client filename or declared type.
+        byte[] actualHeader = bytesRead == headerBytes.length ? headerBytes : java.util.Arrays.copyOf(headerBytes, bytesRead);
+        String mimeType;
+        try {
+            mimeType = tika.detect(actualHeader);
+        } catch (Exception e) {
+            throw new BadRequestException(ErrorCode.INVALID_FILE, "Could not detect MIME type");
+        }
+
+        String extension;
+        if ("application/pdf".equalsIgnoreCase(mimeType)) {
+            extension = "pdf";
+        } else if ("image/jpeg".equalsIgnoreCase(mimeType)) {
+            extension = "jpg";
+        } else if ("image/png".equalsIgnoreCase(mimeType)) {
+            extension = "png";
+        } else {
+            throw new BadRequestException(ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+                    "Unsupported document format: " + mimeType + ". Only PDF, JPG and PNG are supported.");
+        }
+
+        String uuid = (preferredFilename != null && !preferredFilename.isBlank())
+                ? preferredFilename
+                : UUID.randomUUID().toString();
+        String storageKey = subDirectory + "/" + uuid + "." + extension;
+        Path targetPath = resolvePath(storageKey);
+
+        try {
+            Files.createDirectories(targetPath.getParent());
+            try (InputStream in = file.getInputStream()) {
+                Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            long writtenSize = Files.size(targetPath);
+            String originalName = sanitizeOriginalName(file.getOriginalFilename());
+            return new StoredFile(storageKey, originalName, mimeType, writtenSize, null, null);
+        } catch (IOException e) {
+            deleteQuietly(storageKey);
+            throw new IllegalStateException("Failed to write document to disk", e);
         }
     }
 
