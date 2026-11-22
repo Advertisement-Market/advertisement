@@ -211,30 +211,30 @@ class PricingPackageValidationTest {
     void testUnitCapsValidation() {
         BillboardListing listing = new BillboardListing();
 
-        // Exceeds DAYS cap of 365
+        // Exceeds DAYS cap of 1000
         List<PricingPackageRequest> overDays = List.of(
-                new PricingPackageRequest(366, "DAYS", new BigDecimal("366000.00"), "Over days", true)
+                new PricingPackageRequest(1001, "DAYS", new BigDecimal("1001000.00"), "Over days", true)
         );
         assertThatThrownBy(() -> pricingPackageService.validateAndBuildPackages(
-                overDays, listing, new BigDecimal("1000.00"), 366, BookingDurationUnit.DAYS
+                overDays, listing, new BigDecimal("1000.00"), 1001, BookingDurationUnit.DAYS
         )).isInstanceOf(BadRequestException.class)
                 .satisfies(ex -> {
                     BadRequestException bre = (BadRequestException) ex;
                     assertThat(bre.getErrorCode()).isEqualTo(com.theadbasket.backend.common.error.ErrorCode.VALIDATION_FAILED);
-                    assertThat(bre.getArgs()[0].toString()).contains("Duration value 366 is invalid for unit Days (maximum is 365)");
+                    assertThat(bre.getArgs()[0].toString()).contains("Duration value 1001 is invalid for unit Days (maximum is 1000)");
                 });
 
-        // Exceeds YEARS cap of 10
+        // Exceeds YEARS cap of 100
         List<PricingPackageRequest> overYears = List.of(
-                new PricingPackageRequest(11, "YEARS", new BigDecimal("3000000.00"), "Over years", true)
+                new PricingPackageRequest(101, "YEARS", new BigDecimal("30000000.00"), "Over years", true)
         );
         assertThatThrownBy(() -> pricingPackageService.validateAndBuildPackages(
-                overYears, listing, new BigDecimal("1000.00"), 11, BookingDurationUnit.YEARS
+                overYears, listing, new BigDecimal("1000.00"), 101, BookingDurationUnit.YEARS
         )).isInstanceOf(BadRequestException.class)
                 .satisfies(ex -> {
                     BadRequestException bre = (BadRequestException) ex;
                     assertThat(bre.getErrorCode()).isEqualTo(com.theadbasket.backend.common.error.ErrorCode.VALIDATION_FAILED);
-                    assertThat(bre.getArgs()[0].toString()).contains("Duration value 11 is invalid for unit Years (maximum is 10)");
+                    assertThat(bre.getArgs()[0].toString()).contains("Duration value 101 is invalid for unit Years (maximum is 100)");
                 });
     }
 
