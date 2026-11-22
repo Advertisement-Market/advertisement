@@ -295,8 +295,22 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
         pricingPackages: [
-          { id: 101, durationValue: 1, durationUnit: 'MONTHS', rate: 150000, note: 'Custom Base', isBase: true },
-          { id: 102, durationValue: 6, durationUnit: 'MONTHS', rate: 800000, note: 'Custom Half-Year', isBase: false },
+          {
+            id: 101,
+            durationValue: 1,
+            durationUnit: 'MONTHS',
+            rate: 150000,
+            note: 'Custom Base',
+            isBase: true,
+          },
+          {
+            id: 102,
+            durationValue: 6,
+            durationUnit: 'MONTHS',
+            rate: 800000,
+            note: 'Custom Half-Year',
+            isBase: false,
+          },
         ],
       };
 

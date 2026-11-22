@@ -570,8 +570,13 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
     const durationNumInputs = screen.getAllByLabelText(/Package duration value/i);
     expect(durationNumInputs.length).toBe(3);
     expect(durationNumInputs[0].value).toBe('1');
-    expect(durationNumInputs[1].value).toBe('3');
-    expect(durationNumInputs[2].value).toBe('6');
+    expect(durationNumInputs[1].value).toBe('1');
+    expect(durationNumInputs[2].value).toBe('1');
+
+    const noteInputs = screen.getAllByLabelText(/Package notes/i);
+    expect(noteInputs[0].placeholder).toBe('Standard');
+    expect(noteInputs[1].placeholder).toBe('30% off');
+    expect(noteInputs[2].placeholder).toBe('Best value');
 
     const durationUnitSelects = screen.getAllByLabelText(/Package duration unit/i);
     expect(durationUnitSelects.length).toBe(3);
@@ -632,7 +637,8 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
     fireEvent.change(durationNumInputs[0], { target: { value: '2' } });
     expect(rateInputs[0].value).toBe('60000');
 
-    // Row 2 is 3 months (90 days). Base daily rate = 60000 / 60 = 1000/day.
+    // Set Row 2 to 3 months (90 days). Base daily rate = 60000 / 60 = 1000/day.
+    fireEvent.change(durationNumInputs[1], { target: { value: '3' } });
     // Expected rate for row 2 (3 months = 90 days) = 90000.
     // If user enters 72000 (20% discount):
     fireEvent.change(rateInputs[1], { target: { value: '72000' } });

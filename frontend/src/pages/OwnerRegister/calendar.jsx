@@ -9,7 +9,7 @@ import {
   isBefore,
   isValidDateKey,
 } from '@/features/availability/availabilityUtils';
-import { buildDefaultPackages, CANDIDATE_TIERS, toDays } from '@/features/auth/pricingPackageDefaults';
+import { buildDefaultPackages } from '@/features/auth/pricingPackageDefaults';
 
 const MONTHS = [
   'January',
@@ -317,7 +317,7 @@ export function PricingTable() {
       unit: p.durationUnit,
       rate: p.rate || '',
       note: p.note || '',
-      notePlaceholder: p.note || '',
+      notePlaceholder: p.notePlaceholder || p.note || '',
       isBase: p.isBase,
     }));
   }, [rawPackages, startPrice, minBookingValue, minBookingUnit]);
@@ -555,7 +555,9 @@ export function PricingTable() {
         </button>
       </div>
       <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginTop: 8 }}>
-        ℹ️ Base rate automatically tracks your starting price until customized. Once published, saved package rates represent fixed offers and will not change when daily starting price is updated.
+        ℹ️ Base rate automatically tracks your starting price until customized. Once published,
+        saved package rates represent fixed offers and will not change when daily starting price is
+        updated.
       </div>
     </div>
   );

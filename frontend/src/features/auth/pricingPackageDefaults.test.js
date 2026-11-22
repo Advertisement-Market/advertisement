@@ -24,161 +24,119 @@ describe('pricingPackageDefaults', () => {
     });
   });
 
-  describe('buildDefaultPackages - deterministic non-colliding tier generation', () => {
-    it('returns default tiers with rate: "" when startPrice is missing, 0, or NaN', () => {
-      const pkgNull = buildDefaultPackages(null, 1, 'months');
-      expect(pkgNull).toHaveLength(3);
-      expect(pkgNull[0].isBase).toBe(true);
-      expect(pkgNull[0].rate).toBe('');
-      expect(pkgNull[1].isBase).toBe(false);
-      expect(pkgNull[1].rate).toBe('');
-      expect(pkgNull[2].isBase).toBe(false);
-      expect(pkgNull[2].rate).toBe('');
+  describe('buildDefaultPackages - 3 default package tiers without autofilled discounts', () => {
+    it('returns 3 package tiers: 1 base tier and 2 blank promotional tiers with duration 1 month', () => {
+      const pkgs = buildDefaultPackages(null, 1, 'months');
+      expect(pkgs).toHaveLength(3);
 
-      const pkgZero = buildDefaultPackages(0, 1, 'months');
-      expect(pkgZero).toHaveLength(3);
-      expect(pkgZero[1].rate).toBe('');
+      // Row 1: Base tier
+      expect(pkgs[0].isBase).toBe(true);
+      expect(pkgs[0].num).toBe('1');
+      expect(pkgs[0].unit).toBe('months');
+      expect(pkgs[0].durationDays).toBe(30);
+      expect(pkgs[0].rate).toBe('');
+      expect(pkgs[0].note).toBe('');
+      expect(pkgs[0].notePlaceholder).toBe('Standard');
+      expect(pkgs[0].isCustomRate).toBe(false);
 
-      const pkgNaN = buildDefaultPackages('invalid', 1, 'months');
-      expect(pkgNaN).toHaveLength(3);
-      expect(pkgNaN[1].rate).toBe('');
+      // Row 2: Blank promotional tier with default duration of 1 month
+      expect(pkgs[1].isBase).toBe(false);
+      expect(pkgs[1].num).toBe('1');
+      expect(pkgs[1].unit).toBe('months');
+      expect(pkgs[1].durationDays).toBe(30);
+      expect(pkgs[1].rate).toBe('');
+      expect(pkgs[1].note).toBe('');
+      expect(pkgs[1].notePlaceholder).toBe('30% off');
+      expect(pkgs[1].isCustomRate).toBe(false);
+
+      // Row 3: Blank promotional tier with default duration of 1 month
+      expect(pkgs[2].isBase).toBe(false);
+      expect(pkgs[2].num).toBe('1');
+      expect(pkgs[2].unit).toBe('months');
+      expect(pkgs[2].durationDays).toBe(30);
+      expect(pkgs[2].rate).toBe('');
+      expect(pkgs[2].note).toBe('');
+      expect(pkgs[2].notePlaceholder).toBe('Best value');
+      expect(pkgs[2].isCustomRate).toBe(false);
     });
 
-    it('correctly parses comma-formatted startPrice strings and computes promotional rates', () => {
+    it('defaults base duration to 1 when minVal is omitted, null, or invalid', () => {
+      const pkgOmitted = buildDefaultPackages(5000);
+      expect(pkgOmitted).toHaveLength(3);
+      expect(pkgOmitted[0].num).toBe('1');
+      expect(pkgOmitted[0].unit).toBe('months');
+      expect(pkgOmitted[0].durationDays).toBe(30);
+      expect(pkgOmitted[0].rate).toBe('');
+
+      const pkgInvalid = buildDefaultPackages(5000, 'abc', 'days');
+      expect(pkgInvalid).toHaveLength(3);
+      expect(pkgInvalid[0].num).toBe('1');
+      expect(pkgInvalid[0].unit).toBe('days');
+      expect(pkgInvalid[0].durationDays).toBe(1);
+    });
+
+    it('keeps all rates blank even when startPrice is provided so no 10% or 30% discounts are autofilled', () => {
       const pkgs = buildDefaultPackages('150,000', 1, 'months');
       expect(pkgs).toHaveLength(3);
       expect(pkgs[0].isBase).toBe(true);
       expect(pkgs[0].rate).toBe('');
-      expect(pkgs[0].isCustomRate).toBe(false);
+      expect(pkgs[0].note).toBe('');
 
-      // Promo 1: 90 days (10% off) -> 150000 * 90 * 0.90 = 12150000.00
-      expect(pkgs[1].rate).toBe('12150000.00');
-      expect(pkgs[1].isCustomRate).toBe(false);
-
-      // Promo 2: 180 days (20% off) -> 150000 * 180 * 0.80 = 21600000.00
-      expect(pkgs[2].rate).toBe('21600000.00');
-      expect(pkgs[2].isCustomRate).toBe(false);
-    });
-
-    it('base = 1 day (1, "days") with startPrice = 1000 selects 1 Month and 3 Months', () => {
-      const pkgs = buildDefaultPackages(1000, 1, 'days');
-      expect(pkgs).toHaveLength(3);
-
-      expect(pkgs[0].isBase).toBe(true);
-      expect(pkgs[0].durationDays).toBe(1);
-      expect(pkgs[0].rate).toBe('');
-
-      // Promo 1: 30 days (5% off) -> 1000 * 30 * 0.95 = 28500.00
       expect(pkgs[1].isBase).toBe(false);
-      expect(pkgs[1].durationDays).toBe(30);
-      expect(pkgs[1].rate).toBe('28500.00');
+      expect(pkgs[1].rate).toBe('');
+      expect(pkgs[1].note).toBe('');
 
-      // Promo 2: 90 days (10% off) -> 1000 * 90 * 0.90 = 81000.00
       expect(pkgs[2].isBase).toBe(false);
-      expect(pkgs[2].durationDays).toBe(90);
-      expect(pkgs[2].rate).toBe('81000.00');
+      expect(pkgs[2].rate).toBe('');
+      expect(pkgs[2].note).toBe('');
     });
 
-    it('base = 30 days (1, "months") with startPrice = 1000 selects 3 Months and 6 Months', () => {
-      const pkgs = buildDefaultPackages(1000, 1, 'months');
-      expect(pkgs).toHaveLength(3);
+    it('respects custom minimum booking duration values and units for the base tier', () => {
+      const pkgDays = buildDefaultPackages(1000, 7, 'days');
+      expect(pkgDays).toHaveLength(3);
+      expect(pkgDays[0].num).toBe('7');
+      expect(pkgDays[0].unit).toBe('days');
+      expect(pkgDays[0].durationDays).toBe(7);
+      // Promotional tiers remain 1 month default
+      expect(pkgDays[1].num).toBe('1');
+      expect(pkgDays[1].unit).toBe('months');
+      expect(pkgDays[2].num).toBe('1');
+      expect(pkgDays[2].unit).toBe('months');
 
-      expect(pkgs[0].isBase).toBe(true);
-      expect(pkgs[0].durationDays).toBe(30);
+      const pkgWeeks = buildDefaultPackages(1000, 2, 'weeks');
+      expect(pkgWeeks).toHaveLength(3);
+      expect(pkgWeeks[0].num).toBe('2');
+      expect(pkgWeeks[0].unit).toBe('weeks');
+      expect(pkgWeeks[0].durationDays).toBe(14);
 
-      // Promo 1: 90 days (10% off) -> 81000.00
-      expect(pkgs[1].durationDays).toBe(90);
-      expect(pkgs[1].rate).toBe('81000.00');
-
-      // Promo 2: 180 days (20% off) -> 1000 * 180 * 0.80 = 144000.00
-      expect(pkgs[2].durationDays).toBe(180);
-      expect(pkgs[2].rate).toBe('144000.00');
+      const pkgYears = buildDefaultPackages(1000, 1, 'years');
+      expect(pkgYears).toHaveLength(3);
+      expect(pkgYears[0].num).toBe('1');
+      expect(pkgYears[0].unit).toBe('years');
+      expect(pkgYears[0].durationDays).toBe(365);
     });
 
-    it('base = 90 days (3, "months") with startPrice = 1000 selects 6 Months and 1 Year', () => {
-      const pkgs = buildDefaultPackages(1000, 3, 'months');
-      expect(pkgs).toHaveLength(3);
-
-      expect(pkgs[0].isBase).toBe(true);
-      expect(pkgs[0].durationDays).toBe(90);
-
-      // Promo 1: 180 days (20% off) -> 144000.00
-      expect(pkgs[1].durationDays).toBe(180);
-      expect(pkgs[1].rate).toBe('144000.00');
-
-      // Promo 2: 365 days (30% off) -> 1000 * 365 * 0.70 = 255500.00
-      expect(pkgs[2].durationDays).toBe(365);
-      expect(pkgs[2].rate).toBe('255500.00');
-    });
-
-    it('base = 180 days (6, "months") with startPrice = 1000 selects 1 Year and 2 Years (no collision)', () => {
-      const pkgs = buildDefaultPackages(1000, 6, 'months');
-      expect(pkgs).toHaveLength(3);
-
-      expect(pkgs[0].isBase).toBe(true);
-      expect(pkgs[0].durationDays).toBe(180);
-
-      // Promo 1: 365 days (30% off) -> 255500.00
-      expect(pkgs[1].durationDays).toBe(365);
-      expect(pkgs[1].rate).toBe('255500.00');
-
-      // Promo 2: 730 days (35% off) -> 1000 * 730 * 0.65 = 474500.00
-      expect(pkgs[2].durationDays).toBe(730);
-      expect(pkgs[2].rate).toBe('474500.00');
-    });
-
-    it('base = 365 days (1, "years") with startPrice = 1000 selects 2 Years and 3 Years (no collision)', () => {
-      const pkgs = buildDefaultPackages(1000, 1, 'years');
-      expect(pkgs).toHaveLength(3);
-
-      expect(pkgs[0].isBase).toBe(true);
-      expect(pkgs[0].durationDays).toBe(365);
-
-      // Promo 1: 730 days (35% off) -> 474500.00
-      expect(pkgs[1].durationDays).toBe(730);
-      expect(pkgs[1].rate).toBe('474500.00');
-
-      // Promo 2: 1095 days (40% off) -> 1000 * 1095 * 0.60 = 657000.00
-      expect(pkgs[2].durationDays).toBe(1095);
-      expect(pkgs[2].rate).toBe('657000.00');
-    });
-
-    it('base = 730 days (2, "years") with startPrice = 1000 selects 3 Years (no collision)', () => {
-      const pkgs = buildDefaultPackages(1000, 2, 'years');
-      expect(pkgs).toHaveLength(2);
-
-      expect(pkgs[0].isBase).toBe(true);
-      expect(pkgs[0].durationDays).toBe(730);
-
-      // Promo 1: 1095 days (40% off) -> 657000.00
-      expect(pkgs[1].durationDays).toBe(1095);
-      expect(pkgs[1].rate).toBe('657000.00');
-    });
-
-    it('guarantees unique durationDays in all generated tiers across any base', () => {
-      const testBases = [
-        [1, 'days'],
-        [7, 'days'],
-        [14, 'days'],
-        [30, 'days'],
-        [1, 'months'],
-        [2, 'months'],
-        [3, 'months'],
-        [6, 'months'],
-        [1, 'years'],
-        [2, 'years'],
-        [3, 'years'],
+    it('never autofills promotional discount percentages (10%, 30%, etc.) into rate or note by default', () => {
+      const testCases = [
+        [1000, 1, 'days'],
+        [1000, 1, 'months'],
+        [1000, 3, 'months'],
+        [1000, 6, 'months'],
+        [1000, 1, 'years'],
+        [1000, 2, 'years'],
       ];
 
-      for (const [val, unit] of testBases) {
-        const pkgs = buildDefaultPackages(1500, val, unit);
-        const days = pkgs.map((p) => p.durationDays);
-        const uniqueDays = new Set(days);
-        expect(uniqueDays.size).toBe(days.length);
-        // All promotional tiers must be strictly greater than base
-        for (let i = 1; i < pkgs.length; i++) {
-          expect(pkgs[i].durationDays).toBeGreaterThan(pkgs[0].durationDays);
-        }
+      for (const [price, val, unit] of testCases) {
+        const pkgs = buildDefaultPackages(price, val, unit);
+        expect(pkgs).toHaveLength(3);
+        expect(pkgs[0].isBase).toBe(true);
+        expect(pkgs[0].rate).toBe('');
+        expect(pkgs[1].isBase).toBe(false);
+        expect(pkgs[1].rate).toBe('');
+        expect(pkgs[1].note).toBe('');
+        expect(pkgs[2].isBase).toBe(false);
+        expect(pkgs[2].rate).toBe('');
+        expect(pkgs[2].note).toBe('');
       }
     });
   });

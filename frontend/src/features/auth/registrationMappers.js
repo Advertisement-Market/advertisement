@@ -174,7 +174,9 @@ export function serializePricingPackages(rawPackages, startPrice, minVal = 1, mi
   if (!Array.isArray(rawPackages) || rawPackages.length === 0) {
     const val = parseInt(minVal, 10) || 1;
     const rawUnit = (minUnit || 'months').toUpperCase();
-    const durationUnit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    const durationUnit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit)
+      ? rawUnit
+      : 'MONTHS';
     return [
       {
         durationValue: val,
@@ -199,7 +201,9 @@ export function serializePricingPackages(rawPackages, startPrice, minVal = 1, mi
     const isBase = Boolean(p.isBase);
     const durationValue = parseInt(p.num != null ? p.num : p.durationValue, 10) || 1;
     const rawUnit = (p.unit || p.durationUnit || 'months').toUpperCase();
-    const durationUnit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    const durationUnit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit)
+      ? rawUnit
+      : 'MONTHS';
     const durationDays = toDays(durationValue, durationUnit);
 
     if (seenDays.has(durationDays)) {

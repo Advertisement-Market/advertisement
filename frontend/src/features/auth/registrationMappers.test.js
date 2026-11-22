@@ -962,11 +962,19 @@ describe('registrationMappers - Address and Payload Structure', () => {
   });
 
   describe('serializePricingPackages and pricing packages mapping', () => {
-    it('generates collision-free default tiers using buildDefaultPackages', () => {
+    it('generates 3 default package tiers using buildDefaultPackages with blank promotional tiers', () => {
       const defs = buildDefaultPackages(5000, 1, 'months');
       expect(defs).toHaveLength(3);
       expect(defs[0].isBase).toBe(true);
       expect(defs[0].durationDays).toBe(30);
+      expect(defs[0].rate).toBe('');
+      expect(defs[0].notePlaceholder).toBe('Standard');
+      expect(defs[1].isBase).toBe(false);
+      expect(defs[1].rate).toBe('');
+      expect(defs[1].notePlaceholder).toBe('30% off');
+      expect(defs[2].isBase).toBe(false);
+      expect(defs[2].rate).toBe('');
+      expect(defs[2].notePlaceholder).toBe('Best value');
     });
 
     it('synthesizes base package when rawPackages is null or empty', () => {
@@ -1046,9 +1054,7 @@ describe('registrationMappers - Address and Payload Structure', () => {
 
     it('trims note and caps at 150 characters', () => {
       const longNote = 'A'.repeat(200);
-      const raw = [
-        { num: 1, unit: 'months', rate: '', note: `  ${longNote}  `, isBase: true },
-      ];
+      const raw = [{ num: 1, unit: 'months', rate: '', note: `  ${longNote}  `, isBase: true }];
       const res = serializePricingPackages(raw, 50000, 1, 'months');
       expect(res[0].note.length).toBe(150);
       expect(res[0].note).toBe('A'.repeat(150));
@@ -1058,8 +1064,22 @@ describe('registrationMappers - Address and Payload Structure', () => {
       const dto = {
         name: 'DTO Test',
         pricingPackages: [
-          { id: 10, durationValue: 1, durationUnit: 'MONTHS', rate: 100000, note: 'Base', isBase: true },
-          { id: 11, durationValue: 6, durationUnit: 'MONTHS', rate: 500000, note: 'Half-year', isBase: false },
+          {
+            id: 10,
+            durationValue: 1,
+            durationUnit: 'MONTHS',
+            rate: 100000,
+            note: 'Base',
+            isBase: true,
+          },
+          {
+            id: 11,
+            durationValue: 6,
+            durationUnit: 'MONTHS',
+            rate: 500000,
+            note: 'Half-year',
+            isBase: false,
+          },
         ],
       };
       const formData = mapListingToFormData(dto);
@@ -1121,7 +1141,9 @@ describe('registrationMappers - Address and Payload Structure', () => {
         { num: 1, unit: 'months', rate: '', note: 'Base', isBase: true },
         { num: 3, unit: 'months', rate: '', note: 'Discount Note', isBase: false },
       ];
-      expect(() => serializePricingPackages(pkgsWithBlankPromo, 1000, 1, 'months')).toThrow(FieldFormatError);
+      expect(() => serializePricingPackages(pkgsWithBlankPromo, 1000, 1, 'months')).toThrow(
+        FieldFormatError,
+      );
     });
   });
 });

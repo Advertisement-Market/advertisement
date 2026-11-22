@@ -1,10 +1,46 @@
 export const CANDIDATE_TIERS = [
-  { durationValue: 1, durationUnit: 'months', durationDays: 30, discount: 0.05, note: '5% off — 1 Month' },
-  { durationValue: 3, durationUnit: 'months', durationDays: 90, discount: 0.10, note: '10% off — Popular' },
-  { durationValue: 6, durationUnit: 'months', durationDays: 180, discount: 0.20, note: '20% off — Best value' },
-  { durationValue: 1, durationUnit: 'years', durationDays: 365, discount: 0.30, note: '30% off — Long-term' },
-  { durationValue: 2, durationUnit: 'years', durationDays: 730, discount: 0.35, note: '35% off — 2 Years' },
-  { durationValue: 3, durationUnit: 'years', durationDays: 1095, discount: 0.40, note: '40% off — 3 Years' },
+  {
+    durationValue: 1,
+    durationUnit: 'months',
+    durationDays: 30,
+    discount: 0.05,
+    note: '5% off — 1 Month',
+  },
+  {
+    durationValue: 3,
+    durationUnit: 'months',
+    durationDays: 90,
+    discount: 0.1,
+    note: '10% off — Popular',
+  },
+  {
+    durationValue: 6,
+    durationUnit: 'months',
+    durationDays: 180,
+    discount: 0.2,
+    note: '20% off — Best value',
+  },
+  {
+    durationValue: 1,
+    durationUnit: 'years',
+    durationDays: 365,
+    discount: 0.3,
+    note: '30% off — Long-term',
+  },
+  {
+    durationValue: 2,
+    durationUnit: 'years',
+    durationDays: 730,
+    discount: 0.35,
+    note: '35% off — 2 Years',
+  },
+  {
+    durationValue: 3,
+    durationUnit: 'years',
+    durationDays: 1095,
+    discount: 0.4,
+    note: '40% off — 3 Years',
+  },
 ];
 
 export function toDays(val, unit) {
@@ -27,21 +63,21 @@ export function toDays(val, unit) {
 /**
  * Builds deterministic default pricing package tiers for a billboard.
  *
- * Base tier is set from the owner's minimum booking duration with rate: ''
- * (auto-calculated by the backend from daily starting price * base duration days).
+ * Returns 3 package tiers by default:
+ * 1. Base tier: Set from the owner's minimum booking duration with rate: ''
+ *    (auto-calculated by backend / UI from daily starting price * base duration days).
+ * 2. Second tier: Blank promotional tier with default duration of 1 month and rate: ''.
+ * 3. Third tier: Blank promotional tier with default duration of 1 month and rate: ''.
  *
- * Promotional tiers are chosen from CANDIDATE_TIERS strictly greater than baseDays,
- * eliminating all duplicate duration collisions across any base value.
- *
- * If startPrice is not provided or <= 0, promotional tiers are still generated
- * with rate: '' so the owner sees standard 3M/6M tiers ready for rate entry.
+ * Promotional tiers are blank by default without arbitrary autofilled discounts (like 10% or 30%).
+ * The owner can enter custom durations and rates if they wish, or leave them blank.
+ * Blank promotional tiers are safely omitted when serializing to the backend.
+ * Additional packages can be added as needed.
  */
 export function buildDefaultPackages(startPrice, minVal = 1, minUnit = 'months') {
   const normUnit = (minUnit || 'months').toLowerCase();
   const val = Number(minVal) || 1;
   const baseDays = toDays(val, normUnit);
-  const dailyRate = Number(String(startPrice ?? '').replace(/,/g, ''));
-  const hasValidPrice = Number.isFinite(dailyRate) && dailyRate > 0;
 
   const baseTier = {
     id: 1,
@@ -57,29 +93,33 @@ export function buildDefaultPackages(startPrice, minVal = 1, minUnit = 'months')
     isCustomRate: false,
   };
 
-  const promotionalTiers = CANDIDATE_TIERS
-    .filter((c) => c.durationDays > baseDays)
-    .slice(0, 2)
-    .map((c, idx) => {
-      let rateStr = '';
-      if (hasValidPrice) {
-        const unrounded = dailyRate * c.durationDays * (1 - c.discount);
-        rateStr = (Math.round((unrounded + Number.EPSILON) * 100) / 100).toFixed(2);
-      }
-      return {
-        id: idx + 2,
-        num: String(c.durationValue),
-        unit: c.durationUnit,
-        durationValue: c.durationValue,
-        durationUnit: c.durationUnit,
-        durationDays: c.durationDays,
-        rate: rateStr,
-        note: c.note,
-        notePlaceholder: c.note,
-        isBase: false,
-        isCustomRate: false,
-      };
-    });
+  const promoTier1 = {
+    id: 2,
+    num: '1',
+    unit: 'months',
+    durationValue: 1,
+    durationUnit: 'months',
+    durationDays: 30,
+    rate: '',
+    note: '',
+    notePlaceholder: '30% off',
+    isBase: false,
+    isCustomRate: false,
+  };
 
-  return [baseTier, ...promotionalTiers];
+  const promoTier2 = {
+    id: 3,
+    num: '1',
+    unit: 'months',
+    durationValue: 1,
+    durationUnit: 'months',
+    durationDays: 30,
+    rate: '',
+    note: '',
+    notePlaceholder: 'Best value',
+    isBase: false,
+    isCustomRate: false,
+  };
+
+  return [baseTier, promoTier1, promoTier2];
 }
