@@ -773,7 +773,10 @@ export function UploadZone({
       const isImage =
         ['jpg', 'jpeg', 'png'].includes(ext) || ['image/jpeg', 'image/png'].includes(file.type);
       if (!isPdf && !isImage) {
-        showToast(`Invalid document "${file.name}". Only PDF, JPG, and PNG are supported.`, 'error');
+        showToast(
+          `Invalid document "${file.name}". Only PDF, JPG, and PNG are supported.`,
+          'error',
+        );
         return false;
       }
       if (file.size > 20 * 1024 * 1024) {
