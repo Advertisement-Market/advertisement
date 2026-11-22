@@ -24,7 +24,7 @@ Prior to this implementation:
 - Write an idempotent, ANSI-standard Flyway migration (`V11`) that safely backfills existing legacy listings with their base package while defending against zero rates, unknown units, per-unit cap violations, and numeric overflow.
 - Implement in-place collection reconciliation (`mergePricingPackages`) in `BillboardListing` to preserve entity primary keys, avoid collection orphan detachment, and eliminate statement-order unique constraint collisions during base package swaps.
 - Apply pessimistic row locking (`SELECT ... FOR UPDATE` with 5s timeout) in `OwnerListingService.updateListing` to serialize concurrent edits, translating lock timeouts into clean HTTP 409 `CONCURRENT_MODIFICATION` responses.
-- Refactor frontend `PricingTable` and `PriceRow` into fully controlled components with real-time `RegisterContext` synchronization and deterministic candidate tier selection guaranteeing zero collisions across any base booking duration.
+- Refactor frontend `PricingTable` and `PriceRow` into fully controlled components with real-time `RegisterContext` synchronization, defaulting to a single base duration package (duration 1, blank rate) without autofilled promotional discounts, giving billboard owners explicit control to add custom tiers.
 - Ensure 100% portability and test parity across PostgreSQL and H2 in-memory test databases.
 
 ---
@@ -178,29 +178,42 @@ WHERE s.u IN ('DAYS', 'WEEKS', 'MONTHS', 'YEARS')
 - **Stale Rate Contract:** Base rate dynamically tracks `startPrice` until explicitly customized. In contrast, package rates in the table represent fixed promotional offers and will not automatically change if the daily starting price is later updated, matching the UI guidance note:
   `"ℹ️ Base rate automatically tracks your starting price until customized. Once published, saved package rates represent fixed offers and will not change when daily starting price is updated."`
 
-### 4.2 Candidate Pool & Collision-Free Tier Selection
-To prevent unique duration collisions (`uq_billboard_pkg_duration`) when owners select different minimum booking durations, the frontend dynamically selects the first 2 candidate tiers from `CANDIDATE_TIERS` whose `durationDays` are **strictly greater than** `baseDays`:
+### 4.2 Default Base Tier & Optional Promotional Packages
+Rather than pre-populating arbitrary promotional discounts (e.g. 10% or 30%) that owners must undo or reconfigure, `buildDefaultPackages` defaults strictly to the **single base tier**:
+- **Duration**: Defaults to `1` (or the configured `minBookingValue`).
+- **Unit**: Inherits the minimum booking unit (`MONTHS`, `DAYS`, etc.).
+- **Rate**: Kept blank (`rate: ''`) in the UI, displaying the dynamic `baseAutoRate` placeholder (`startPrice * baseDays`) and transmitting `rate: null` to the backend for automatic calculation.
+- **Notes**: Kept blank (`note: ''`).
+
+When billboard owners wish to offer volume discounts, they explicitly click **"+ Add Duration Package"**:
+- **Duration**: Defaults to `1`.
+- **Unit**: Defaults to `months`.
+- **Rate & Note**: Start completely blank.
+- **Discount Badge**: Dynamically calculates and displays positive percentage savings (e.g. `"15% off"`) relative to the base daily rate once a custom rate is entered.
 
 ```javascript
-export const CANDIDATE_TIERS = [
-  { durationValue: 1, durationUnit: 'months', durationDays: 30, discount: 0.05, note: '5% off — 1 Month' },
-  { durationValue: 3, durationUnit: 'months', durationDays: 90, discount: 0.10, note: '10% off — Popular' },
-  { durationValue: 6, durationUnit: 'months', durationDays: 180, discount: 0.20, note: '20% off — Best value' },
-  { durationValue: 1, durationUnit: 'years', durationDays: 365, discount: 0.30, note: '30% off — Long-term' },
-  { durationValue: 2, durationUnit: 'years', durationDays: 730, discount: 0.35, note: '35% off — 2 Years' },
-  { durationValue: 3, durationUnit: 'years', durationDays: 1095, discount: 0.40, note: '40% off — 3 Years' },
-];
-```
+export function buildDefaultPackages(startPrice, minVal = 1, minUnit = 'months') {
+  const normUnit = (minUnit || 'months').toLowerCase();
+  const val = Number(minVal) || 1;
+  const baseDays = toDays(val, normUnit);
 
-#### Collision-Free Selection Matrix
-| Base Duration | Base Days | Candidate Tier 2 | Candidate Tier 3 | Collisions |
-|---|---|---|---|:---:|
-| **1 Day** | 1 | 1 Month (30d, 5% off) | 3 Months (90d, 10% off) | **0** |
-| **30 Days** (1 Month) | 30 | 3 Months (90d, 10% off) | 6 Months (180d, 20% off) | **0** |
-| **90 Days** (3 Months) | 90 | 6 Months (180d, 20% off) | 1 Year (365d, 30% off) | **0** |
-| **180 Days** (6 Months) | 180 | 1 Year (365d, 30% off) | 2 Years (730d, 35% off) | **0** |
-| **365 Days** (1 Year) | 365 | 2 Years (730d, 35% off) | 3 Years (1095d, 40% off) | **0** |
-| **730 Days** (2 Years) | 730 | 3 Years (1095d, 40% off) | *(None - single promo tier)* | **0** |
+  const baseTier = {
+    id: 1,
+    num: String(val),
+    unit: normUnit,
+    durationValue: val,
+    durationUnit: normUnit,
+    durationDays: baseDays,
+    rate: '',
+    note: '',
+    notePlaceholder: 'Standard',
+    isBase: true,
+    isCustomRate: false,
+  };
+
+  return [baseTier];
+}
+```
 
 ---
 
@@ -377,7 +390,7 @@ Executed via `npx vitest run`:
 ```
 
 #### Test Suite Highlights:
-- `pricingPackageDefaults.test.js` (12 tests): Verifies duration conversion, zero/invalid value guards, comma-formatted price parsing (`150,000`), and deterministic candidate selection across base durations 1, 30, 90, 180, 365, and 730 days.
+- `pricingPackageDefaults.test.js` (8 tests): Verifies duration conversion, zero/invalid value guards, comma-formatted price parsing, single base tier defaults with blank rate and duration 1, and no autofilled promotional discount tiers.
 - `registrationMappers.test.js` (41 tests): Verifies package serialization, note trimming, base package synthesis with `rate: null`, promotional rate requirement (`FieldFormatError`), and round-trip payload mapping.
 - `NewBillboardListing.test.jsx` (40 tests): Verifies edit-mode hydration of existing custom pricing packages without overwriting.
 - `OwnerRegister.test.jsx` (31 tests): Verifies default tier rendering, discount badges, and controlled input dispatching.
