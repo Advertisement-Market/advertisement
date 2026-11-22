@@ -3,6 +3,7 @@ package com.theadbasket.backend.owner.dto;
 import java.time.Instant;
 
 import com.theadbasket.backend.owner.BillboardMedia;
+import com.theadbasket.backend.owner.MediaCategory;
 
 /**
  * Representation of an uploaded media asset attached to a billboard listing.
@@ -18,14 +19,25 @@ public record BillboardMediaDto(
         Integer displayOrder,
         Instant createdTs
 ) {
-    public static BillboardMediaDto from(BillboardMedia media, String baseUrl) {
-        String cleanBase = baseUrl != null && baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1)
-                : baseUrl;
-        String url = (cleanBase != null ? cleanBase : "/api/media") + "/" + media.getStorageKey();
+    public static BillboardMediaDto from(BillboardMedia media, String baseUrl, Long listingId) {
+        MediaCategory category = media.getCategory();
+        boolean isPublic = category == null || category.isPublic();
+
+        String url;
+        if (isPublic) {
+            String cleanBase = baseUrl != null && baseUrl.endsWith("/")
+                    ? baseUrl.substring(0, baseUrl.length() - 1)
+                    : baseUrl;
+            url = (cleanBase != null ? cleanBase : "/api/media") + "/" + media.getStorageKey();
+        } else {
+            // Private legal documents are never exposed on the public media path; they are
+            // served only through the authenticated, ownership-checked owner endpoint.
+            url = "/api/owner/listings/" + listingId + "/media/" + media.getId() + "/raw";
+        }
+
         return new BillboardMediaDto(
                 media.getId(),
-                media.getCategory() != null ? media.getCategory().name() : null,
+                category != null ? category.name() : null,
                 url,
                 media.getOriginalName(),
                 media.getContentType(),
