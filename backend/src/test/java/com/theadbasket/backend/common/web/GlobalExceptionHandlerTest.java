@@ -1,14 +1,16 @@
 package com.theadbasket.backend.common.web;
 
-import com.theadbasket.backend.auth.AuthCookieService;
-import com.theadbasket.backend.common.error.ErrorCode;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.PessimisticLockingFailureException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -24,17 +27,17 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
+import com.theadbasket.backend.auth.AuthCookieService;
+import com.theadbasket.backend.common.error.ErrorCode;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import jakarta.persistence.LockTimeoutException;
 
 class GlobalExceptionHandlerTest {
 
     private GlobalExceptionHandler handler;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
         messageSource.setBasename("messages");
@@ -70,6 +73,35 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().errorCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.name());
         assertThat(response.getBody().message()).contains("locked by another concurrent operation");
+        assertThat(response.getBody().status()).isEqualTo(409);
+    }
+
+    @Test
+    @DisplayName("jakarta.persistence.LockTimeoutException maps to HTTP 409 Conflict with CONCURRENT_MODIFICATION")
+    void handleLockConflict_jakartaLockTimeout_returns409() {
+        MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/owner/listings/1");
+        LockTimeoutException ex = new LockTimeoutException("Query timeout expired while waiting for lock");
+
+        ResponseEntity<ApiError> response = handler.handleLockConflict(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().errorCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.name());
+        assertThat(response.getBody().status()).isEqualTo(409);
+    }
+
+    @Test
+    @DisplayName("JpaSystemException wrapping LockTimeoutException maps to HTTP 409 Conflict with CONCURRENT_MODIFICATION")
+    void handleJpaSystem_wrappingLockTimeout_returns409() {
+        MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/owner/listings/1");
+        LockTimeoutException cause = new LockTimeoutException("Lock acquisition timeout");
+        JpaSystemException ex = new JpaSystemException(cause);
+
+        ResponseEntity<ApiError> response = handler.handleJpaSystem(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().errorCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.name());
         assertThat(response.getBody().status()).isEqualTo(409);
     }
 

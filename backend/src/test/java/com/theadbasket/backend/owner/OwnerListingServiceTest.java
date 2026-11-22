@@ -11,8 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.any;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -76,7 +76,7 @@ class OwnerListingServiceTest {
         messages.setBasename("messages");
         messages.setDefaultEncoding("UTF-8");
         messages.setUseCodeAsDefaultMessage(true);
-        lovService = new LovService(messages);
+        this.lovService = new LovService(messages);
 
         ownerListingService = new OwnerListingService(
                 billboardListingRepository,
@@ -93,10 +93,12 @@ class OwnerListingServiceTest {
     }
 
     @AfterEach
+    @SuppressWarnings("unused")
     void tearDown() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.clearSynchronization();
         }
+        TransactionSynchronizationManager.clear();
     }
 
     private BillboardListing createSampleListing(String name, User user) {
@@ -234,7 +236,7 @@ class OwnerListingServiceTest {
     @DisplayName("updateListing merges only non-null fields and persists changes")
     void updateListing_mergesNonNullFields() {
         BillboardListing existing = createSampleListing("Old Name", owner);
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BillboardListingUpdateRequest updateReq = new BillboardListingUpdateRequest(
@@ -448,7 +450,7 @@ class OwnerListingServiceTest {
     void updateListing_whenExistingRowHasNullType_handlesDefensivelyWithoutNpe() {
         BillboardListing existing = createSampleListing("Null Type Listing", owner);
         existing.setType(null);
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
@@ -467,7 +469,7 @@ class OwnerListingServiceTest {
     void updateListing_clearGroundHeight_setsNull() {
         BillboardListing existing = createSampleListing("Ground Height Listing", owner);
         existing.setGroundHeightFt(new BigDecimal("15.00"));
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
@@ -485,7 +487,7 @@ class OwnerListingServiceTest {
     void updateListing_clearGroundHeight_whenAlreadyNull_isIdempotent() {
         BillboardListing existing = createSampleListing("Null Ground Height Listing", owner);
         existing.setGroundHeightFt(null);
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
@@ -503,7 +505,7 @@ class OwnerListingServiceTest {
     void updateListing_clearGroundHeightOmittedOrFalse_preservesExisting() {
         BillboardListing existing = createSampleListing("Preserved Height Listing", owner);
         existing.setGroundHeightFt(new BigDecimal("25.00"));
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // clearGroundHeight is false and groundHeightFt is null
@@ -530,7 +532,7 @@ class OwnerListingServiceTest {
     void updateListing_updateToZero_setsZero() {
         BillboardListing existing = createSampleListing("Zero Height Listing", owner);
         existing.setGroundHeightFt(new BigDecimal("15.00"));
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
@@ -548,7 +550,7 @@ class OwnerListingServiceTest {
     void updateListing_combinedPatch_updatesNameAndClearsGroundHeight() {
         BillboardListing existing = createSampleListing("Old Name", owner);
         existing.setGroundHeightFt(new BigDecimal("18.00"));
-        when(billboardListingRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(billboardListingRepository.findByIdAndUserIdForUpdate(10L, 1L)).thenReturn(Optional.of(existing));
         when(billboardListingRepository.save(any(BillboardListing.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BillboardListingUpdateRequest patchReq = new BillboardListingUpdateRequest(
