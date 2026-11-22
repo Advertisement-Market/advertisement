@@ -129,7 +129,7 @@ export function validate(step, { data, showToast }) {
     if (!minVal || Number(minVal) <= 0)
       return fail('Please enter a valid minimum booking duration.');
     const minUnit = d('f_minBookingUnit') || 'MONTHS';
-    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
+    if (!['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(minUnit))
       return fail('Please select a valid booking duration unit.');
   }
   if (step === 3) {

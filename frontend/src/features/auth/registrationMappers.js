@@ -5,6 +5,7 @@
 
 import { isOther, sanitizeText, DECIMAL_RE, FieldFormatError } from '@/lib/validators';
 import { dayStatusMapToRanges, isValidDateKey } from '@/features/availability/availabilityUtils';
+import { buildDefaultPackages, toDays } from '@/features/auth/pricingPackageDefaults';
 
 function extractBlockedRanges(raw) {
   if (!raw) return [];
@@ -151,7 +152,7 @@ export const parseMinBooking = (val) => {
   }
   if (str.includes('year')) {
     const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
-    return { minBookingValue: num * 12, minBookingUnit: 'MONTHS' };
+    return { minBookingValue: num, minBookingUnit: 'YEARS' };
   }
   const num = parseInt(str.replace(/\D/g, ''), 10) || 1;
   return { minBookingValue: num, minBookingUnit: 'MONTHS' };
@@ -160,7 +161,7 @@ export const parseMinBooking = (val) => {
 export const resolveBookingDuration = (d) => {
   if (d.f_minBookingValue != null && d.f_minBookingValue !== '') {
     const rawUnit = String(d.f_minBookingUnit || 'MONTHS').toUpperCase();
-    const unit = ['DAYS', 'WEEKS', 'MONTHS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    const unit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit) ? rawUnit : 'MONTHS';
     return {
       minBookingValue: Math.max(1, Math.round(Number(d.f_minBookingValue)) || 1),
       minBookingUnit: unit,
@@ -168,6 +169,78 @@ export const resolveBookingDuration = (d) => {
   }
   return parseMinBooking(d.f_minBooking);
 };
+
+export function serializePricingPackages(rawPackages, startPrice, minVal = 1, minUnit = 'months') {
+  if (!Array.isArray(rawPackages) || rawPackages.length === 0) {
+    const val = parseInt(minVal, 10) || 1;
+    const rawUnit = (minUnit || 'months').toUpperCase();
+    const durationUnit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    return [
+      {
+        durationValue: val,
+        durationUnit,
+        rate: null,
+        note: null,
+        isBase: true,
+      },
+    ];
+  }
+
+  // Filter: Keep base package ALWAYS. For non-base packages, only serialize if configured (rate or note non-empty)
+  const configured = rawPackages.filter(
+    (p) =>
+      p.isBase ||
+      (p.rate != null && String(p.rate).trim() !== '') ||
+      (p.note && String(p.note).trim() !== ''),
+  );
+
+  const seenDays = new Set();
+  return configured.map((p) => {
+    const isBase = Boolean(p.isBase);
+    const durationValue = parseInt(p.num != null ? p.num : p.durationValue, 10) || 1;
+    const rawUnit = (p.unit || p.durationUnit || 'months').toUpperCase();
+    const durationUnit = ['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(rawUnit) ? rawUnit : 'MONTHS';
+    const durationDays = toDays(durationValue, durationUnit);
+
+    if (seenDays.has(durationDays)) {
+      throw new FieldFormatError(
+        'f_pricingPackages',
+        `Duplicate package duration of ${durationDays} days.`,
+        `Duplicate package duration: ${durationValue} ${durationUnit.toLowerCase()} conflicts with another tier.`,
+      );
+    }
+    seenDays.add(durationDays);
+
+    let rate = null;
+    const rawRate = p.rate != null ? String(p.rate).trim() : '';
+    if (rawRate !== '') {
+      const parsedRate = parseFloat(rawRate.replace(/,/g, ''));
+      if (Number.isFinite(parsedRate) && parsedRate > 0) {
+        rate = Number(parsedRate.toFixed(2));
+      } else {
+        throw new FieldFormatError(
+          'f_pricingPackages',
+          `Invalid rate for package: "${rawRate}"`,
+          'Package rate must be a positive number.',
+        );
+      }
+    } else if (!isBase) {
+      throw new FieldFormatError(
+        'f_pricingPackages',
+        `Rate is required for non-base package (${durationValue} ${durationUnit})`,
+        `Rate is required for promotional package (${durationValue} ${durationUnit.toLowerCase()}).`,
+      );
+    }
+
+    return {
+      durationValue,
+      durationUnit,
+      rate,
+      note: p.note && String(p.note).trim() ? String(p.note).trim().slice(0, 150) : null,
+      isBase,
+    };
+  });
+}
 
 export function mapOwner(d) {
   const { minBookingValue, minBookingUnit } = resolveBookingDuration(d);
@@ -218,6 +291,12 @@ export function mapOwner(d) {
       minBookingValue,
       minBookingUnit,
       discountNote: trimOrNull(d.f_discountNote),
+      pricingPackages: serializePricingPackages(
+        d.f_pricingPackages,
+        d.f_startPrice,
+        minBookingValue,
+        minBookingUnit,
+      ),
       ...(blockedRanges.length > 0 ? { blockedRanges } : {}),
     },
     acceptedTerms: !!d.f_termsAccept,
@@ -305,6 +384,12 @@ export function mapBillboardListing(d) {
     minBookingValue,
     minBookingUnit,
     discountNote: trimOrNull(d.f_discountNote),
+    pricingPackages: serializePricingPackages(
+      d.f_pricingPackages,
+      d.f_startPrice,
+      minBookingValue,
+      minBookingUnit,
+    ),
     ...(blockedRanges.length > 0 ? { blockedRanges } : {}),
   };
 }
@@ -492,6 +577,21 @@ export function mapListingToFormData(dto) {
         ...m,
         url: m.url || m.fileUrl || (m.storageKey ? `/api/media/${m.storageKey}` : null),
       })),
+    f_pricingPackages:
+      Array.isArray(dto.pricingPackages) && dto.pricingPackages.length > 0
+        ? dto.pricingPackages.map((p) => ({
+            id: p.id,
+            num: String(p.durationValue),
+            unit: (p.durationUnit || 'months').toLowerCase(),
+            rate: p.rate != null ? String(p.rate) : '',
+            note: p.note || '',
+            isBase: p.isBase,
+          }))
+        : buildDefaultPackages(
+            dto.startPrice,
+            dto.minBookingValue || 1,
+            dto.minBookingUnit || 'months',
+          ),
     f_stagedDeleteIds: [],
   };
 }
@@ -547,6 +647,15 @@ export function mapFormDataToPatchPayload(d) {
       payload.groundHeightFt = toDecimalOrNull(raw, 'f_bbGroundHeight');
       payload.clearGroundHeight = false;
     }
+  }
+
+  if (d.f_pricingPackages !== undefined) {
+    payload.pricingPackages = serializePricingPackages(
+      d.f_pricingPackages,
+      d.f_startPrice,
+      minBookingValue,
+      minBookingUnit,
+    );
   }
 
   return payload;

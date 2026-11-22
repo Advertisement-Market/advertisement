@@ -277,6 +277,62 @@ describe('NewBillboardListing - Canonical Codes & Step 1 Validation', () => {
       expect(pinInput.value).toBe('');
     });
 
+    it('hydrates pricingPackages in edit mode and preserves existing custom packages without overwriting with defaults', async () => {
+      const listingWithPackages = {
+        id: 88,
+        name: 'Custom Package Billboard',
+        addressLine1: 'Bandra West',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400050',
+        type: 'LED_DIGITAL',
+        widthFt: 40,
+        heightFt: 20,
+        facing: 'WEST',
+        trafficType: 'SLOW_MOVING',
+        audienceType: 'COMMUTERS',
+        startPrice: 5000,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+        pricingPackages: [
+          { id: 101, durationValue: 1, durationUnit: 'MONTHS', rate: 150000, note: 'Custom Base', isBase: true },
+          { id: 102, durationValue: 6, durationUnit: 'MONTHS', rate: 800000, note: 'Custom Half-Year', isBase: false },
+        ],
+      };
+
+      vi.spyOn(ownerListingApi, 'getListing').mockResolvedValueOnce({
+        data: listingWithPackages,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/owners/listings/88/edit']}>
+          <Routes>
+            <Route path={ROUTES.editBillboardListingPath} element={<NewBillboardListing />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Custom Package Billboard')).toBeDefined();
+      });
+
+      // Navigate to step 2 (Pricing & Availability)
+      fireEvent.click(screen.getByRole('button', { name: /continue to pricing & availability/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Rate Card')).toBeDefined();
+      });
+
+      const rateInputs = screen.getAllByLabelText(/Package rate/i);
+      expect(rateInputs.length).toBe(2);
+      expect(rateInputs[0].value).toBe('150000');
+      expect(rateInputs[1].value).toBe('800000');
+
+      const noteInputs = screen.getAllByLabelText(/Package notes/i);
+      expect(noteInputs[0].value).toBe('Custom Base');
+      expect(noteInputs[1].value).toBe('Custom Half-Year');
+    });
+
     it('redirects to dashboard when getListing rejects with an error', async () => {
       vi.spyOn(ownerListingApi, 'getListing').mockRejectedValueOnce(new Error('Server error'));
 
