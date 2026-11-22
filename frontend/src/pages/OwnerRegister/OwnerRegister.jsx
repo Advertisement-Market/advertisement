@@ -455,12 +455,16 @@ export function OwnerRegister({ initialData: customInitialData, initialStep = 1 
       .map(normalizeUploadItem)
       .filter(Boolean);
     const video = (data.f_video || []).map(normalizeUploadItem).filter(Boolean);
+    const ownershipDocs = (data.f_ownershipDocs || []).map(normalizeUploadItem).filter(Boolean);
+    const approvalDocs = (data.f_approvalDocs || []).map(normalizeUploadItem).filter(Boolean);
 
     const allNewFiles = [
       ...dayPhotos.map((it) => ({ ...it, category: 'DAY_PHOTO' })),
       ...nightPhotos.map((it) => ({ ...it, category: 'NIGHT_PHOTO' })),
       ...surroundingPhotos.map((it) => ({ ...it, category: 'SURROUNDING_PHOTO' })),
       ...video.map((it) => ({ ...it, category: 'VIDEO' })),
+      ...ownershipDocs.map((it) => ({ ...it, category: 'OWNERSHIP_DOC' })),
+      ...approvalDocs.map((it) => ({ ...it, category: 'APPROVAL_DOC' })),
     ];
 
     const selectedCover = data.f_selectedCover;

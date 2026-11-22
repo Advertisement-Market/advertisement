@@ -1191,6 +1191,10 @@ const CertIcon = (
 );
 
 export function Step6() {
+  const { field, setField } = useRegister();
+  const ownershipDocs = field('f_ownershipDocs') || EMPTY_ARRAY;
+  const approvalDocs = field('f_approvalDocs') || EMPTY_ARRAY;
+
   return (
     <div className="step-panel active">
       <StepHeader
@@ -1233,7 +1237,11 @@ export function Step6() {
           title="Drag & drop or click to browse"
           instruction="Ownership deed or lease agreement"
           formatHint="PDF, JPG, PNG · Max 20MB"
-          accept=".pdf,image/*"
+          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+          category="OWNERSHIP_DOC"
+          maxCount={1}
+          files={ownershipDocs}
+          onChange={(files) => setField('f_ownershipDocs', files)}
           multiple={false}
           single
           style={{ padding: 0 }}
@@ -1245,7 +1253,11 @@ export function Step6() {
           title="Drag & drop or click to browse"
           instruction="Approval certificate or NOC"
           formatHint="PDF, JPG, PNG · Max 20MB"
-          accept=".pdf,image/*"
+          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+          category="APPROVAL_DOC"
+          maxCount={1}
+          files={approvalDocs}
+          onChange={(files) => setField('f_approvalDocs', files)}
           multiple={false}
           single
           style={{ marginBottom: 0 }}
