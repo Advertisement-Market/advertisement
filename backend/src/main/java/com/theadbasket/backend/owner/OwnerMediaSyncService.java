@@ -145,14 +145,19 @@ public class OwnerMediaSyncService {
                 }
 
                 MultipartFile file = files.get(m.clientIndex());
-                String subDir = "billboards/" + listingId;
                 String preferredFilename = UUID.randomUUID().toString();
 
                 FileStorageService.StoredFile stored;
                 if (m.category() == MediaCategory.VIDEO) {
-                    stored = fileStorageService.storeVideo(subDir, file, preferredFilename);
+                    stored = fileStorageService.storeVideo("billboards/" + listingId, file, preferredFilename);
+                } else if (m.category().isDocument()) {
+                    // Private legal documents are stored under a separate documents/ prefix so the
+                    // public media path can deny them with a cheap prefix check (no DB lookup).
+                    String docSubDir = "documents/" + listingId;
+                    String docFilename = m.category().name().toLowerCase() + "_" + preferredFilename;
+                    stored = fileStorageService.storeDocument(docSubDir, file, docFilename);
                 } else {
-                    stored = fileStorageService.storeImage(subDir, file, preferredFilename);
+                    stored = fileStorageService.storeImage("billboards/" + listingId, file, preferredFilename);
                 }
 
                 Path writtenPath = fileStorageService.resolvePath(stored.storageKey());
