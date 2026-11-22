@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +60,6 @@ class PricingPackagesConcurrencyIT {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("spring.datasource.hikari.maximum-pool-size", () -> "4");
     }
 
     @Autowired
@@ -183,5 +183,11 @@ class PricingPackagesConcurrencyIT {
                 assertThat(rs.next()).isFalse(); // No duplicates
             }
         }
+    }
+
+    @AfterEach
+    void tearDown() {
+        billboardListingRepository.deleteAll();
+        userRepository.deleteAll();
     }
 }

@@ -27,7 +27,7 @@ SELECT
   s.v,
   s.u,
   s.days,
-  ROUND(s.start_price * s.days, 2),
+  ROUND(CAST(s.start_price * s.days AS NUMERIC), 2),
   'Base minimum duration',
   TRUE,
   CURRENT_TIMESTAMP,
@@ -38,13 +38,13 @@ FROM (
     start_price,
     COALESCE(min_booking_value, 1) AS v,
     UPPER(COALESCE(min_booking_unit, 'MONTHS')) AS u,
-    COALESCE(min_booking_value, 1) * CASE UPPER(COALESCE(min_booking_unit, 'MONTHS'))
+    CAST(COALESCE(min_booking_value, 1) * CASE UPPER(COALESCE(min_booking_unit, 'MONTHS'))
       WHEN 'DAYS' THEN 1
       WHEN 'WEEKS' THEN 7
       WHEN 'MONTHS' THEN 30
       WHEN 'YEARS' THEN 365
       ELSE NULL
-    END AS days
+    END AS INTEGER) AS days
   FROM billboard_listings
 ) s
 WHERE s.u IN ('DAYS', 'WEEKS', 'MONTHS', 'YEARS')
