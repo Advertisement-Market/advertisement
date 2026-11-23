@@ -75,10 +75,11 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Private legal documents live under /api/media/documents/** on disk but must never
-                // be served from the public media path. Deny them here (before the permitAll below);
-                // they are served only via the authenticated owner endpoint
+                // be served from the public media path. Deny every HTTP method here (before the
+                // permitAll below) so HEAD and other methods cannot probe them either; they are
+                // served only via the authenticated owner endpoint
                 // GET /api/owner/listings/{id}/media/{mediaId}/raw.
-                .requestMatchers(HttpMethod.GET, "/api/media/documents/**").denyAll()
+                .requestMatchers("/api/media/documents/**").denyAll()
                 .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATHS).permitAll()
                 .requestMatchers(PUBLIC_PATHS).permitAll()
                 // Authenticated role onboarding (MEMBER -> marketplace role).
