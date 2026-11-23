@@ -2,8 +2,12 @@ package com.theadbasket.backend.owner;
 
 import java.util.List;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.theadbasket.backend.common.error.ErrorCode;
+import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.owner.dto.BillboardListingCreateRequest;
 import com.theadbasket.backend.owner.dto.BillboardListingDto;
 import com.theadbasket.backend.owner.dto.BillboardListingUpdateRequest;
@@ -90,6 +96,30 @@ public class OwnerListingController {
     public List<BillboardMediaDto> getListingMedia(@PathVariable Long id,
                                                    @AuthenticationPrincipal AuthenticatedUser principal) {
         return ownerMediaSyncService.getListingMedia(id, principal.id());
+    }
+
+    /**
+     * Streams the raw bytes of a single media asset to its owner. This is the only serving path
+     * for private legal documents, which are excluded from the public {@code /api/media/**} path.
+     */
+    @GetMapping("/{id}/media/{mediaId}/raw")
+    public ResponseEntity<Resource> getMediaRaw(@PathVariable Long id,
+                                                @PathVariable Long mediaId,
+                                                @AuthenticationPrincipal AuthenticatedUser principal) {
+        OwnerMediaSyncService.MediaFileResource media = ownerMediaSyncService.getMediaFile(id, principal.id(), mediaId);
+        Resource resource = new FileSystemResource(media.path());
+        if (!resource.exists() || !resource.isReadable()) {
+            throw new ResourceNotFoundException(ErrorCode.MEDIA_NOT_FOUND, "Media file not found");
+        }
+        String contentType = media.contentType() != null ? media.contentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        String filename = media.originalName() != null ? media.originalName() : "asset";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, contentType)
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Content-Security-Policy", "default-src 'none'; sandbox")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(resource);
     }
 
     @PostMapping(value = "/{id}/media/sync", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

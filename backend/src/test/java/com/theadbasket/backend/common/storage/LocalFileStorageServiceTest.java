@@ -197,6 +197,125 @@ class LocalFileStorageServiceTest {
         assertThat(stored.storageKey()).isEqualTo("videos/mismatch-test.mov");
     }
 
+    private static byte[] createPdfBytes() {
+        return "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+                .getBytes();
+    }
+
+    private static byte[] createJpegHeader() {
+        byte[] data = new byte[64];
+        byte[] header = new byte[] {
+                (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+                0x00, 0x10, 'J', 'F', 'I', 'F', 0x00, 0x01
+        };
+        System.arraycopy(header, 0, data, 0, header.length);
+        return data;
+    }
+
+    private static byte[] createPngHeader() {
+        byte[] data = new byte[64];
+        byte[] header = new byte[] {
+                (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A,
+                0x00, 0x00, 0x00, 0x0D, 'I', 'H', 'D', 'R'
+        };
+        System.arraycopy(header, 0, data, 0, header.length);
+        return data;
+    }
+
+    @Test
+    @DisplayName("storeDocument accepts a PDF and saves it as-is with a .pdf extension")
+    void storeDocument_acceptsPdf() throws IOException {
+        byte[] pdf = createPdfBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "deed.pdf", "application/pdf", pdf);
+
+        FileStorageService.StoredFile stored = storageService.storeDocument("documents/1", file, "ownership_doc_abc");
+
+        assertThat(stored).isNotNull();
+        assertThat(stored.storageKey()).isEqualTo("documents/1/ownership_doc_abc.pdf");
+        assertThat(stored.contentType()).isEqualTo("application/pdf");
+        Path path = storageService.resolvePath(stored.storageKey());
+        assertThat(Files.exists(path)).isTrue();
+        // Documents are stored verbatim (no re-encoding), so bytes must match exactly.
+        assertThat(Files.readAllBytes(path)).isEqualTo(pdf);
+    }
+
+    @Test
+    @DisplayName("storeDocument accepts a JPEG and saves it with a .jpg extension")
+    void storeDocument_acceptsJpeg() {
+        MockMultipartFile file = new MockMultipartFile("file", "scan.jpg", "image/jpeg", createJpegHeader());
+
+        FileStorageService.StoredFile stored = storageService.storeDocument("documents/2", file, "approval_doc_xyz");
+
+        assertThat(stored.storageKey()).isEqualTo("documents/2/approval_doc_xyz.jpg");
+        assertThat(stored.contentType()).isEqualTo("image/jpeg");
+        assertThat(Files.exists(storageService.resolvePath(stored.storageKey()))).isTrue();
+    }
+
+    @Test
+    @DisplayName("storeDocument accepts a PNG and saves it with a .png extension")
+    void storeDocument_acceptsPng() {
+        MockMultipartFile file = new MockMultipartFile("file", "cert.png", "image/png", createPngHeader());
+
+        FileStorageService.StoredFile stored = storageService.storeDocument("documents/3", file, "approval_doc_png");
+
+        assertThat(stored.storageKey()).isEqualTo("documents/3/approval_doc_png.png");
+        assertThat(stored.contentType()).isEqualTo("image/png");
+    }
+
+    @Test
+    @DisplayName("storeDocument rejects an unsupported format such as HTML disguised as a PDF")
+    void storeDocument_rejectsUnsupportedFormat() {
+        byte[] htmlBytes = "<!DOCTYPE html><html><body><script>alert(1)</script></body></html>".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "fake.pdf", "application/pdf", htmlBytes);
+
+        assertThatThrownBy(() -> storageService.storeDocument("documents/4", file, UUID.randomUUID().toString()))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> assertThat(((BadRequestException) ex).getErrorCode())
+                        .isEqualTo(ErrorCode.UNSUPPORTED_MEDIA_TYPE));
+    }
+
+    @Test
+    @DisplayName("storeDocument accepts a document at the exact 20MB boundary")
+    void storeDocument_acceptsExact20MbBoundary() {
+        MockMultipartFile file = new MockMultipartFile("file", "big.pdf", "application/pdf", createPdfBytes()) {
+            @Override
+            public long getSize() {
+                return 20 * 1024 * 1024L; // exactly 20 MB
+            }
+        };
+
+        FileStorageService.StoredFile stored = storageService.storeDocument("documents/5", file, "exact-20mb");
+        assertThat(stored).isNotNull();
+        assertThat(stored.storageKey()).isEqualTo("documents/5/exact-20mb.pdf");
+    }
+
+    @Test
+    @DisplayName("storeDocument rejects a document exceeding 20MB by 1 byte")
+    void storeDocument_rejectsOversizedBoundary() {
+        MockMultipartFile file = new MockMultipartFile("file", "big.pdf", "application/pdf", createPdfBytes()) {
+            @Override
+            public long getSize() {
+                return 20 * 1024 * 1024L + 1L; // 20 MB + 1 byte
+            }
+        };
+
+        assertThatThrownBy(() -> storageService.storeDocument("documents/6", file, UUID.randomUUID().toString()))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> assertThat(((BadRequestException) ex).getErrorCode())
+                        .isEqualTo(ErrorCode.FILE_TOO_LARGE));
+    }
+
+    @Test
+    @DisplayName("storeDocument rejects an empty file")
+    void storeDocument_rejectsEmpty() {
+        MockMultipartFile file = new MockMultipartFile("file", "empty.pdf", "application/pdf", new byte[0]);
+
+        assertThatThrownBy(() -> storageService.storeDocument("documents/7", file, UUID.randomUUID().toString()))
+                .isInstanceOf(BadRequestException.class)
+                .satisfies(ex -> assertThat(((BadRequestException) ex).getErrorCode())
+                        .isEqualTo(ErrorCode.INVALID_FILE));
+    }
+
     @Test
     @DisplayName("deleteQuietly safely deletes file or handles missing/blank keys")
     void deleteQuietly_safelyDeletesOrIgnores() {

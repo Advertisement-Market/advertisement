@@ -53,14 +53,14 @@ public record BillboardListingDto(
         List<BillboardMedia> mediaList = listing.getMedia();
 
         List<BillboardMediaDto> mediaDtos = mediaList != null
-                ? mediaList.stream().map(m -> BillboardMediaDto.from(m, mediaBaseUrl)).toList()
+                ? mediaList.stream().map(m -> BillboardMediaDto.from(m, mediaBaseUrl, listing.getId())).toList()
                 : Collections.emptyList();
 
         String coverPhotoUrl = mediaList != null
                 ? mediaList.stream()
                         .filter(BillboardMedia::isCover)
                         .findFirst()
-                        .map(m -> BillboardMediaDto.from(m, mediaBaseUrl).fileUrl())
+                        .map(m -> BillboardMediaDto.from(m, mediaBaseUrl, listing.getId()).fileUrl())
                         .orElse(null)
                 : null;
 

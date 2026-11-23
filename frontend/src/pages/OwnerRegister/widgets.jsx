@@ -395,18 +395,22 @@ export function ThumbnailCard({
 
   const isDayPhoto = category === 'DAY_PHOTO' || item?.category === 'DAY_PHOTO';
   const name = item?.originalName || item?.file?.name || 'Media Asset';
+  const isPdf =
+    /\.pdf$/i.test(item?.originalName || item?.file?.name || '') ||
+    item?.file?.type === 'application/pdf' ||
+    item?.contentType === 'application/pdf';
 
   useEffect(() => {
     if (isExisting) return;
     const file = item?.file || (item instanceof File ? item : null);
-    if (!file || isVideo) return;
+    if (!file || isVideo || isPdf) return;
     const url = URL.createObjectURL(file);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewUrl(url);
     return () => {
       URL.revokeObjectURL(url);
     };
-  }, [isExisting, item, isVideo]);
+  }, [isExisting, item, isVideo, isPdf]);
 
   const displayUrl = isExisting
     ? item?.url || item?.fileUrl || (item?.storageKey ? `/api/media/${item.storageKey}` : null)
@@ -471,6 +475,44 @@ export function ThumbnailCard({
             <line x1="2" y1="17" x2="7" y2="17" />
             <line x1="17" y1="17" x2="22" y2="17" />
             <line x1="17" y1="7" x2="22" y2="7" />
+          </svg>
+          <span
+            style={{
+              fontSize: 8.5,
+              fontWeight: 600,
+              maxWidth: 76,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {name}
+          </span>
+        </div>
+      ) : isPdf ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 6,
+            textAlign: 'center',
+            gap: 4,
+          }}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--teal, #0d9488)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
           </svg>
           <span
             style={{
@@ -705,6 +747,28 @@ export function UploadZone({
 
   const validateFile = (file) => {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
+    // Legal document validation (PDF or image, up to 20MB). Checked before the video branch
+    // so a video dropped into a document dropzone is rejected on the client, instead of
+    // passing the generic video sniff and failing later during batch media sync.
+    const isDocument = category === 'OWNERSHIP_DOC' || category === 'APPROVAL_DOC';
+    if (isDocument) {
+      const isPdf = ext === 'pdf' || file.type === 'application/pdf';
+      const isImage =
+        ['jpg', 'jpeg', 'png'].includes(ext) || ['image/jpeg', 'image/png'].includes(file.type);
+      if (!isPdf && !isImage) {
+        showToast(
+          `Invalid document "${file.name}". Only PDF, JPG, and PNG are supported.`,
+          'error',
+        );
+        return false;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        showToast(`Document "${file.name}" exceeds the 20MB limit.`, 'error');
+        return false;
+      }
+      return true;
+    }
+
     // Fall back to extension if browser reports empty file.type for .mov recordings
     const isVideo =
       category === 'VIDEO' || file.type.startsWith('video/') || ['mp4', 'mov'].includes(ext);

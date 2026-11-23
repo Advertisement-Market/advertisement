@@ -249,6 +249,26 @@ mvn verify            # also runs the Testcontainers IT (needs Docker)
 - `TheAdBasketApplicationTests` — context boots under H2 + Flyway.
 - `UserRepositoryIT` — runs against real PostgreSQL 18 via Testcontainers (**Docker required**).
 
+## Media uploads
+
+Billboard media is attached to a listing through the owner media-sync pipeline
+(`POST /api/owner/listings/{id}/media/sync`). Each file carries a `MediaCategory`:
+
+| Category            | Kind     | Limit | Storage / handling                               |
+| ------------------- | -------- | ----- | ------------------------------------------------ |
+| `DAY_PHOTO`         | Gallery  | 10 (min 2) | Re-encoded, EXIF-rotated, downscaled image  |
+| `NIGHT_PHOTO`       | Gallery  | 5     | Re-encoded, downscaled image                     |
+| `SURROUNDING_PHOTO` | Gallery  | 5     | Re-encoded, downscaled image                     |
+| `VIDEO`             | Gallery  | 1     | MP4/MOV, stored as-is (max 50MB)                 |
+| `OWNERSHIP_DOC`     | Document | 1     | PDF/JPG/PNG, stored as-is (max 20MB)             |
+| `APPROVAL_DOC`      | Document | 1     | PDF/JPG/PNG, stored as-is (max 20MB)             |
+
+Gallery media live under `uploads/billboards/{listingId}/` and are served publicly from
+`/api/media/**`. Legal **documents** are private: they live under `uploads/documents/{listingId}/`,
+the public media path **denies** `/api/media/documents/**`, and they are served only through the
+authenticated, ownership-checked endpoint `GET /api/owner/listings/{id}/media/{mediaId}/raw`.
+Content types are sniffed from the file bytes with Apache Tika, so a spoofed extension is rejected.
+
 ## Maven wrapper (optional)
 
 Not committed yet. To add it so contributors don't need a matching global Maven:

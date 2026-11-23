@@ -50,13 +50,33 @@ public class OwnerMediaSyncService {
         this.mediaBaseUrl = mediaBaseUrl;
     }
 
+    /** Resolved on-disk media file plus the metadata needed to serve it. */
+    public record MediaFileResource(Path path, String contentType, String originalName) {
+    }
+
+    /**
+     * Resolves the on-disk file for a media asset after verifying the listing is owned by the
+     * requesting user. Used to serve private legal documents through an authenticated endpoint,
+     * since they are deliberately excluded from the public {@code /api/media/**} path.
+     */
+    public MediaFileResource getMediaFile(Long listingId, Long userId, Long mediaId) {
+        BillboardListing listing = billboardListingRepository.findByIdAndUserId(listingId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found"));
+
+        BillboardMedia media = billboardMediaRepository.findByIdAndBillboardId(mediaId, listing.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MEDIA_NOT_FOUND, "Media asset not found"));
+
+        Path path = fileStorageService.resolvePath(media.getStorageKey());
+        return new MediaFileResource(path, media.getContentType(), media.getOriginalName());
+    }
+
     public List<BillboardMediaDto> getListingMedia(Long listingId, Long userId) {
         BillboardListing listing = billboardListingRepository.findByIdAndUserId(listingId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found"));
 
         return billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId())
                 .stream()
-                .map(m -> BillboardMediaDto.from(m, mediaBaseUrl))
+                .map(m -> BillboardMediaDto.from(m, mediaBaseUrl, listing.getId()))
                 .toList();
     }
 
@@ -145,14 +165,19 @@ public class OwnerMediaSyncService {
                 }
 
                 MultipartFile file = files.get(m.clientIndex());
-                String subDir = "billboards/" + listingId;
                 String preferredFilename = UUID.randomUUID().toString();
 
                 FileStorageService.StoredFile stored;
                 if (m.category() == MediaCategory.VIDEO) {
-                    stored = fileStorageService.storeVideo(subDir, file, preferredFilename);
+                    stored = fileStorageService.storeVideo("billboards/" + listingId, file, preferredFilename);
+                } else if (m.category().isDocument()) {
+                    // Private legal documents are stored under a separate documents/ prefix so the
+                    // public media path can deny them with a cheap prefix check (no DB lookup).
+                    String docSubDir = "documents/" + listingId;
+                    String docFilename = m.category().name().toLowerCase() + "_" + preferredFilename;
+                    stored = fileStorageService.storeDocument(docSubDir, file, docFilename);
                 } else {
-                    stored = fileStorageService.storeImage(subDir, file, preferredFilename);
+                    stored = fileStorageService.storeImage("billboards/" + listingId, file, preferredFilename);
                 }
 
                 Path writtenPath = fileStorageService.resolvePath(stored.storageKey());

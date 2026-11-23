@@ -221,7 +221,7 @@ public class OwnerMediaTransactionalService {
 
         return billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listingId)
                 .stream()
-                .map(m -> BillboardMediaDto.from(m, mediaBaseUrl))
+                .map(m -> BillboardMediaDto.from(m, mediaBaseUrl, listingId))
                 .toList();
     }
 
@@ -252,7 +252,7 @@ public class OwnerMediaTransactionalService {
 
         target.setIsCover(Boolean.TRUE);
         BillboardMedia saved = billboardMediaRepository.save(target);
-        return BillboardMediaDto.from(saved, mediaBaseUrl);
+        return BillboardMediaDto.from(saved, mediaBaseUrl, listingId);
     }
 
     @Transactional
@@ -288,7 +288,7 @@ public class OwnerMediaTransactionalService {
 
         return billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listingId)
                 .stream()
-                .map(m -> BillboardMediaDto.from(m, mediaBaseUrl))
+                .map(m -> BillboardMediaDto.from(m, mediaBaseUrl, listingId))
                 .toList();
     }
 

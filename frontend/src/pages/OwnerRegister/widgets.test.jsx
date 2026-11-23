@@ -276,6 +276,65 @@ describe('OwnerRegister and Wizard Widgets', () => {
     });
   });
 
+  describe('UploadZone legal document validation', () => {
+    it('accepts PDF/JPG/PNG up to 20MB and rejects unsupported types and oversized files', () => {
+      const showToast = vi.fn();
+      const onChange = vi.fn();
+
+      render(
+        <RegisterProvider value={{ showToast }}>
+          <UploadZone
+            sectionTitle="Ownership / Lease Document"
+            category="OWNERSHIP_DOC"
+            maxCount={1}
+            single
+            files={[]}
+            onChange={onChange}
+          />
+        </RegisterProvider>,
+      );
+
+      const fileInput = document.querySelector('input[type="file"]');
+      expect(fileInput).toBeDefined();
+
+      // 1. A valid PDF within 20MB is accepted
+      const pdf = new File([new ArrayBuffer(1024)], 'deed.pdf', { type: 'application/pdf' });
+      Object.defineProperty(pdf, 'size', { value: 5 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [pdf] } });
+      expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ file: pdf })]);
+
+      onChange.mockClear();
+
+      // 2. A PDF exceeding 20MB by 1 byte is rejected
+      const bigPdf = new File([new ArrayBuffer(1024)], 'big.pdf', { type: 'application/pdf' });
+      Object.defineProperty(bigPdf, 'size', { value: 20 * 1024 * 1024 + 1 });
+      fireEvent.change(fileInput, { target: { files: [bigPdf] } });
+      expect(onChange).not.toHaveBeenCalled();
+
+      // 3. An unsupported document type (e.g. .docx) is rejected
+      const docx = new File([new ArrayBuffer(1024)], 'deed.docx', {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      fireEvent.change(fileInput, { target: { files: [docx] } });
+      expect(onChange).not.toHaveBeenCalled();
+
+      // 4. An image document (PNG) within 20MB is accepted
+      const png = new File([new ArrayBuffer(1024)], 'cert.png', { type: 'image/png' });
+      Object.defineProperty(png, 'size', { value: 2 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [png] } });
+      expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ file: png })]);
+
+      onChange.mockClear();
+
+      // 5. A video dropped into a document zone is rejected (document check runs before the
+      //    generic video sniff, so it cannot slip through and fail later during media sync)
+      const mp4 = new File([new ArrayBuffer(1024)], 'clip.mp4', { type: 'video/mp4' });
+      Object.defineProperty(mp4, 'size', { value: 3 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [mp4] } });
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
   describe('ThumbnailCard & UploadZone media features', () => {
     it('renders COVER badge and calls onPreview when clicked', () => {
       const onPreview = vi.fn();
