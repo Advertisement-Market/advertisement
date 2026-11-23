@@ -33,7 +33,7 @@ Rather than build a separate document subsystem, this change extends the existin
 
 Legal documents must never be reachable on the public media path. Two layers enforce this:
 
-- `SecurityConfig` denies `GET /api/media/documents/**` ahead of the public media `permitAll`, so the static resource handler can never serve a document.
+- `SecurityConfig` denies **every HTTP method** on `/api/media/documents/**` ahead of the public media `permitAll`, so neither `GET` nor `HEAD` can reach the static resource handler for a document.
 - A new authenticated, ownership-checked endpoint `GET /api/owner/listings/{id}/media/{mediaId}/raw` streams the file inline with `X-Content-Type-Options: nosniff`, a restrictive CSP, and `Cache-Control: no-store`.
 
 `BillboardMediaDto.from` now takes the listing id and builds the file URL per category: public media keep their `/api/media/...` URL, while private documents resolve to the owner raw endpoint. All call sites were updated to pass the listing id.
@@ -71,7 +71,7 @@ The two `UploadZone` components in `OwnerRegister/steps.jsx` are bound to new `f
 | :--- | :--- | :--- |
 | Document storage (new) | `cd backend; mvn -o test -Dtest=LocalFileStorageServiceTest` | 17 / 17 passed |
 | Media URL privacy (new) | `cd backend; mvn -o test -Dtest=BillboardMediaDtoTest` | 2 / 2 passed |
-| Media sync regression | `cd backend; mvn -o test -Dtest=OwnerMediaSyncIntegrationTest` | 13 / 13 passed |
+| Document sync, raw serving & privacy (new) | `cd backend; mvn -o test -Dtest=OwnerMediaSyncIntegrationTest` | 14 / 14 passed |
 | Frontend full suite | `cd frontend; npx vitest run` | 278 / 278 passed |
 | Lint | `cd frontend; npm run lint` | 0 errors, 0 warnings |
 
