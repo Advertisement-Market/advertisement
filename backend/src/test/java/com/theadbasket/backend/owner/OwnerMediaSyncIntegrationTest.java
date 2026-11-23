@@ -35,10 +35,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -140,16 +144,20 @@ class OwnerMediaSyncIntegrationTest {
 
     private void deleteListingFiles() throws IOException {
         if (listing != null && listing.getId() != null) {
-            Path listingUploadPath = Paths.get(uploadDir, "billboards", String.valueOf(listing.getId()));
-            if (Files.exists(listingUploadPath)) {
-                try (var stream = Files.walk(listingUploadPath)) {
-                    stream.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
-                        try {
-                            Files.deleteIfExists(p);
-                        } catch (IOException ignored) {
-                        }
-                    });
-                }
+            deleteDirRecursively(Paths.get(uploadDir, "billboards", String.valueOf(listing.getId())));
+            deleteDirRecursively(Paths.get(uploadDir, "documents", String.valueOf(listing.getId())));
+        }
+    }
+
+    private void deleteDirRecursively(Path dir) throws IOException {
+        if (Files.exists(dir)) {
+            try (var stream = Files.walk(dir)) {
+                stream.sorted((a, b) -> b.compareTo(a)).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException ignored) {
+                    }
+                });
             }
         }
     }
@@ -882,5 +890,79 @@ class OwnerMediaSyncIntegrationTest {
         // id2 should be auto-promoted since it is the lowest display_order remaining day photo
         BillboardMedia newCover = billboardMediaRepository.findCoverByBillboardId(listing.getId()).orElseThrow();
         assertThat(newCover.getUploadId()).isEqualTo(id2);
+    }
+
+    private static byte[] createTestPdf() {
+        return "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+                .getBytes();
+    }
+
+    @Test
+    @DisplayName("Legal documents: end-to-end sync, private raw streaming to the owner, and blocking of the public media path (incl. HEAD)")
+    void legalDocumentUploadServingAndPrivacy() throws Exception {
+        byte[] pdfBytes = createTestPdf();
+        String uploadId = UUID.randomUUID().toString();
+
+        SyncManifest manifest = new SyncManifest(
+                List.of(),
+                List.of(new SyncFileMapping(0, MediaCategory.OWNERSHIP_DOC, uploadId))
+        );
+        MockMultipartFile manifestPart = new MockMultipartFile(
+                "manifest", "", "application/json", objectMapper.writeValueAsBytes(manifest));
+        MockMultipartFile docFile = new MockMultipartFile(
+                "files", "ownership_deed.pdf", "application/pdf", pdfBytes);
+
+        // ── 1. Upload the document through the standard media-sync pipeline ──
+        mockMvc.perform(multipart("/api/owner/listings/" + listing.getId() + "/media/sync")
+                        .file(manifestPart)
+                        .file(docFile)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].category").value("OWNERSHIP_DOC"))
+                .andExpect(jsonPath("$[0].contentType").value("application/pdf"))
+                // Private documents resolve to the authenticated owner raw endpoint, never /api/media/**
+                .andExpect(jsonPath("$[0].fileUrl").value(containsString(
+                        "/api/owner/listings/" + listing.getId() + "/media/")))
+                .andExpect(jsonPath("$[0].fileUrl").value(endsWith("/raw")));
+
+        List<BillboardMedia> media = billboardMediaRepository.findByBillboardIdOrderByDisplayOrderAscCreatedTsAsc(listing.getId());
+        assertThat(media).hasSize(1);
+        BillboardMedia doc = media.get(0);
+        assertThat(doc.getStorageKey()).startsWith("documents/" + listing.getId() + "/");
+        assertThat(Files.exists(Paths.get(uploadDir, doc.getStorageKey()))).isTrue();
+        Long docId = doc.getId();
+
+        // ── 2. Owner streams the document via the authenticated raw endpoint (bytes stored verbatim) ──
+        mockMvc.perform(get("/api/owner/listings/" + listing.getId() + "/media/" + docId + "/raw")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(content().bytes(pdfBytes));
+
+        // ── 3. A different owner cannot read it — 404 (existence is not leaked) ──
+        User otherOwner = userRepository.save(new User("Asha", "Other", "asha.other@example.com", "pass", "9876543222", Role.OWNER));
+        String otherOwnerToken = jwtService.generateAccessToken(otherOwner);
+        mockMvc.perform(get("/api/owner/listings/" + listing.getId() + "/media/" + docId + "/raw")
+                        .header("Authorization", "Bearer " + otherOwnerToken))
+                .andExpect(status().isNotFound());
+
+        // An admin (non-OWNER role) is stopped at the /api/owner/** role boundary — 403
+        mockMvc.perform(get("/api/owner/listings/" + listing.getId() + "/media/" + docId + "/raw")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isForbidden());
+
+        // ── 4. The public media path must not serve documents under any method ──
+        String publicDocPath = "/api/media/" + doc.getStorageKey();
+        // Authenticated GET is denied (denyAll), even for the owner
+        mockMvc.perform(get(publicDocPath).header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isForbidden());
+        // HEAD is denied too — the specific method the review flagged
+        mockMvc.perform(head(publicDocPath).header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isForbidden());
+        // Anonymous access is rejected by the authentication entry point
+        mockMvc.perform(get(publicDocPath))
+                .andExpect(status().isUnauthorized());
     }
 }
