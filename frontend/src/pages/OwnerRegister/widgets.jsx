@@ -747,26 +747,9 @@ export function UploadZone({
 
   const validateFile = (file) => {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    // Fall back to extension if browser reports empty file.type for .mov recordings
-    const isVideo =
-      category === 'VIDEO' || file.type.startsWith('video/') || ['mp4', 'mov'].includes(ext);
-
-    if (isVideo) {
-      if (!['mp4', 'mov'].includes(ext) && !['video/mp4', 'video/quicktime'].includes(file.type)) {
-        showToast(
-          `Invalid video format for "${file.name}". Only MP4 and MOV are supported.`,
-          'error',
-        );
-        return false;
-      }
-      if (file.size > MAX_VIDEO_BYTES) {
-        showToast(`Video "${file.name}" exceeds the 50MB limit.`, 'error');
-        return false;
-      }
-      return true;
-    }
-
-    // Legal document validation (PDF or image, up to 20MB)
+    // Legal document validation (PDF or image, up to 20MB). Checked before the video branch
+    // so a video dropped into a document dropzone is rejected on the client, instead of
+    // passing the generic video sniff and failing later during batch media sync.
     const isDocument = category === 'OWNERSHIP_DOC' || category === 'APPROVAL_DOC';
     if (isDocument) {
       const isPdf = ext === 'pdf' || file.type === 'application/pdf';
@@ -781,6 +764,25 @@ export function UploadZone({
       }
       if (file.size > 20 * 1024 * 1024) {
         showToast(`Document "${file.name}" exceeds the 20MB limit.`, 'error');
+        return false;
+      }
+      return true;
+    }
+
+    // Fall back to extension if browser reports empty file.type for .mov recordings
+    const isVideo =
+      category === 'VIDEO' || file.type.startsWith('video/') || ['mp4', 'mov'].includes(ext);
+
+    if (isVideo) {
+      if (!['mp4', 'mov'].includes(ext) && !['video/mp4', 'video/quicktime'].includes(file.type)) {
+        showToast(
+          `Invalid video format for "${file.name}". Only MP4 and MOV are supported.`,
+          'error',
+        );
+        return false;
+      }
+      if (file.size > MAX_VIDEO_BYTES) {
+        showToast(`Video "${file.name}" exceeds the 50MB limit.`, 'error');
         return false;
       }
       return true;

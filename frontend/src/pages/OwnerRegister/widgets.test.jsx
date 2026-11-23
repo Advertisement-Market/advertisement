@@ -323,6 +323,15 @@ describe('OwnerRegister and Wizard Widgets', () => {
       Object.defineProperty(png, 'size', { value: 2 * 1024 * 1024 });
       fireEvent.change(fileInput, { target: { files: [png] } });
       expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ file: png })]);
+
+      onChange.mockClear();
+
+      // 5. A video dropped into a document zone is rejected (document check runs before the
+      //    generic video sniff, so it cannot slip through and fail later during media sync)
+      const mp4 = new File([new ArrayBuffer(1024)], 'clip.mp4', { type: 'video/mp4' });
+      Object.defineProperty(mp4, 'size', { value: 3 * 1024 * 1024 });
+      fireEvent.change(fileInput, { target: { files: [mp4] } });
+      expect(onChange).not.toHaveBeenCalled();
     });
   });
 
