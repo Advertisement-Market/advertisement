@@ -221,6 +221,7 @@ class OwnerRegistrationPricingPackagesTest {
     }
 
     @AfterEach
+    @SuppressWarnings("unused")
     void tearDown() {
         billboardListingRepository.deleteAll();
         ownerProfileRepository.deleteAll();
