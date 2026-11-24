@@ -25,7 +25,7 @@ describe('pricingPackageDefaults', () => {
   });
 
   describe('buildDefaultPackages - 3 default package tiers without autofilled discounts', () => {
-    it('returns 3 package tiers: 1 base tier and 2 blank promotional tiers with duration 1 month', () => {
+    it('returns 3 package tiers: 1 base tier and 2 blank promotional tiers with distinct durations (3 and 6 months)', () => {
       const pkgs = buildDefaultPackages(null, 1, 'months');
       expect(pkgs).toHaveLength(3);
 
@@ -39,21 +39,21 @@ describe('pricingPackageDefaults', () => {
       expect(pkgs[0].notePlaceholder).toBe('Standard');
       expect(pkgs[0].isCustomRate).toBe(false);
 
-      // Row 2: Blank promotional tier with default duration of 1 month
+      // Row 2: Blank promotional tier with default duration of 3 months
       expect(pkgs[1].isBase).toBe(false);
-      expect(pkgs[1].num).toBe('1');
+      expect(pkgs[1].num).toBe('3');
       expect(pkgs[1].unit).toBe('months');
-      expect(pkgs[1].durationDays).toBe(30);
+      expect(pkgs[1].durationDays).toBe(90);
       expect(pkgs[1].rate).toBe('');
       expect(pkgs[1].note).toBe('');
       expect(pkgs[1].notePlaceholder).toBe('30% off');
       expect(pkgs[1].isCustomRate).toBe(false);
 
-      // Row 3: Blank promotional tier with default duration of 1 month
+      // Row 3: Blank promotional tier with default duration of 6 months
       expect(pkgs[2].isBase).toBe(false);
-      expect(pkgs[2].num).toBe('1');
+      expect(pkgs[2].num).toBe('6');
       expect(pkgs[2].unit).toBe('months');
-      expect(pkgs[2].durationDays).toBe(30);
+      expect(pkgs[2].durationDays).toBe(180);
       expect(pkgs[2].rate).toBe('');
       expect(pkgs[2].note).toBe('');
       expect(pkgs[2].notePlaceholder).toBe('Best value');
@@ -97,10 +97,10 @@ describe('pricingPackageDefaults', () => {
       expect(pkgDays[0].num).toBe('7');
       expect(pkgDays[0].unit).toBe('days');
       expect(pkgDays[0].durationDays).toBe(7);
-      // Promotional tiers remain 1 month default
-      expect(pkgDays[1].num).toBe('1');
+      // Promotional tiers remain 3 and 6 months default
+      expect(pkgDays[1].num).toBe('3');
       expect(pkgDays[1].unit).toBe('months');
-      expect(pkgDays[2].num).toBe('1');
+      expect(pkgDays[2].num).toBe('6');
       expect(pkgDays[2].unit).toBe('months');
 
       const pkgWeeks = buildDefaultPackages(1000, 2, 'weeks');

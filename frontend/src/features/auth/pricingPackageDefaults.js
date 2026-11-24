@@ -95,11 +95,11 @@ export function buildDefaultPackages(startPrice, minVal = 1, minUnit = 'months')
 
   const promoTier1 = {
     id: 2,
-    num: '1',
+    num: '3',
     unit: 'months',
-    durationValue: 1,
+    durationValue: 3,
     durationUnit: 'months',
-    durationDays: 30,
+    durationDays: 90,
     rate: '',
     note: '',
     notePlaceholder: '30% off',
@@ -109,11 +109,11 @@ export function buildDefaultPackages(startPrice, minVal = 1, minUnit = 'months')
 
   const promoTier2 = {
     id: 3,
-    num: '1',
+    num: '6',
     unit: 'months',
-    durationValue: 1,
+    durationValue: 6,
     durationUnit: 'months',
-    durationDays: 30,
+    durationDays: 180,
     rate: '',
     note: '',
     notePlaceholder: 'Best value',

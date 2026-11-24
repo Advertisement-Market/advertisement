@@ -77,11 +77,11 @@ class V11MigrationSeededDataTest {
                     "VALUES (104, " + userId + ", 'Unknown Unit Board', " + addressId + ", 'DIGITAL', 20.0, 10.0, 'NORTH', " +
                     "'VEHICULAR', 'YOUTH', 500.00, 1, 'HOURS', 1, 'ACTIVE')");
 
-            // Listing 105: Exceeds unit cap (min_booking_value=100, min_booking_unit='MONTHS' > 60 max) -> should be skipped by guard
+            // Listing 105: Exceeds unit cap (min_booking_value=1001, min_booking_unit='MONTHS' > 1000 max) -> should be skipped by guard
             stmt.execute("INSERT INTO billboard_listings (id, user_id, name, address_id, type, width_ft, height_ft, facing, " +
                     "traffic_type, audience_type, start_price, min_booking_value, min_booking_unit, min_booking_days, status) " +
                     "VALUES (105, " + userId + ", 'Exceeds Cap Board', " + addressId + ", 'DIGITAL', 20.0, 10.0, 'NORTH', " +
-                    "'VEHICULAR', 'YOUTH', 500.00, 100, 'MONTHS', 3000, 'ACTIVE')");
+                    "'VEHICULAR', 'YOUTH', 500.00, 1001, 'MONTHS', 30030, 'ACTIVE')");
 
             // Listing 106: NULL start price (drop not-null constraint temporarily on test table to test guard) -> should be skipped by guard
             stmt.execute("ALTER TABLE billboard_listings ALTER COLUMN start_price DROP NOT NULL");

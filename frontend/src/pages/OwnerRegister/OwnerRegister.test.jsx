@@ -570,8 +570,8 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
     const durationNumInputs = screen.getAllByLabelText(/Package duration value/i);
     expect(durationNumInputs.length).toBe(3);
     expect(durationNumInputs[0].value).toBe('1');
-    expect(durationNumInputs[1].value).toBe('1');
-    expect(durationNumInputs[2].value).toBe('1');
+    expect(durationNumInputs[1].value).toBe('3');
+    expect(durationNumInputs[2].value).toBe('6');
 
     const noteInputs = screen.getAllByLabelText(/Package notes/i);
     expect(noteInputs[0].placeholder).toBe('Standard');

@@ -17,7 +17,7 @@ CREATE TABLE billboard_pricing_packages (
     CONSTRAINT uq_billboard_package_duration UNIQUE (billboard_id, duration_days)
 );
 
-CREATE INDEX idx_pricing_packages_billboard ON billboard_pricing_packages(billboard_id);
+-- Unique constraint uq_billboard_package_duration indexes (billboard_id, duration_days), covering billboard_id lookups
 
 -- Safe, idempotent backfill for legacy listings
 INSERT INTO billboard_pricing_packages
@@ -51,10 +51,10 @@ WHERE s.u IN ('DAYS', 'WEEKS', 'MONTHS', 'YEARS')
   AND s.days IS NOT NULL
   AND s.v > 0
   AND s.v <= CASE s.u
-    WHEN 'DAYS' THEN 365
-    WHEN 'WEEKS' THEN 52
-    WHEN 'MONTHS' THEN 60
-    WHEN 'YEARS' THEN 10
+    WHEN 'DAYS' THEN 1000
+    WHEN 'WEEKS' THEN 1000
+    WHEN 'MONTHS' THEN 1000
+    WHEN 'YEARS' THEN 100
   END
   AND s.start_price > 0
   AND s.start_price * s.days < 1000000000000
