@@ -1,5 +1,6 @@
 package com.theadbasket.backend.owner;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,7 @@ public class OwnerListingService {
     private final NotificationService notificationService;
     private final LovService lovService;
     private final AvailabilityService availabilityService;
+    private final PricingPackageService pricingPackageService;
     private final boolean moderationRequired;
     private final String mediaBaseUrl;
 
@@ -65,7 +67,21 @@ public class OwnerListingService {
             @Value("${app.listings.moderation-required:true}") boolean moderationRequired,
             @Value("${app.media.base-url:/api/media}") String mediaBaseUrl) {
         this(billboardListingRepository, billboardMediaRepository, fileStorageService,
-                userRepository, notificationService, lovService, null, moderationRequired, mediaBaseUrl);
+                userRepository, notificationService, lovService, null, new PricingPackageService(lovService), moderationRequired, mediaBaseUrl);
+    }
+
+    public OwnerListingService(
+            BillboardListingRepository billboardListingRepository,
+            BillboardMediaRepository billboardMediaRepository,
+            FileStorageService fileStorageService,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            LovService lovService,
+            AvailabilityService availabilityService,
+            @Value("${app.listings.moderation-required:true}") boolean moderationRequired,
+            @Value("${app.media.base-url:/api/media}") String mediaBaseUrl) {
+        this(billboardListingRepository, billboardMediaRepository, fileStorageService,
+                userRepository, notificationService, lovService, availabilityService, new PricingPackageService(lovService), moderationRequired, mediaBaseUrl);
     }
 
     @Autowired
@@ -77,6 +93,7 @@ public class OwnerListingService {
             NotificationService notificationService,
             LovService lovService,
             AvailabilityService availabilityService,
+            PricingPackageService pricingPackageService,
             @Value("${app.listings.moderation-required:true}") boolean moderationRequired,
             @Value("${app.media.base-url:/api/media}") String mediaBaseUrl) {
         this.billboardListingRepository = billboardListingRepository;
@@ -86,6 +103,7 @@ public class OwnerListingService {
         this.notificationService = notificationService;
         this.lovService = lovService;
         this.availabilityService = availabilityService;
+        this.pricingPackageService = pricingPackageService != null ? pricingPackageService : new PricingPackageService(lovService);
         this.moderationRequired = moderationRequired;
         this.mediaBaseUrl = mediaBaseUrl;
     }
@@ -152,6 +170,8 @@ public class OwnerListingService {
             throw BadRequestException.forFieldErrors(ErrorCode.VALIDATION_FAILED, fieldErrors);
         }
 
+        pricingPackageService.validateMinBooking(req.minBookingValue(), minBookingUnit);
+
         BillboardListing listing = new BillboardListing();
         listing.setUser(user);
         listing.setName(req.name().trim());
@@ -173,6 +193,15 @@ public class OwnerListingService {
         listing.setMinBookingDays(minBookingUnit.toDays(req.minBookingValue()));
         listing.setDiscountNote(TextUtil.blankToNull(req.discountNote()));
         listing.setStatus(BillboardStatus.DRAFT);
+
+        List<BillboardPricingPackage> packages = pricingPackageService.validateAndBuildPackages(
+                req.pricingPackages(),
+                listing,
+                req.startPrice(),
+                req.minBookingValue(),
+                minBookingUnit
+        );
+        listing.setPricingPackages(packages);
 
         BillboardListing saved = billboardListingRepository.save(listing);
         if (availabilityService != null) {
@@ -249,7 +278,7 @@ public class OwnerListingService {
 
     @Transactional
     public BillboardListingDto updateListing(Long id, Long userId, BillboardListingUpdateRequest req) {
-        BillboardListing listing = billboardListingRepository.findByIdAndUserId(id, userId)
+        BillboardListing listing = billboardListingRepository.findByIdAndUserIdForUpdate(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BILLBOARD_NOT_FOUND, "Billboard listing not found"));
 
         if (listing.getStatus() == BillboardStatus.SUSPENDED) {
@@ -321,9 +350,27 @@ public class OwnerListingService {
         if (req.startPrice() != null) listing.setStartPrice(req.startPrice());
 
         if (req.minBookingValue() != null || req.minBookingUnit() != null) {
+            if (minBookingUnit != null && minBookingValue != null) {
+                pricingPackageService.validateMinBooking(minBookingValue, minBookingUnit);
+            }
             listing.setMinBookingValue(minBookingValue);
             listing.setMinBookingUnit(minBookingUnit);
             listing.setMinBookingDays(minBookingUnit != null && minBookingValue != null ? minBookingUnit.toDays(minBookingValue) : null);
+        }
+
+        if (req.pricingPackages() != null) {
+            if (req.pricingPackages().isEmpty()) {
+                throw new BadRequestException(ErrorCode.VALIDATION_FAILED, "At least one pricing package is required.");
+            }
+            BigDecimal effectiveStartPrice = req.startPrice() != null ? req.startPrice() : listing.getStartPrice();
+            List<BillboardPricingPackage> packages = pricingPackageService.validateAndBuildPackages(
+                    req.pricingPackages(),
+                    listing,
+                    effectiveStartPrice,
+                    minBookingValue,
+                    minBookingUnit
+            );
+            listing.mergePricingPackages(packages);
         }
 
         if (req.discountNote() != null) listing.setDiscountNote(TextUtil.blankToNull(req.discountNote()));

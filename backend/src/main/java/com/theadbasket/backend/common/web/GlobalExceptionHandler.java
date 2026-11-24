@@ -1,5 +1,42 @@
 package com.theadbasket.backend.common.web;
 
+import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.transaction.TransactionSystemException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
 import com.theadbasket.backend.auth.AuthCookieService;
 import com.theadbasket.backend.availability.dto.HoldConflictError;
 import com.theadbasket.backend.availability.dto.StaleAvailabilityError;
@@ -18,42 +55,10 @@ import com.theadbasket.backend.common.exception.InvalidGoogleTokenException;
 import com.theadbasket.backend.common.exception.ResourceNotFoundException;
 import com.theadbasket.backend.common.exception.TokenRefreshException;
 import com.theadbasket.backend.common.exception.UnauthorizedException;
+
+import jakarta.persistence.LockTimeoutException;
+import jakarta.persistence.PessimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
-import java.sql.SQLException;
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import org.hibernate.exception.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.dao.CannotAcquireLockException;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.PessimisticLockingFailureException;
-import org.springframework.transaction.TransactionSystemException;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** Translates exceptions into consistent {@link ApiError} JSON responses. */
 @RestControllerAdvice
@@ -304,11 +309,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             PessimisticLockingFailureException.class,
-            CannotAcquireLockException.class
+            CannotAcquireLockException.class,
+            PessimisticLockException.class,
+            LockTimeoutException.class
     })
     public ResponseEntity<ApiError> handleLockConflict(Exception ex, HttpServletRequest request) {
         log.warn("Database lock acquisition failed on {}: {}", request.getRequestURI(), ex.getMessage());
         return build(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION, request);
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ApiError> handleJpaSystem(JpaSystemException ex, HttpServletRequest request) {
+        if (isLockException(ex)) {
+            log.warn("Database lock acquisition failed (wrapped in JpaSystemException) on {}: {}", request.getRequestURI(), ex.getMessage());
+            return build(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION, request);
+        }
+        log.error("JPA system exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, request);
     }
 
     @ExceptionHandler({
@@ -316,6 +333,10 @@ public class GlobalExceptionHandler {
             TransactionSystemException.class
     })
     public ResponseEntity<ApiError> handleDataIntegrity(Exception ex, HttpServletRequest request) {
+        if (isLockException(ex)) {
+            log.warn("Database lock acquisition failed on {}: {}", request.getRequestURI(), ex.getMessage());
+            return build(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION, request);
+        }
         String constraint = extractConstraintName(ex);
         if (constraint != null) {
             String normalized = constraint.toLowerCase(Locale.ROOT);
@@ -359,6 +380,21 @@ public class GlobalExceptionHandler {
                 return true;
             }
             if (cur instanceof SQLException sqlEx && "23505".equals(sqlEx.getSQLState())) {
+                return true;
+            }
+            cur = cur.getCause();
+        }
+        return false;
+    }
+
+    private static boolean isLockException(Throwable ex) {
+        Throwable cur = ex;
+        while (cur != null) {
+            if (cur instanceof PessimisticLockException
+                    || cur instanceof LockTimeoutException
+                    || cur instanceof org.hibernate.exception.LockTimeoutException
+                    || cur instanceof PessimisticLockingFailureException
+                    || cur instanceof CannotAcquireLockException) {
                 return true;
             }
             cur = cur.getCause();

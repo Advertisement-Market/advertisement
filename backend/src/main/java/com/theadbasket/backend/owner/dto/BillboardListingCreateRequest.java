@@ -129,8 +129,41 @@ public record BillboardListingCreateRequest(
         String discountNote,
 
         @Size(max = AvailabilityDateValidator.MAX_BULK_RANGES, message = "Too many blocked date ranges.")
-        List<@NotNull(message = "Blocked range entry is required.") @Valid AvailabilityRangeRequest> blockedRanges
+        List<@NotNull(message = "Blocked range entry is required.") @Valid AvailabilityRangeRequest> blockedRanges,
+
+        @Size(max = 10, message = "Cannot specify more than 10 pricing packages.")
+        List<@NotNull(message = "Pricing package entry is required.") @Valid PricingPackageRequest> pricingPackages
 ) implements BillboardLovPayload {
+
+    public BillboardListingCreateRequest(
+            String name,
+            String addressLine1,
+            String addressLine2,
+            String landmark,
+            String city,
+            String state,
+            String pincode,
+            String type,
+            String typeOther,
+            BigDecimal widthFt,
+            BigDecimal heightFt,
+            BigDecimal groundHeightFt,
+            String facing,
+            String trafficType,
+            String trafficTypeOther,
+            String audienceType,
+            String audienceTypeOther,
+            String footfall,
+            BigDecimal startPrice,
+            Integer minBookingValue,
+            String minBookingUnit,
+            String discountNote,
+            List<AvailabilityRangeRequest> blockedRanges) {
+        this(name, addressLine1, addressLine2, landmark, city, state, pincode,
+                type, typeOther, widthFt, heightFt, groundHeightFt, facing,
+                trafficType, trafficTypeOther, audienceType, audienceTypeOther,
+                footfall, startPrice, minBookingValue, minBookingUnit, discountNote, blockedRanges, null);
+    }
 
     public BillboardListingCreateRequest(
             String name,

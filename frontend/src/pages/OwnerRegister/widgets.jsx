@@ -887,6 +887,7 @@ export const BOOKING_DURATION_UNITS = [
   { value: 'DAYS', label: 'Days' },
   { value: 'WEEKS', label: 'Weeks' },
   { value: 'MONTHS', label: 'Months' },
+  { value: 'YEARS', label: 'Years' },
 ];
 
 export function MinBookingInput() {

@@ -560,7 +560,7 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
     expect(refGuideLink.getAttribute('target')).toBe('_blank');
   });
 
-  it('displays only three Pricing Package rows by default with 1 month duration each on Step 4', () => {
+  it('displays only three non-colliding Pricing Package rows by default on Step 4', () => {
     render(
       <MemoryRouter>
         <OwnerRegister initialStep={4} />
@@ -569,9 +569,14 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
 
     const durationNumInputs = screen.getAllByLabelText(/Package duration value/i);
     expect(durationNumInputs.length).toBe(3);
-    durationNumInputs.forEach((input) => {
-      expect(input.value).toBe('1');
-    });
+    expect(durationNumInputs[0].value).toBe('1');
+    expect(durationNumInputs[1].value).toBe('3');
+    expect(durationNumInputs[2].value).toBe('6');
+
+    const noteInputs = screen.getAllByLabelText(/Package notes/i);
+    expect(noteInputs[0].placeholder).toBe('Standard');
+    expect(noteInputs[1].placeholder).toBe('30% off');
+    expect(noteInputs[2].placeholder).toBe('Best value');
 
     const durationUnitSelects = screen.getAllByLabelText(/Package duration unit/i);
     expect(durationUnitSelects.length).toBe(3);
@@ -632,24 +637,22 @@ describe('OwnerRegister Component, Authenticated Onboarding & Recovery Flows', (
     fireEvent.change(durationNumInputs[0], { target: { value: '2' } });
     expect(rateInputs[0].value).toBe('60000');
 
-    // Row 2 is 1 month (30 days). Base daily rate = 60000 / 60 = 1000/day.
-    // Expected rate for row 2 (1 month = 30 days) = 30000.
-    // If user enters 24000 (20% discount):
-    fireEvent.change(rateInputs[1], { target: { value: '24000' } });
-    expect(screen.getByText('20% off')).toBeDefined();
+    // Set Row 2 to 3 months (90 days). Base daily rate = 60000 / 60 = 1000/day.
+    fireEvent.change(durationNumInputs[1], { target: { value: '3' } });
+    // Expected rate for row 2 (3 months = 90 days) = 90000.
+    // If user enters 72000 (20% discount):
+    fireEvent.change(rateInputs[1], { target: { value: '72000' } });
+    const discountBadges = document.querySelectorAll('.discount-badge');
+    expect(discountBadges[1].textContent).toBe('20% off');
 
-    // If user enters 35000 (premium / more expensive than base):
-    // Should NOT display premium or 'No discount'; should be blank
-    fireEvent.change(rateInputs[1], { target: { value: '35000' } });
-    expect(screen.queryByText(/premium/i)).toBeNull();
-    expect(screen.queryByText(/over/i)).toBeNull();
-    expect(screen.queryByText(/No discount/i)).toBeNull();
-    expect(screen.queryByText(/% off/i)).toBeNull();
+    // If user enters 95000 (premium / more expensive than base):
+    // Row 2 should NOT display premium or discount; should be blank
+    fireEvent.change(rateInputs[1], { target: { value: '95000' } });
+    expect(discountBadges[1].textContent).toBe('');
 
-    // If user enters 30000 (exact base price, no discount):
-    fireEvent.change(rateInputs[1], { target: { value: '30000' } });
-    expect(screen.queryByText(/No discount/i)).toBeNull();
-    expect(screen.queryByText(/% off/i)).toBeNull();
+    // If user enters 90000 (exact base price, no discount):
+    fireEvent.change(rateInputs[1], { target: { value: '90000' } });
+    expect(discountBadges[1].textContent).toBe('');
   });
 
   it('displays improved advance reservation calendar instructions, retains date selection below calendar without duplicate top banner, and renders indicators', () => {

@@ -42,6 +42,7 @@ public record BillboardListingDto(
         String suspensionReason,
         String coverPhotoUrl,
         List<BillboardMediaDto> media,
+        List<PricingPackageResponse> pricingPackages,
         Instant createdAt
 ) {
     public static BillboardListingDto from(BillboardListing listing) {
@@ -51,9 +52,14 @@ public record BillboardListingDto(
     public static BillboardListingDto from(BillboardListing listing, String mediaBaseUrl) {
         Address addr = listing.getAddress();
         List<BillboardMedia> mediaList = listing.getMedia();
+        List<com.theadbasket.backend.owner.BillboardPricingPackage> pkgList = listing.getPricingPackages();
 
         List<BillboardMediaDto> mediaDtos = mediaList != null
                 ? mediaList.stream().map(m -> BillboardMediaDto.from(m, mediaBaseUrl)).toList()
+                : Collections.emptyList();
+
+        List<PricingPackageResponse> pricingPackageDtos = pkgList != null
+                ? pkgList.stream().map(PricingPackageResponse::from).toList()
                 : Collections.emptyList();
 
         String coverPhotoUrl = mediaList != null
@@ -94,6 +100,7 @@ public record BillboardListingDto(
                 listing.getSuspensionReason(),
                 coverPhotoUrl,
                 mediaDtos,
+                pricingPackageDtos,
                 listing.getCreatedAt()
         );
     }

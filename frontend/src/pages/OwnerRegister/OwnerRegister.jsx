@@ -167,7 +167,7 @@ export function validate(step, { data, showToast, user }) {
       return fail('Minimum booking duration must be a whole number.');
     if (numMin > 1000) return fail('Minimum booking duration cannot exceed 1000.');
     const minUnit = d('f_minBookingUnit') || 'MONTHS';
-    if (!['DAYS', 'WEEKS', 'MONTHS'].includes(minUnit))
+    if (!['DAYS', 'WEEKS', 'MONTHS', 'YEARS'].includes(minUnit))
       return fail('Please select a valid booking duration unit.');
   }
   return true;

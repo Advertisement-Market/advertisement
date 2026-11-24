@@ -117,9 +117,10 @@ class LovEndpointIntegrationTest {
     void bookingDurationUnitsEndpoint_returnsStaticList() throws Exception {
         mockMvc.perform(get("/api/lov/booking-duration-units"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].code").value("DAYS"))
-                .andExpect(jsonPath("$[2].code").value("MONTHS"));
+                .andExpect(jsonPath("$[2].code").value("MONTHS"))
+                .andExpect(jsonPath("$[3].code").value("YEARS"));
     }
 
     @Test

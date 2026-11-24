@@ -124,8 +124,14 @@ public class BillboardListing {
     private String suspensionReason;
 
     @jakarta.persistence.OneToMany(mappedBy = "billboard", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 25)
     @jakarta.persistence.OrderBy("displayOrder ASC, createdTs ASC")
     private java.util.List<BillboardMedia> media = new java.util.ArrayList<>();
+
+    @jakarta.persistence.OneToMany(mappedBy = "billboard", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 25)
+    @jakarta.persistence.OrderBy("durationDays ASC")
+    private final java.util.List<BillboardPricingPackage> pricingPackages = new java.util.ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_ts", nullable = false, updatable = false)
@@ -331,5 +337,48 @@ public class BillboardListing {
     public void removeMedia(BillboardMedia item) {
         media.remove(item);
         item.setBillboard(null);
+    }
+
+    public java.util.List<BillboardPricingPackage> getPricingPackages() {
+        return pricingPackages;
+    }
+
+    public void setPricingPackages(java.util.List<BillboardPricingPackage> packages) {
+        this.pricingPackages.clear();
+        if (packages != null) {
+            for (BillboardPricingPackage pkg : packages) {
+                pkg.setBillboard(this);
+                this.pricingPackages.add(pkg);
+            }
+        }
+    }
+
+    public void addPricingPackage(BillboardPricingPackage pkg) {
+        this.pricingPackages.add(pkg);
+        pkg.setBillboard(this);
+    }
+
+    public void mergePricingPackages(java.util.List<BillboardPricingPackage> incomingPackages) {
+        java.util.Objects.requireNonNull(incomingPackages, "incomingPackages must not be null");
+        java.util.Map<Integer, BillboardPricingPackage> existingByDays = this.pricingPackages.stream()
+                .collect(java.util.stream.Collectors.toMap(BillboardPricingPackage::getDurationDays, p -> p, (p1, p2) -> p1));
+
+        java.util.Set<Integer> incomingDays = new java.util.HashSet<>();
+        for (BillboardPricingPackage incoming : incomingPackages) {
+            incomingDays.add(incoming.getDurationDays());
+            BillboardPricingPackage existing = existingByDays.get(incoming.getDurationDays());
+            if (existing != null) {
+                existing.setDurationValue(incoming.getDurationValue());
+                existing.setDurationUnit(incoming.getDurationUnit());
+                existing.setRate(incoming.getRate());
+                existing.setNote(incoming.getNote());
+                existing.setBase(incoming.isBase());
+            } else {
+                incoming.setBillboard(this);
+                this.pricingPackages.add(incoming);
+            }
+        }
+        this.pricingPackages.removeIf(p -> !incomingDays.contains(p.getDurationDays()));
+        this.pricingPackages.sort(java.util.Comparator.comparingInt(BillboardPricingPackage::getDurationDays));
     }
 }

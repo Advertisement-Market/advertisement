@@ -26,6 +26,7 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        default_batch_fetch_size: 25
         jdbc:
           time_zone: UTC
   flyway:

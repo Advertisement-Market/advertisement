@@ -9,6 +9,7 @@ import {
   isBefore,
   isValidDateKey,
 } from '@/features/availability/availabilityUtils';
+import { buildDefaultPackages } from '@/features/auth/pricingPackageDefaults';
 
 const MONTHS = [
   'January',
@@ -296,47 +297,30 @@ export function AvailabilityCalendar() {
 /* ── Pricing table with auto-calculated base rate + discounts ── */
 const UNIT_DAYS = { days: 1, weeks: 7, months: 30, years: 365 };
 
-const DEFAULT_PACKAGES = [
-  {
-    id: 1,
-    num: '1',
-    unit: 'months',
-    rate: '',
-    note: '',
-    notePlaceholder: 'Standard',
-    isBase: true,
-  },
-  {
-    id: 2,
-    num: '1',
-    unit: 'months',
-    rate: '',
-    note: '',
-    notePlaceholder: '30% off',
-    isBase: false,
-  },
-  {
-    id: 3,
-    num: '1',
-    unit: 'months',
-    rate: '',
-    note: '',
-    notePlaceholder: 'Best value',
-    isBase: false,
-  },
-];
-
 export function PricingTable() {
   const { field, setField } = useRegister();
   const daily = Number(field('f_startPrice')) || 0;
 
   const rawPackages = field('f_pricingPackages');
+  const startPrice = field('f_startPrice');
+  const minBookingValue = field('f_minBookingValue');
+  const minBookingUnit = field('f_minBookingUnit');
+
   const packages = useMemo(() => {
     if (Array.isArray(rawPackages) && rawPackages.length > 0) {
       return rawPackages;
     }
-    return DEFAULT_PACKAGES;
-  }, [rawPackages]);
+    const defaultList = buildDefaultPackages(startPrice, minBookingValue, minBookingUnit);
+    return defaultList.map((p, idx) => ({
+      id: idx + 1,
+      num: String(p.durationValue),
+      unit: p.durationUnit,
+      rate: p.rate || '',
+      note: p.note || '',
+      notePlaceholder: p.notePlaceholder || p.note || '',
+      isBase: p.isBase,
+    }));
+  }, [rawPackages, startPrice, minBookingValue, minBookingUnit]);
 
   // 1. Identify base package (Row 1)
   const basePkg = packages.find((p) => p.isBase) || packages[0];
@@ -478,6 +462,7 @@ export function PricingTable() {
                   placeholder={pkg.notePlaceholder}
                   aria-label="Package notes"
                   value={pkg.note}
+                  maxLength={150}
                   style={{ flex: 1, minWidth: 0, width: '100%' }}
                   onChange={(e) => handleUpdate(pkg.id, 'note', e.target.value)}
                 />
@@ -568,6 +553,11 @@ export function PricingTable() {
           </svg>
           Add Package
         </button>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginTop: 8 }}>
+        ℹ️ Base rate automatically tracks your starting price until customized. Once published,
+        saved package rates represent fixed offers and will not change when daily starting price is
+        updated.
       </div>
     </div>
   );

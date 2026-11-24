@@ -64,6 +64,7 @@ public class OwnerRegistrationService {
     private final NotificationService notificationService;
     private final LovService lovService;
     private final AvailabilityService availabilityService;
+    private final com.theadbasket.backend.owner.PricingPackageService pricingPackageService;
 
     public OwnerRegistrationService(AccountRegistrar accountRegistrar,
             AuthService authService,
@@ -75,6 +76,23 @@ public class OwnerRegistrationService {
             NotificationService notificationService,
             LovService lovService,
             AvailabilityService availabilityService) {
+        this(accountRegistrar, authService, refreshTokenService, userRepository,
+                ownerProfileRepository, billboardListingRepository, rolePolicyProperties,
+                notificationService, lovService, availabilityService, new com.theadbasket.backend.owner.PricingPackageService(lovService));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public OwnerRegistrationService(AccountRegistrar accountRegistrar,
+            AuthService authService,
+            RefreshTokenService refreshTokenService,
+            UserRepository userRepository,
+            OwnerProfileRepository ownerProfileRepository,
+            BillboardListingRepository billboardListingRepository,
+            RolePolicyProperties rolePolicyProperties,
+            NotificationService notificationService,
+            LovService lovService,
+            AvailabilityService availabilityService,
+            com.theadbasket.backend.owner.PricingPackageService pricingPackageService) {
         this.accountRegistrar = accountRegistrar;
         this.authService = authService;
         this.refreshTokenService = refreshTokenService;
@@ -85,6 +103,7 @@ public class OwnerRegistrationService {
         this.notificationService = notificationService;
         this.lovService = lovService;
         this.availabilityService = availabilityService;
+        this.pricingPackageService = pricingPackageService != null ? pricingPackageService : new com.theadbasket.backend.owner.PricingPackageService(lovService);
     }
 
     /**
@@ -283,8 +302,18 @@ public class OwnerRegistrationService {
         listing.setStartPrice(req.startPrice());
         listing.setMinBookingValue(req.minBookingValue());
         listing.setMinBookingUnit(minBookingUnit);
+        pricingPackageService.validateMinBooking(req.minBookingValue(), minBookingUnit);
         listing.setMinBookingDays(minBookingUnit.toDays(req.minBookingValue()));
         listing.setDiscountNote(blankToNull(req.discountNote()));
+
+        java.util.List<com.theadbasket.backend.owner.BillboardPricingPackage> packages = pricingPackageService.validateAndBuildPackages(
+                req.pricingPackages(),
+                listing,
+                req.startPrice(),
+                req.minBookingValue(),
+                minBookingUnit
+        );
+        listing.setPricingPackages(packages);
         return listing;
     }
 }

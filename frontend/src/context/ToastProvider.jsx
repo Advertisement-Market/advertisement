@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ToastContext } from './ToastContext';
 
 const TOAST_DURATION = 3800;
@@ -11,6 +11,12 @@ export function ToastProvider({ children }) {
   const [message, setMessage] = useState('');
   const [visible, setVisible] = useState(false);
   const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const showToast = useCallback((msg) => {
     setMessage(msg);

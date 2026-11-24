@@ -7,7 +7,9 @@ import {
   mapListingToFormData,
   mapFormDataToPatchPayload,
   phoneOrNull,
+  serializePricingPackages,
 } from './registrationMappers';
+import { buildDefaultPackages } from './pricingPackageDefaults';
 import { FieldFormatError } from '@/lib/validators';
 
 describe('registrationMappers - Address and Payload Structure', () => {
@@ -296,6 +298,15 @@ describe('registrationMappers - Address and Payload Structure', () => {
         minBookingValue: 1,
         minBookingUnit: 'MONTHS',
         discountNote: '10% discount on 3+ months',
+        pricingPackages: [
+          {
+            durationValue: 1,
+            durationUnit: 'MONTHS',
+            rate: null,
+            note: null,
+            isBase: true,
+          },
+        ],
       });
     });
 
@@ -445,9 +456,10 @@ describe('registrationMappers - Address and Payload Structure', () => {
         'minBookingValue',
         'minBookingUnit',
         'discountNote',
+        'pricingPackages',
       ];
       expect(Object.keys(result).sort()).toEqual(expectedKeys.sort());
-      expect(Object.keys(result).length).toBe(22);
+      expect(Object.keys(result).length).toBe(23);
 
       // Explicitly assert UI-only fields are NOT present
       expect(result).not.toHaveProperty('photos');
@@ -946,6 +958,192 @@ describe('registrationMappers - Address and Payload Structure', () => {
       );
       expect(mapOwner({ ...base, f_companyPhone: '   ' }).companyPhone).toBeNull();
       expect(mapOwner({ ...base }).companyPhone).toBeNull();
+    });
+  });
+
+  describe('serializePricingPackages and pricing packages mapping', () => {
+    it('generates 3 default package tiers using buildDefaultPackages with blank promotional tiers', () => {
+      const defs = buildDefaultPackages(5000, 1, 'months');
+      expect(defs).toHaveLength(3);
+      expect(defs[0].isBase).toBe(true);
+      expect(defs[0].durationDays).toBe(30);
+      expect(defs[0].rate).toBe('');
+      expect(defs[0].notePlaceholder).toBe('Standard');
+      expect(defs[1].isBase).toBe(false);
+      expect(defs[1].rate).toBe('');
+      expect(defs[1].notePlaceholder).toBe('30% off');
+      expect(defs[2].isBase).toBe(false);
+      expect(defs[2].rate).toBe('');
+      expect(defs[2].notePlaceholder).toBe('Best value');
+    });
+
+    it('synthesizes base package when rawPackages is null or empty', () => {
+      const res = serializePricingPackages(null, null, 2, 'weeks');
+      expect(res).toEqual([
+        {
+          durationValue: 2,
+          durationUnit: 'WEEKS',
+          rate: null,
+          note: null,
+          isBase: true,
+        },
+      ]);
+    });
+
+    it('serializes configured packages with formatted rates and notes', () => {
+      const raw = [
+        { num: 1, unit: 'months', rate: '', note: 'Base note', isBase: true },
+        { num: 3, unit: 'months', rate: '270000', note: '10% discount', isBase: false },
+        { num: 1, unit: 'years', rate: '1000000', note: 'Annual special', isBase: false },
+      ];
+      const res = serializePricingPackages(raw, 100000, 1, 'months');
+      expect(res).toEqual([
+        {
+          durationValue: 1,
+          durationUnit: 'MONTHS',
+          rate: null,
+          note: 'Base note',
+          isBase: true,
+        },
+        {
+          durationValue: 3,
+          durationUnit: 'MONTHS',
+          rate: 270000,
+          note: '10% discount',
+          isBase: false,
+        },
+        {
+          durationValue: 1,
+          durationUnit: 'YEARS',
+          rate: 1000000,
+          note: 'Annual special',
+          isBase: false,
+        },
+      ]);
+    });
+
+    it('throws FieldFormatError on duplicate normalized durations (e.g. 7 DAYS and 1 WEEKS)', () => {
+      const raw = [
+        { num: 7, unit: 'days', rate: '', note: '', isBase: true },
+        { num: 1, unit: 'weeks', rate: '50000', note: 'Promo', isBase: false },
+      ];
+      expect(() => serializePricingPackages(raw, 50000, 7, 'days')).toThrow(FieldFormatError);
+    });
+
+    it('throws FieldFormatError when promotional tier has empty rate', () => {
+      const raw = [
+        { num: 1, unit: 'months', rate: '', note: '', isBase: true },
+        { num: 3, unit: 'months', rate: '', note: 'Discounted note', isBase: false },
+      ];
+      expect(() => serializePricingPackages(raw, 50000, 1, 'months')).toThrow(FieldFormatError);
+    });
+
+    it('throws FieldFormatError when rate is zero or negative', () => {
+      const rawZero = [
+        { num: 1, unit: 'months', rate: '', note: '', isBase: true },
+        { num: 3, unit: 'months', rate: '0', note: '', isBase: false },
+      ];
+      expect(() => serializePricingPackages(rawZero, 50000, 1, 'months')).toThrow(FieldFormatError);
+
+      const rawNeg = [
+        { num: 1, unit: 'months', rate: '', note: '', isBase: true },
+        { num: 3, unit: 'months', rate: '-100', note: '', isBase: false },
+      ];
+      expect(() => serializePricingPackages(rawNeg, 50000, 1, 'months')).toThrow(FieldFormatError);
+    });
+
+    it('trims note and caps at 150 characters', () => {
+      const longNote = 'A'.repeat(200);
+      const raw = [{ num: 1, unit: 'months', rate: '', note: `  ${longNote}  `, isBase: true }];
+      const res = serializePricingPackages(raw, 50000, 1, 'months');
+      expect(res[0].note.length).toBe(150);
+      expect(res[0].note).toBe('A'.repeat(150));
+    });
+
+    it('maps DTO pricingPackages to formData and round-trips to patch payload', () => {
+      const dto = {
+        name: 'DTO Test',
+        pricingPackages: [
+          {
+            id: 10,
+            durationValue: 1,
+            durationUnit: 'MONTHS',
+            rate: 100000,
+            note: 'Base',
+            isBase: true,
+          },
+          {
+            id: 11,
+            durationValue: 6,
+            durationUnit: 'MONTHS',
+            rate: 500000,
+            note: 'Half-year',
+            isBase: false,
+          },
+        ],
+      };
+      const formData = mapListingToFormData(dto);
+      expect(formData.f_pricingPackages).toHaveLength(2);
+      expect(formData.f_pricingPackages[0]).toEqual({
+        id: 10,
+        num: '1',
+        unit: 'months',
+        rate: '100000',
+        note: 'Base',
+        isBase: true,
+      });
+
+      const patch = mapFormDataToPatchPayload(formData);
+      expect(patch.pricingPackages).toHaveLength(2);
+      expect(patch.pricingPackages[0].durationDays).toBeUndefined(); // internal only
+      expect(patch.pricingPackages[0].rate).toBe(100000);
+      expect(patch.pricingPackages[1].rate).toBe(500000);
+    });
+
+    it('mapListingToFormData falls back to buildDefaultPackages when dto.pricingPackages is empty array or null (legacy fallback)', () => {
+      const dtoEmpty = {
+        name: 'Legacy Listing No Packages',
+        startPrice: 1500,
+        minBookingValue: 1,
+        minBookingUnit: 'MONTHS',
+        pricingPackages: [],
+      };
+      const formDataEmpty = mapListingToFormData(dtoEmpty);
+      expect(formDataEmpty.f_pricingPackages).toHaveLength(3);
+      expect(formDataEmpty.f_pricingPackages[0].isBase).toBe(true);
+      expect(formDataEmpty.f_pricingPackages[0].num).toBe('1');
+      expect(formDataEmpty.f_pricingPackages[0].unit).toBe('months');
+      expect(formDataEmpty.f_pricingPackages[0].rate).toBe(''); // blank rate forces valid entry or auto-calculation
+
+      const dtoNull = {
+        name: 'Legacy Listing Null Packages',
+        startPrice: 2000,
+        minBookingValue: 3,
+        minBookingUnit: 'MONTHS',
+        pricingPackages: null,
+      };
+      const formDataNull = mapListingToFormData(dtoNull);
+      expect(formDataNull.f_pricingPackages).toHaveLength(3);
+      expect(formDataNull.f_pricingPackages[0].isBase).toBe(true);
+      expect(formDataNull.f_pricingPackages[0].num).toBe('3');
+    });
+
+    it('serializePricingPackages sends rate: null for blank base rate and throws for blank promotional rate', () => {
+      const pkgsWithBlankBase = [
+        { num: 1, unit: 'months', rate: '', note: 'Base', isBase: true },
+        { num: 3, unit: 'months', rate: '75000', note: 'Discount', isBase: false },
+      ];
+      const serialized = serializePricingPackages(pkgsWithBlankBase, 1000, 1, 'months');
+      expect(serialized[0].rate).toBeNull(); // triggers backend auto-rate
+      expect(serialized[1].rate).toBe(75000);
+
+      const pkgsWithBlankPromo = [
+        { num: 1, unit: 'months', rate: '', note: 'Base', isBase: true },
+        { num: 3, unit: 'months', rate: '', note: 'Discount Note', isBase: false },
+      ];
+      expect(() => serializePricingPackages(pkgsWithBlankPromo, 1000, 1, 'months')).toThrow(
+        FieldFormatError,
+      );
     });
   });
 });
