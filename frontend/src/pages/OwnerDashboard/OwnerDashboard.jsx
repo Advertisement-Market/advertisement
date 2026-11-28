@@ -10,11 +10,16 @@ import { ownerListingApi } from '@/features/owner/ownerListingApi';
 import { apiErrorMessage } from '@/lib/apiClient';
 import { Toast } from '@/components/ui/Toast/Toast';
 import {
+  getRecentListings,
+  formatListingMeta,
+  formatListingMonthlyPrice,
+  getListingStatusBadge,
+} from './ownerDashboardUtils';
+import {
   NAV,
   TITLES,
   NOTIFICATIONS,
   ONBOARD_STEPS,
-  LISTINGS,
   LISTING_NAMES,
   QUOTES,
   TENDERS,
@@ -849,12 +854,57 @@ function PageHeader({ title, sub, children }) {
 }
 
 /* ── Overview ── */
-function Overview({ onNav, calData, listingsCount }) {
+function ListingThumb({ coverPhotoUrl, name, type, meta }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+
+  const isFailed = failedUrl === coverPhotoUrl;
+
+  if (coverPhotoUrl && !isFailed) {
+    return (
+      <img
+        src={coverPhotoUrl}
+        alt=""
+        loading="lazy"
+        onError={() => setFailedUrl(coverPhotoUrl)}
+        className="lr-icon-img"
+        style={{ width: 46, height: 46, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
+      />
+    );
+  }
+
+  const isLed =
+    (type || '').toLowerCase().includes('led') || (type || '').toLowerCase().includes('digital');
+  const isStatic = (type || '').toLowerCase().includes('static');
+  const bg = isLed
+    ? 'linear-gradient(135deg,#1e3a5f,#1d6fa4)'
+    : isStatic
+      ? 'linear-gradient(135deg,#1a3320,#2e5e32)'
+      : 'linear-gradient(135deg,#0c2340,#0a70c0)';
+
+  return (
+    <div className="lr-icon" style={{ background: bg }} aria-hidden="true">
+      <BillboardIcon type={type} name={name} meta={meta} size={22} />
+    </div>
+  );
+}
+
+export function Overview({
+  onNav,
+  calData,
+  listings = [],
+  loadingListings = false,
+  listingsError = null,
+  onRetryListings,
+  onAddListing,
+}) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [onboard, setOnboard] = useState(true);
   const [steps, setSteps] = useState(ONBOARD_STEPS);
   const done = steps.filter((s) => s.done).length;
+
+  const recentListings = useMemo(() => getRecentListings(listings, 3), [listings]);
+
   const complete = (i) =>
     setSteps((prev) => {
       if (prev[i].done) return prev;
@@ -863,6 +913,7 @@ function Overview({ onNav, calData, listingsCount }) {
         showToast('All steps complete! Listings fully optimised.', 'success');
       return next;
     });
+
   const check = (
     <div className="onboard-step-check">
       <svg
@@ -877,6 +928,7 @@ function Overview({ onNav, calData, listingsCount }) {
       </svg>
     </div>
   );
+
   return (
     <div className="page active">
       {onboard && (
@@ -919,7 +971,7 @@ function Overview({ onNav, calData, listingsCount }) {
               <path d="M12 16v5M8 21h8" />
             </>,
             'Active Listings',
-            listingsCount != null ? String(listingsCount) : '3',
+            String(listings.length),
             <span className="card-trend neutral">All verified</span>,
           ),
           STAT(
@@ -967,28 +1019,85 @@ function Overview({ onNav, calData, listingsCount }) {
                 Manage all →
               </button>
             </div>
-            {LISTINGS.map((l) => (
-              <div className="listing-row" key={l.name} onClick={() => onNav('listings')}>
-                <div className="lr-icon" style={{ background: l.color }}>
-                  <BillboardIcon type={l.type} name={l.name} meta={l.meta} size={22} />
-                </div>
-                <div className="lr-info">
-                  <div className="lr-name">{l.name}</div>
-                  <div className="lr-meta">{l.meta}</div>
-                </div>
-                <div className="lr-stats">
-                  <div className="lr-stat">
-                    <div className="lr-stat-val">{l.views}</div>
-                    <div className="lr-stat-label">views</div>
-                  </div>
-                  <div className="lr-stat">
-                    <div className="lr-stat-val">{l.price}</div>
-                    <div className="lr-stat-label">/month</div>
-                  </div>
-                </div>
-                <span className={cn('chip', l.sc)}>{l.status}</span>
+
+            {listingsError && listings.length === 0 ? (
+              <div
+                className="empty-state"
+                role="alert"
+                style={{ padding: '24px 16px', textAlign: 'center' }}
+              >
+                <p style={{ color: 'var(--red)', marginBottom: 12 }}>{listingsError}</p>
+                {onRetryListings && (
+                  <button type="button" className="btn-secondary btn-sm" onClick={onRetryListings}>
+                    Retry
+                  </button>
+                )}
               </div>
-            ))}
+            ) : loadingListings && listings.length === 0 ? (
+              <div
+                className="empty-state"
+                aria-busy="true"
+                aria-live="polite"
+                style={{ padding: '24px 16px', textAlign: 'center' }}
+              >
+                <p style={{ color: 'var(--ink-muted)' }}>Loading your latest listings...</p>
+              </div>
+            ) : recentListings.length === 0 ? (
+              <div className="empty-state" style={{ padding: '24px 16px', textAlign: 'center' }}>
+                <p style={{ color: 'var(--ink-muted)', marginBottom: 12 }}>
+                  No billboard listings yet. Add your first listing to start receiving booking
+                  requests.
+                </p>
+                <button
+                  type="button"
+                  className="btn-teal btn-sm"
+                  onClick={() => (onAddListing ? onAddListing() : onNav('listings'))}
+                >
+                  + Add First Listing
+                </button>
+              </div>
+            ) : (
+              recentListings.map((l) => {
+                const meta = formatListingMeta(l);
+                const price = formatListingMonthlyPrice(l);
+                const badge = getListingStatusBadge(l.status);
+                const rowLabel = [l.name, meta, `${price}/month`, badge.label]
+                  .filter(Boolean)
+                  .join(', ');
+
+                return (
+                  <button
+                    type="button"
+                    className="listing-row"
+                    key={l.id || l.name}
+                    onClick={() => onNav('listings')}
+                    aria-label={rowLabel}
+                  >
+                    <ListingThumb
+                      coverPhotoUrl={l.coverPhotoUrl}
+                      name={l.name}
+                      type={l.type}
+                      meta={meta}
+                    />
+                    <span className="lr-info">
+                      <span className="lr-name">{l.name}</span>
+                      <span className="lr-meta">{meta}</span>
+                    </span>
+                    <span className="lr-stats">
+                      <span className="lr-stat">
+                        <span className="lr-stat-val">{l.views ?? '—'}</span>
+                        <span className="lr-stat-label">views</span>
+                      </span>
+                      <span className="lr-stat">
+                        <span className="lr-stat-val">{price}</span>
+                        <span className="lr-stat-label">/month</span>
+                      </span>
+                    </span>
+                    <span className={cn('chip', badge.className)}>{badge.label}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
           <div className="section-card">
             <div className="sc-header">
@@ -3291,10 +3400,12 @@ export function OwnerDashboard() {
     user ? {} : import.meta.env.DEV ? initCalData() : {},
   );
   const [userName, setUserName] = useState(() => displayName(user));
-  const [listings, setListings] = useState(() => (user ? [] : import.meta.env.DEV ? LISTINGS : []));
+  const [listings, setListings] = useState([]);
   const [loadingListings, setLoadingListings] = useState(() => Boolean(user));
+  const [listingsError, setListingsError] = useState(null);
   const [modal, setModal] = useState(null); // {type, brand, listing, tender, name}
   const [refreshKey, setRefreshKey] = useState(0);
+  const fetchSeqRef = useRef(0);
   const hydratedOverviewListingRef = useRef(null);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -3329,8 +3440,16 @@ export function OwnerDashboard() {
   }, [user, page, primaryListingId]);
 
   const refreshListings = () => {
+    setListingsError(null);
+    setLoadingListings(true);
     setRefreshKey((k) => k + 1);
   };
+
+  useEffect(() => {
+    return () => {
+      fetchSeqRef.current = -1;
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -3338,24 +3457,23 @@ export function OwnerDashboard() {
     }
 
     let isMounted = true;
+    const seq = ++fetchSeqRef.current;
+
     ownerListingApi
       .getListings()
       .then((data) => {
-        if (isMounted) {
-          setListings(data || []);
+        if (isMounted && seq === fetchSeqRef.current) {
+          setListings(Array.isArray(data) ? data : []);
         }
       })
       .catch((err) => {
-        if (isMounted) {
-          if (import.meta.env.DEV) {
-            setListings(LISTINGS);
-          } else {
-            showToast(apiErrorMessage(err, 'Failed to load listings.'), 'error');
-          }
+        if (isMounted && seq === fetchSeqRef.current) {
+          setListingsError('Unable to load billboard listings right now.');
+          showToast(apiErrorMessage(err, 'Failed to load listings.'), 'error');
         }
       })
       .finally(() => {
-        if (isMounted) {
+        if (isMounted && seq === fetchSeqRef.current) {
           setLoadingListings(false);
         }
       });
@@ -3426,7 +3544,15 @@ export function OwnerDashboard() {
           onNav={nav}
         />
         {page === 'overview' && (
-          <Overview onNav={nav} calData={calData} listingsCount={listings.length} />
+          <Overview
+            onNav={nav}
+            calData={calData}
+            listings={listings}
+            loadingListings={loadingListings}
+            listingsError={listingsError}
+            onRetryListings={refreshListings}
+            onAddListing={() => navigate(ROUTES.newBillboardListing)}
+          />
         )}
         {page === 'listings' && (
           <Listings

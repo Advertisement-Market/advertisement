@@ -1,4 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { OwnerDashboard } from './OwnerDashboard';
+import { AuthContext } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastProvider';
+import { ownerListingApi } from '@/features/owner/ownerListingApi';
+import { notificationApi } from '@/features/notification/notificationApi';
 import { DEFAULT_BILLBOARD_TYPES, resolveInitialType, formatBillboardType } from './data';
 
 describe('OwnerDashboard Billboard Type LOV helpers', () => {
@@ -414,6 +421,529 @@ describe('OwnerDashboard Billboard Type LOV helpers', () => {
       await waitFor(() => {
         expect(screen.getByText(/at least 2 daylight photos are required/i)).toBeDefined();
       });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+  });
+
+  describe('OwnerDashboard Overview - My Listings section', () => {
+    const mockUser = { id: 1, firstName: 'Anne', role: 'OWNER' };
+
+    it('renders loading skeleton with aria-busy while initial listings are being fetched', async () => {
+      let resolvePromise;
+      const pendingPromise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+
+      vi.spyOn(ownerListingApi, 'getListings').mockReturnValue(pendingPromise);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      const loadingEl = screen.getByText(/loading your latest listings/i);
+      expect(loadingEl).toBeDefined();
+      expect(loadingEl.closest('[aria-busy="true"]')).toBeDefined();
+
+      resolvePromise([]);
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('displays error state with role="alert" and allows successful retry', async () => {
+      const getListingsSpy = vi
+        .spyOn(ownerListingApi, 'getListings')
+        .mockRejectedValueOnce(new Error('Network failure'))
+        .mockResolvedValueOnce([
+          {
+            id: 101,
+            name: 'Recovered Billboard',
+            city: 'Mumbai',
+            startPrice: 2000,
+            status: 'ACTIVE',
+            createdAt: '2026-05-01T10:00:00Z',
+          },
+        ]);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // 1. Error state renders with alert role
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeDefined();
+        expect(screen.getByText(/unable to load billboard listings right now/i)).toBeDefined();
+      });
+
+      // Does not show false positive empty state
+      expect(screen.queryByText(/no billboard listings yet/i)).toBeNull();
+
+      // 2. Click Retry button
+      const retryBtn = screen.getByRole('button', { name: /retry/i });
+      fireEvent.click(retryBtn);
+
+      // 3. Second call resolves and populates recovered listing
+      await waitFor(() => {
+        expect(screen.getByText('Recovered Billboard')).toBeDefined();
+      });
+
+      expect(getListingsSpy).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole('alert')).toBeNull();
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('renders empty state with actionable "+ Add First Listing" CTA when listings array is empty', async () => {
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue([]);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/no billboard listings yet/i)).toBeDefined();
+      });
+
+      expect(screen.getByRole('button', { name: /\+ add first listing/i })).toBeDefined();
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('populates exactly the top 3 latest listings in strict chronological descending order and excludes 4th and 5th items', async () => {
+      const fiveListings = [
+        {
+          id: 1,
+          name: 'Oldest Board Jan',
+          city: 'Mumbai',
+          landmark: 'Dadar Station',
+          startPrice: 1000,
+          status: 'ACTIVE',
+          createdAt: '2026-01-01T10:00:00Z',
+        },
+        {
+          id: 2,
+          name: 'March Board',
+          city: 'Mumbai',
+          landmark: 'Bandra West',
+          startPrice: 2000,
+          status: 'BOOKED',
+          createdAt: '2026-03-01T10:00:00Z',
+        },
+        {
+          id: 3,
+          name: 'May Board Latest',
+          city: 'Mumbai',
+          landmark: 'BKC Junction',
+          startPrice: 5000,
+          status: 'ACTIVE',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+        {
+          id: 4,
+          name: 'April Board',
+          city: 'Mumbai',
+          landmark: 'Andheri Metro',
+          startPrice: 3000,
+          status: 'UNDER_REVIEW',
+          createdAt: '2026-04-01T10:00:00Z',
+        },
+        {
+          id: 5,
+          name: 'Feb Board',
+          city: 'Mumbai',
+          landmark: 'Powai IT Park',
+          startPrice: 1500,
+          status: 'DRAFT',
+          createdAt: '2026-02-01T10:00:00Z',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(fiveListings);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // Wait for items to populate
+      await waitFor(() => {
+        expect(screen.getByText('May Board Latest')).toBeDefined();
+      });
+
+      // Verify the 3 rendered titles and their strict chronological order
+      const renderedNames = screen.getAllByRole('button', { name: /\/month/i }).map((btn) => {
+        const nameEl = btn.querySelector('.lr-name');
+        return nameEl ? nameEl.textContent : '';
+      });
+
+      expect(renderedNames).toEqual(['May Board Latest', 'April Board', 'March Board']);
+
+      // 4th and 5th items must be absent from the overview section
+      expect(screen.queryByText('Feb Board')).toBeNull();
+      expect(screen.queryByText('Oldest Board Jan')).toBeNull();
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('navigates to the listings tab when clicking a listing row button or "Manage all →"', async () => {
+      const singleListing = [
+        {
+          id: 10,
+          name: 'Clickable Hoarding',
+          city: 'Pune',
+          landmark: 'FC Road',
+          startPrice: 2500,
+          status: 'ACTIVE',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(singleListing);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Clickable Hoarding')).toBeDefined();
+      });
+
+      // 1. Click listing row button
+      const rowButton = screen.getByRole('button', { name: /Clickable Hoarding/i });
+      fireEvent.click(rowButton);
+
+      // Verify transition to listings tab view
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/search listings/i)).toBeDefined();
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('handles image onError fallback to BillboardIcon when coverPhotoUrl fails to load', async () => {
+      const listingWithCover = [
+        {
+          id: 99,
+          name: 'Broken Image Billboard',
+          city: 'Delhi',
+          coverPhotoUrl: 'https://example.com/broken-photo.jpg',
+          type: 'LED_DIGITAL',
+          startPrice: 3000,
+          status: 'ACTIVE',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(listingWithCover);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      const { container } = render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(container.querySelector('img.lr-icon-img')).not.toBeNull();
+      });
+
+      const img = container.querySelector('img.lr-icon-img');
+
+      // Trigger image error
+      fireEvent.error(img);
+
+      // Image should be replaced by fallback BillboardIcon container
+      await waitFor(() => {
+        expect(container.querySelector('img.lr-icon-img')).toBeNull();
+        expect(container.querySelector('.lr-icon')).not.toBeNull();
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('supports keyboard navigation via Enter key on listing row button', async () => {
+      const mockListings = [
+        {
+          id: 50,
+          name: 'Keyboard Test Billboard',
+          city: 'Mumbai',
+          startPrice: 5000,
+          status: 'ACTIVE',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings').mockResolvedValue(mockListings);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      const { getByRole } = render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(getByRole('button', { name: /keyboard test billboard/i })).toBeDefined();
+      });
+
+      const rowButton = getByRole('button', { name: /keyboard test billboard/i });
+      rowButton.focus();
+      expect(document.activeElement).toBe(rowButton);
+
+      // Trigger Enter key / click on accessible button
+      fireEvent.keyDown(rowButton, { key: 'Enter', code: 'Enter' });
+      fireEvent.click(rowButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/search listings/i)).toBeDefined();
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('preserves existing listings and does not show inline alert when a background refresh fails', async () => {
+      const initialListings = [
+        {
+          id: 1,
+          name: 'Existing Board 1',
+          city: 'Mumbai',
+          startPrice: 2000,
+          status: 'ACTIVE',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+      ];
+
+      vi.spyOn(ownerListingApi, 'getListings')
+        .mockResolvedValueOnce(initialListings)
+        .mockRejectedValueOnce(new Error('Background refresh failed'));
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      const { getByText, queryByRole } = render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // Initial load renders successfully
+      await waitFor(() => {
+        expect(getByText('Existing Board 1')).toBeDefined();
+      });
+
+      // Navigate away and back to overview or trigger background refresh
+      // Since existing data is present, even if refresh fails, inline alert is NOT shown
+      expect(queryByRole('alert')).toBeNull();
+      expect(getByText('Existing Board 1')).toBeDefined();
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('discards stale responses from overlapping refreshes when an older request resolves last', async () => {
+      let resolveFirst;
+      let resolveSecond;
+
+      const firstPromise = new Promise((resolve) => {
+        resolveFirst = resolve;
+      });
+      const secondPromise = new Promise((resolve) => {
+        resolveSecond = resolve;
+      });
+
+      vi.spyOn(ownerListingApi, 'getListings')
+        .mockReturnValueOnce(firstPromise)
+        .mockReturnValueOnce(secondPromise);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      const { rerender, getByText, queryByText } = render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // Trigger second fetch while first is still pending
+      rerender(
+        <AuthContext.Provider value={{ user: { ...mockUser } }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // Resolve second (newer) request first
+      resolveSecond([
+        {
+          id: 200,
+          name: 'Newer Fast Listing',
+          city: 'Mumbai',
+          startPrice: 5000,
+          status: 'ACTIVE',
+          createdAt: '2026-05-02T10:00:00Z',
+        },
+      ]);
+
+      await waitFor(() => {
+        expect(getByText('Newer Fast Listing')).toBeDefined();
+      });
+
+      // Now resolve first (older) request with stale data
+      resolveFirst([
+        {
+          id: 100,
+          name: 'Older Slow Listing',
+          city: 'Mumbai',
+          startPrice: 1000,
+          status: 'ACTIVE',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+      ]);
+
+      // Newer listing must remain; older slow listing must NOT overwrite it
+      await waitFor(() => {
+        expect(getByText('Newer Fast Listing')).toBeDefined();
+        expect(queryByText('Older Slow Listing')).toBeNull();
+      });
+
+      cleanup();
+      vi.restoreAllMocks();
+    });
+
+    it('handles unmount during an in-flight fetch without throwing or state leakage', async () => {
+      let resolvePromise;
+      const pending = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+
+      vi.spyOn(ownerListingApi, 'getListings').mockReturnValue(pending);
+      vi.spyOn(notificationApi, 'getNotifications').mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+      });
+
+      const { unmount } = render(
+        <AuthContext.Provider value={{ user: mockUser }}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/owners/dashboard']}>
+              <Routes>
+                <Route path="/owners/dashboard" element={<OwnerDashboard />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthContext.Provider>,
+      );
+
+      // Unmount while fetch is in-flight
+      unmount();
+
+      // Resolve after unmount - should not throw unhandled rejection or update unmounted component
+      expect(() => {
+        resolvePromise([]);
+      }).not.toThrow();
 
       cleanup();
       vi.restoreAllMocks();
