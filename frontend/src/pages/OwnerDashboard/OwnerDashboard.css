@@ -209,6 +209,16 @@
     color: var(--ink-muted);
   }
 
+  .chip-draft {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  .chip-neutral {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
   .form-group {
     margin-bottom: 14px;
   }
@@ -1177,6 +1187,15 @@
     cursor: pointer;
   }
 
+  button.listing-row {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+  }
+
   .listing-row:hover {
     background: var(--canvas);
   }
@@ -1201,6 +1220,7 @@
   }
 
   .lr-name {
+    display: block;
     font-size: 13.5px;
     font-weight: 500;
     color: var(--ink-rich);
@@ -1210,6 +1230,7 @@
   }
 
   .lr-meta {
+    display: block;
     font-size: 11.5px;
     color: var(--ink-faint);
     font-weight: 300;
